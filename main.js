@@ -14,7 +14,7 @@ process.on('uncaughtException',e=>elog(new Date().toISOString()+' MAIN '+(e&&e.s
 const saveCfg=()=>{ try{ fs.writeFileSync(CFGF(),JSON.stringify(cfg)); }catch(_){} };
 const argFiles=argv=>argv.slice(1).filter(a=>/\.(csv|tune|json|ejlab)$/i.test(a)&&fs.existsSync(a));
 const readOut=p=>({name:path.basename(p),text:fs.readFileSync(p,'utf8')});
-const send=(ch,d)=>{ if(win&&!win.isDestroyed()) win.webContents.send(ch,d); };
+const send=(ch,d)=>{ if(win&&!win.isDestroyed()) win.webContents.send(ch,d); if(ch==='ejl'&&typeof phoneBroadcast==='function') phoneBroadcast(d); };
 const csvs=dir=>{ try{ return fs.readdirSync(dir).filter(f=>/\.csv$/i.test(f)); }catch(_){ return []; } };
 function startWatch(){
   if(watcher){ try{ watcher.close(); }catch(_){} watcher=null; } pending.forEach(t=>clearInterval(t)); pending.clear();
@@ -45,37 +45,41 @@ function ejlStart(){
   ejl.proc=p; return p;
 }
 const ejlPost=m=>ejlStart().postMessage(m);
+const H={}; const reg=(n,fn)=>{ H[n]=fn; ipcMain.handle(n,fn); };
+// phone panel (ejLogger/phone.js): on in car mode, off on a laptop unless switched on
+let phoneServe=()=>{}, phoneBroadcast=null, phone={port:0,srv:null};
+const localIPs=()=>Object.values(require('os').networkInterfaces()).flat().filter(i=>i&&i.family==='IPv4'&&!i.internal).map(i=>i.address);
 function ejlIpc(){
-  ipcMain.handle('ejl:send',(e,m)=>{ if(m&&m.t==='select'){ ejlCfg().sel=m.list||[]; ejlSave(); } ejlPost(m); return true; });
-  ipcMain.handle('ejl:cfg',()=>ejlCfg());
-  ipcMain.handle('ejl:set',(e,patch)=>{ const c=ejlCfg(); Object.assign(c,patch||{}); ejlSave(); if(ejl.proc) ejl.proc.postMessage({t:'config',cfg:ejlEngineCfg(c)}); return c; });
-  ipcMain.handle('ejl:pickDef',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose the RomRaider logger definition (logger_METRIC_EN_v370.xml)',properties:['openFile'],filters:[{name:'Logger definition',extensions:['xml']}]});
+  reg('ejl:send',(e,m)=>{ if(m&&m.t==='select'){ ejlCfg().sel=m.list||[]; ejlSave(); send('ejl',{t:'cfg',cfg:ejlCfg(),origin:m.origin}); } ejlPost(m); return true; });
+  reg('ejl:cfg',()=>ejlCfg());
+  reg('ejl:set',(e,patch,origin)=>{ const c=ejlCfg(); Object.assign(c,patch||{}); ejlSave(); if(ejl.proc) ejl.proc.postMessage({t:'config',cfg:ejlEngineCfg(c)}); send('ejl',{t:'cfg',cfg:c,origin}); if(patch&&('phone' in patch||'role' in patch)) phoneServe(); return c; });
+  reg('ejl:pickDef',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose the RomRaider logger definition (logger_METRIC_EN_v370.xml)',properties:['openFile'],filters:[{name:'Logger definition',extensions:['xml']}]});
     if(r.canceled||!r.filePaths[0]) return ejlCfg();
     try{ const d=path.join(app.getPath('userData'),'ejLogger'); fs.mkdirSync(d,{recursive:true}); const dst=path.join(d,path.basename(r.filePaths[0])); if(path.resolve(dst)!==path.resolve(r.filePaths[0])) fs.copyFileSync(r.filePaths[0],dst); ejlCfg().defPath=dst; }
     catch(err){ elog('pickDef '+err); ejlCfg().defPath=r.filePaths[0]; }
     ejlSave(); ejlPost({t:'config',cfg:ejlEngineCfg(ejlCfg())}); return ejlCfg(); });
-  ipcMain.handle('ejl:pickDir',async()=>{ const c=ejlCfg(); const r=await dialog.showOpenDialog(win,{title:'Choose the ejLogger log folder',properties:['openDirectory','createDirectory'],defaultPath:c.logDir||undefined});
+  reg('ejl:pickDir',async()=>{ const c=ejlCfg(); const r=await dialog.showOpenDialog(win,{title:'Choose the ejLogger log folder',properties:['openDirectory','createDirectory'],defaultPath:c.logDir||undefined});
     if(!r.canceled&&r.filePaths[0]){ c.logDir=r.filePaths[0]; ejlSave(); if(ejl.proc) ejl.proc.postMessage({t:'config',cfg:ejlEngineCfg(c)}); } return c; });
-  ipcMain.handle('ejl:openDir',()=>{ const d=ejlCfg().logDir; try{ fs.mkdirSync(d,{recursive:true}); }catch(_){} shell.openPath(d); return true; });
-  ipcMain.handle('ejl:openLast',()=>{ const f=ejl.last; if(!f||!fs.existsSync(f)) return false; send('open-files',[readOut(f)]); return true; });
+  reg('ejl:openDir',()=>{ const d=ejlCfg().logDir; try{ fs.mkdirSync(d,{recursive:true}); }catch(_){} shell.openPath(d); return true; });
+  reg('ejl:openLast',()=>{ const f=ejl.last; if(!f||!fs.existsSync(f)) return false; send('open-files',[readOut(f)]); return true; });
   // cluster sidecars: <userData>/ejLogger/cluster/{customize,profiles}, seeded once from the app's defaults
   const CLD=()=>ejlCfg().clusterDir||path.join(app.getPath('userData'),'ejLogger','cluster');
   const copyDir=(src,dst,re)=>{ try{ fs.mkdirSync(dst,{recursive:true}); for(const f of fs.readdirSync(src)) if(re.test(f)&&fs.statSync(path.join(src,f)).isFile()) fs.copyFileSync(path.join(src,f),path.join(dst,f)); return true; }catch(e){ elog('cluster copy '+e); return false; } };
   function seedCluster(){ const d=CLD(); if(fs.existsSync(path.join(d,'customize'))) return; const def=path.join(__dirname,'ejLogger','defaults'); copyDir(path.join(def,'customize'),path.join(d,'customize'),/\.properties$/i); copyDir(path.join(def,'profiles'),path.join(d,'profiles'),/\.xml$/i); }
   const readAll=(dir,re)=>{ const o={}; try{ for(const f of fs.readdirSync(dir)) if(re.test(f)) o[f]=fs.readFileSync(path.join(dir,f),'utf8'); }catch(_){} return o; };
-  ipcMain.handle('ejl:cluster',()=>{ seedCluster(); const d=CLD(), cz=path.join(d,'customize'), qr={}; try{ for(const f of fs.readdirSync(cz)){ if(!/\.png$/i.test(f)) continue; const k=/wifi/i.test(f)?'wifi':/open|hub|url/i.test(f)?'open':null; if(k&&!qr[k]) qr[k]='data:image/png;base64,'+fs.readFileSync(path.join(cz,f)).toString('base64'); } }catch(_){}
+  reg('ejl:cluster',()=>{ seedCluster(); const d=CLD(), cz=path.join(d,'customize'), qr={}; try{ for(const f of fs.readdirSync(cz)){ if(!/\.png$/i.test(f)) continue; const k=/wifi/i.test(f)?'wifi':/open|hub|url/i.test(f)?'open':null; if(k&&!qr[k]) qr[k]='data:image/png;base64,'+fs.readFileSync(path.join(cz,f)).toString('base64'); } }catch(_){}
     return {dir:d,files:readAll(cz,/\.properties$/i),profiles:readAll(path.join(d,'profiles'),/\.xml$/i),qr}; });
-  ipcMain.handle('ejl:importCluster',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose a ClusterConfig folder (or its customize folder)',properties:['openDirectory']}); if(r.canceled||!r.filePaths[0]) return false;
+  reg('ejl:importCluster',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose a ClusterConfig folder (or its customize folder)',properties:['openDirectory']}); if(r.canceled||!r.filePaths[0]) return false;
     let root=r.filePaths[0]; if(/customize$/i.test(root)) root=path.dirname(root); const cz=path.join(root,'customize'), pf=path.join(root,'profiles');
     if(!fs.existsSync(cz)&&!fs.existsSync(pf)){ dialog.showMessageBox(win,{type:'info',message:'No customize or profiles folder there.',detail:'Pick the ClusterConfig folder that contains customize\\ and profiles\\.'}); return false; }
     const d=CLD(); if(fs.existsSync(cz)) copyDir(cz,path.join(d,'customize'),/\.properties$/i); if(fs.existsSync(pf)) copyDir(pf,path.join(d,'profiles'),/\.xml$/i); return true; });
   // sidecar writes: only the keys given change; comments, order and other keys stay; atomic (tmp + rename)
-  ipcMain.handle('ejl:writeProp',(e,file,patchObj)=>{ try{ seedCluster(); const name=String(file).replace(/[^\w.-]/g,''); if(!name) return false; const f=path.join(CLD(),'customize',name+'.properties');
+  reg('ejl:writeProp',(e,file,patchObj,origin)=>{ setTimeout(()=>send('ejl',{t:'cluster',origin}),50); try{ seedCluster(); const name=String(file).replace(/[^\w.-]/g,''); if(!name) return false; const f=path.join(CLD(),'customize',name+'.properties');
     let lines=[]; try{ lines=fs.readFileSync(f,'utf8').split(/\r?\n/); }catch(_){ lines=['# '+name+'.properties - written by ejStudio']; }
     for(const [k,v] of Object.entries(patchObj||{})){ const i=lines.findIndex(l=>{ const t=l.trim(); if(!t||t[0]==='#'||t[0]===';') return false; const j=t.indexOf('='); return j>0&&t.slice(0,j).trim()===k; });
       if(v===null||v===undefined){ if(i>=0) lines.splice(i,1); } else if(i>=0) lines[i]=k+' = '+String(v).replace(/[\r\n]+/g,' '); else { while(lines.length&&lines[lines.length-1].trim()==='') lines.pop(); lines.push(k+' = '+String(v).replace(/[\r\n]+/g,' ')); } }
     fs.mkdirSync(path.dirname(f),{recursive:true}); fs.writeFileSync(f+'.tmp',lines.join('\r\n').replace(/(\r\n)*$/,'')+'\r\n'); fs.renameSync(f+'.tmp',f); return true; }catch(err){ elog('writeProp '+err); return false; } });
-  ipcMain.handle('ejl:openCluster',()=>{ seedCluster(); shell.openPath(CLD()); return true; });
+  reg('ejl:openCluster',()=>{ seedCluster(); shell.openPath(CLD()); return true; });
   // ── Logs tab: list, delete, export, zip, open in Graph ──
   const LD=()=>ejlCfg().logDir, OLD=()=>path.join(LD(),'.old');
   const metaOf=(dir,n)=>{ try{ return JSON.parse(fs.readFileSync(path.join(dir,'.meta',n.replace(/\.csv$/i,'.json')),'utf8')); }catch(_){ return null; } };
@@ -90,17 +94,20 @@ function ejlIpc(){
   function moveLog(f,toOld){ const from=pathOf(f), dir=toOld?OLD():LD(); fs.mkdirSync(path.join(dir,'.meta'),{recursive:true}); fs.renameSync(from,path.join(dir,path.basename(f.name)));
     const mj=path.join(path.dirname(from),'.meta',path.basename(f.name).replace(/\.csv$/i,'.json')); if(fs.existsSync(mj)) fs.renameSync(mj,path.join(dir,'.meta',path.basename(mj))); }
   // minimal zip writer (deflate), no extra dependency
-  function writeZip(file,entries){ const zlib=require('zlib'), parts=[], cen=[]; let off=0;
+  function writeZip(file,entries){ const b=zipBuf(entries); fs.writeFileSync(file+'.tmp',b); fs.renameSync(file+'.tmp',file); }
+  function zipBuf(entries){ const zlib=require('zlib'), parts=[], cen=[]; let off=0;
     for(const [name,data] of entries){ const nb=Buffer.from(name,'utf8'), comp=zlib.deflateRawSync(data), crc=zlib.crc32(data)>>>0, d=new Date(), dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1)), dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate());
       const h=Buffer.alloc(30); h.writeUInt32LE(0x04034b50,0); h.writeUInt16LE(20,4); h.writeUInt16LE(0x0800,6); h.writeUInt16LE(8,8); h.writeUInt16LE(dt,10); h.writeUInt16LE(dd,12); h.writeUInt32LE(crc,14); h.writeUInt32LE(comp.length,18); h.writeUInt32LE(data.length,22); h.writeUInt16LE(nb.length,26);
       parts.push(h,nb,comp); const c=Buffer.alloc(46); c.writeUInt32LE(0x02014b50,0); c.writeUInt16LE(20,4); c.writeUInt16LE(20,6); c.writeUInt16LE(0x0800,8); c.writeUInt16LE(8,10); c.writeUInt16LE(dt,12); c.writeUInt16LE(dd,14); c.writeUInt32LE(crc,16); c.writeUInt32LE(comp.length,20); c.writeUInt32LE(data.length,24); c.writeUInt16LE(nb.length,28); c.writeUInt32LE(off,42);
       cen.push(c,nb); off+=30+nb.length+comp.length; }
     const cs=cen.reduce((a,b)=>a+b.length,0), e=Buffer.alloc(22); e.writeUInt32LE(0x06054b50,0); e.writeUInt16LE(entries.length,8); e.writeUInt16LE(entries.length,10); e.writeUInt32LE(cs,12); e.writeUInt32LE(off,16);
-    fs.writeFileSync(file+'.tmp',Buffer.concat([...parts,...cen,e])); fs.renameSync(file+'.tmp',file); }
-  ipcMain.handle('ejl:logs',()=>({dir:LD(),recording:ejl.rec?path.basename(ejl.file||''):null,files:listLogs(),drives:ejl.drives||[]}));
-  ipcMain.handle('ejl:logsDo',async(e,act,names,opt)=>{ const all=listLogs(), sel=all.filter(f=>names.includes((f.old?'.old/':'')+f.name)), recName=ejl.rec?path.basename(ejl.file||''):null;
+    return Buffer.concat([...parts,...cen,e]); }
+  ejl.zipLogs=names=>{ const sel=listLogs().filter(f=>names.includes((f.old?'.old/':'')+f.name)), ent=[]; for(const f of sel){ ent.push([f.name,fs.readFileSync(pathOf(f))]); const mj=path.join(f.old?OLD():LD(),'.meta',f.name.replace(/\.csv$/i,'.json')); if(fs.existsSync(mj)) ent.push(['.meta/'+path.basename(mj),fs.readFileSync(mj)]); } return zipBuf(ent); };
+  ejl.zipConfig=()=>{ const cz=path.join(CLD(),'customize'), ent=[]; for(const f of fs.readdirSync(cz)) if(/\.properties$/i.test(f)&&!/^network\.properties$/i.test(f)) ent.push(['customize/'+f,fs.readFileSync(path.join(cz,f))]); try{ for(const f of fs.readdirSync(path.join(CLD(),'profiles'))) if(/\.xml$/i.test(f)) ent.push(['profiles/'+f,fs.readFileSync(path.join(CLD(),'profiles',f))]); }catch(_){} return zipBuf(ent); };
+  reg('ejl:logs',()=>({dir:LD(),recording:ejl.rec?path.basename(ejl.file||''):null,files:listLogs(),drives:ejl.drives||[]}));
+  reg('ejl:logsDo',async(e,act,names,opt)=>{ const all=listLogs(), sel=all.filter(f=>names.includes((f.old?'.old/':'')+f.name)), recName=ejl.rec?path.basename(ejl.file||''):null;
     try{
-      if(act==='delete'){ const r=dialog.showMessageBoxSync(win,{type:'warning',buttons:['Cancel','Delete'],defaultId:0,cancelId:0,message:`Delete ${sel.length} log${sel.length===1?'':'s'}?`,detail:'This cannot be undone.'}); if(r!==1) return {ok:false};
+      if(act==='delete'){ const r=opt&&opt.confirmed?1:dialog.showMessageBoxSync(win,{type:'warning',buttons:['Cancel','Delete'],defaultId:0,cancelId:0,message:`Delete ${sel.length} log${sel.length===1?'':'s'}?`,detail:'This cannot be undone.'}); if(r!==1) return {ok:false};
         let n=0; for(const f of sel){ if(!f.old&&f.name===recName) continue; fs.unlinkSync(pathOf(f)); try{ fs.unlinkSync(path.join(f.old?OLD():LD(),'.meta',f.name.replace(/\.csv$/i,'.json'))); }catch(_){} n++; } return {ok:true,n}; }
       if(act==='export'){ let dest=opt&&opt.dest; if(!dest){ const r=await dialog.showOpenDialog(win,{title:'Export logs to…',properties:['openDirectory','createDirectory']}); if(r.canceled||!r.filePaths[0]) return {ok:false}; dest=r.filePaths[0]; }
         for(const f of sel) copyLog(f,dest); return {ok:true,n:sel.length,dest}; }
@@ -120,7 +127,7 @@ function ejlIpc(){
       if(/Volume Serial|has no label/i.test(label)&&!m) return; const d={letter:L,label:/has no label/i.test(String(out))?'':label,path:L+':\\'}; ejl.drives.push(d); send('ejl',{t:'usb',on:true,drive:d}); }); }
     for(const L of prev.filter(L=>!now.includes(L))) send('ejl',{t:'usb',on:false,drive:{letter:L}}); }
   setInterval(scanDrives,3000); setTimeout(scanDrives,1500);
-  ipcMain.handle('ejl:usbSync',async(e,letter)=>{ const d=ejl.drives.find(x=>x.letter===letter); if(!d) return {ok:false,error:'Stick removed'}; const dest=path.join(d.path,'logs'), recName=ejl.rec?path.basename(ejl.file||''):null; let n=0, moved=0;
+  reg('ejl:usbSync',async(e,letter)=>{ const d=ejl.drives.find(x=>x.letter===letter); if(!d) return {ok:false,error:'Stick removed'}; const dest=path.join(d.path,'logs'), recName=ejl.rec?path.basename(ejl.file||''):null; let n=0, moved=0;
     const fresh=listLogs().filter(f=>!f.old&&f.name!==recName);
     for(const f of fresh){ try{ const t=path.join(dest,f.name); if(!(fs.existsSync(t)&&fs.statSync(t).size===f.size)){ copyLog(f,dest); n++; send('ejl',{t:'usbProgress',name:f.name,i:n,of:fresh.length}); }
       if(fs.existsSync(t)&&fs.statSync(t).size===f.size){ moveLog(f,true); moved++; } }catch(err){ elog('usb sync '+err); } }
@@ -130,9 +137,32 @@ function ejlIpc(){
     try{ if(S.oldAfterDays>0) for(const f of listLogs()) if(!f.old&&f.name!==recName&&now-f.mtime>S.oldAfterDays*day) moveLog(f,true);
       if(S.deleteOldAfterDays>0) for(const f of listLogs()) if(f.old&&now-f.mtime>S.deleteOldAfterDays*day){ fs.unlinkSync(pathOf(f)); try{ fs.unlinkSync(path.join(OLD(),'.meta',f.name.replace(/\.csv$/i,'.json'))); }catch(_){} }
       fs.mkdirSync(LD(),{recursive:true}); const st=fs.statfsSync(LD()), free=st.bavail*st.bsize/1e9; send('ejl',{t:'disk',freeGB:+free.toFixed(1),low:free<(S.diskWarnGB==null?2:S.diskWarnGB)}); }catch(err){ elog('storage '+err); } }
-  setTimeout(storage,8000); setInterval(storage,3600e3); ipcMain.handle('ejl:storageNow',()=>{ storage(); return true; });
-  ipcMain.handle('ejl:relaunch',()=>{ ejlSave(); if(ejl.rec) return false; app.relaunch(); app.exit(0); return true; });
-  ipcMain.handle('ejl:state',()=>({state:ejl.state,rec:ejl.rec,file:ejl.file,last:ejl.last||null,running:!!ejl.proc}));
+  setTimeout(storage,8000); setInterval(storage,3600e3); reg('ejl:storageNow',()=>{ storage(); return true; });
+  reg('ejl:relaunch',()=>{ ejlSave(); if(ejl.rec) return false; app.relaunch(); app.exit(0); return true; });
+  // ── profiles: RomRaider profile XML in the cluster folder; only dash="selected" is edited ──
+  const PDIR=()=>path.join(CLD(),'profiles'), pkey=n=>String(n).replace(/[^A-Za-z0-9_-]/g,'_');
+  reg('ejl:saveProfile',(e,name,list)=>{ try{ seedCluster(); const f=path.join(PDIR(),pkey(name)+'.xml'); fs.mkdirSync(PDIR(),{recursive:true});
+      const want=new Map(list.map(x=>[x.xid,x])); let x=fs.existsSync(f)?fs.readFileSync(f,'latin1'):'<?xml version="1.0" encoding="ISO-8859-1"?>\r\n<profile protocol="SSM">\r\n<parameters>\r\n</parameters>\r\n<switches>\r\n</switches>\r\n<externals>\r\n</externals>\r\n</profile>\r\n';
+      const seen=new Set();
+      x=x.replace(/<(parameter|ecuparam|switch|external)\s+([^>]*?)(\/?)>/g,(all,tag,attrs,sl)=>{ const id=(attrs.match(/\bid="([^"]*)"/)||[])[1]; if(!id) return all; seen.add(id);
+        let a=attrs.replace(/\s*\bdash="[^"]*"/,''); if(want.has(id)){ a=a.replace(/\s*$/,'')+' dash="selected"'; const u=want.get(id).units; if(u&&!/\bunits="/.test(a)) a+=` units="${u}"`; } return `<${tag} ${a.trim()}${sl?'/':''}>`; });
+      const add={parameters:[],switches:[],externals:[]};
+      for(const [id,v] of want){ if(seen.has(id)) continue; const tag=v.kind==='switch'?'switch':v.kind==='external'?'external':'parameter'; add[tag==='switch'?'switches':tag==='external'?'externals':'parameters'].push(`<${tag} id="${id}" dash="selected"${v.units?` units="${v.units}"`:''}/>`); }
+      for(const [sec,arr] of Object.entries(add)) if(arr.length){ if(x.includes(`</${sec}>`)) x=x.replace(`</${sec}>`,arr.join('\r\n')+'\r\n</'+sec+'>'); else x=x.replace('</profile>',`<${sec}>\r\n${arr.join('\r\n')}\r\n</${sec}>\r\n</profile>`); }
+      fs.writeFileSync(f+'.tmp',x,'latin1'); fs.renameSync(f+'.tmp',f); send('ejl',{t:'cluster'}); return true; }catch(err){ elog('saveProfile '+err); return false; } });
+  const pfiles=n=>{ const k=pkey(n), cz=path.join(CLD(),'customize'); return [path.join(PDIR(),k+'.xml'),path.join(cz,'page-'+k+'.properties'),path.join(cz,'theme-'+k+'.properties'),path.join(cz,'warnlimits-'+k+'.properties')]; };
+  reg('ejl:profileOp',(e,op,name,to)=>{ try{ const A=pfiles(name), B=to?pfiles(to):null;
+      if(op==='delete'){ for(const f of A) try{ fs.unlinkSync(f); }catch(_){} }
+      else if(op==='rename'||op==='duplicate'){ if(fs.existsSync(B[0])) return {ok:false,error:'A profile with that name already exists'}; A.forEach((f,i)=>{ if(fs.existsSync(f)) (op==='rename'?fs.renameSync:fs.copyFileSync)(f,B[i]); }); if(op==='rename'&&ejlCfg().profile===name){ ejlCfg().profile=to; ejlSave(); } }
+      send('ejl',{t:'cluster'}); return {ok:true}; }catch(err){ elog('profileOp '+err); return {ok:false,error:String(err.message||err)}; } });
+  reg('ejl:backup',async()=>{ const r=await dialog.showSaveDialog(win,{title:'Back up the cluster config',defaultPath:path.join(app.getPath('documents'),`ejlogger_config_${new Date().toISOString().slice(0,10)}.zip`),filters:[{name:'Zip',extensions:['zip']}]}); if(r.canceled||!r.filePath) return false; fs.writeFileSync(r.filePath,ejl.zipConfig()); return true; });
+  reg('ejl:net',()=>({port:phone.port||0,ips:localIPs(),on:!!phone.srv}));
+  const panel=require('./ejLogger/phone')({H,root:__dirname,cfg:ejlCfg,clusterDir:CLD,zipLogs:n=>ejl.zipLogs(n),zipConfig:()=>ejl.zipConfig(),log:elog,
+    onState:()=>{ phone=panel.state; send('ejl',{t:'net',port:phone.port,ips:localIPs(),on:!!phone.srv}); }});
+  phone=panel.state; phoneBroadcast=m=>panel.broadcast(m);
+  phoneServe=()=>{ const c=ejlCfg(), want=c.phone==null?c.role==='car':!!c.phone; if(want) panel.start(); else { panel.stop(); send('ejl',{t:'net',port:0,ips:[],on:false}); } };
+  setTimeout(phoneServe,1500);
+  reg('ejl:state',()=>({state:ejl.state,rec:ejl.rec,file:ejl.file,last:ejl.last||null,running:!!ejl.proc}));
 }
 function create(){
   const CAR=ejlCfg().role==='car';

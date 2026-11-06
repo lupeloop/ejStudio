@@ -1,7 +1,7 @@
 {
   "name": "ejstudio",
   "productName": "ejStudio",
-  "version": "3.0.5",
+  "version": "3.0.6",
   "description": "ejStudio - log analyzer, tuning tool and live logger (ejLogger)",
   "author": "Teddy",
   "main": "main.js",
@@ -23,7 +23,9 @@
       "ejLogger/engine/src/**",
       "package.json",
       "ejLogger/defaults/**",
-      "ejLogger/ui/**"
+      "ejLogger/ui/**",
+      "ejLogger/phone.js",
+      "logos/ejlogger_*.png"
     ],
     "directories": {
       "output": "dist"

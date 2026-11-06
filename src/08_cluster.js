@@ -22,12 +22,13 @@ const CLU=(()=>{
       else if((m=k.match(/^role\.(.+)$/))) roles[m[1]]=g[k];
       else if((m=k.match(/^gauge\.(.+)\.(name|title|unit|flags|lunit)$/))){ (gauge[m[1]]=gauge[m[1]]||{})[m[2]]=g[k]; } }
     const lab=P.labels||{}, titles=[], units=[]; for(const k of lab._order||[]){ if(k.startsWith('title.')) titles.push([k.slice(6).toLowerCase(),lab[k]]); else if(k.startsWith('unit.')) units.push([k.slice(5).toLowerCase(),lab[k]]); }
-    const wl=P.warnlimits||{}, warn=[]; for(const k of wl._order||[]){ if(k.includes('.')&&!/[A-Z ]/.test(k)) continue; const n=wl[k].split(',').map(s=>parseFloat(s)); if(n.length>=3&&n.slice(0,3).every(Number.isFinite)) warn.push([k.toLowerCase(),n]); }
-    return {dir:res.dir,P,profiles,alias,roles,gauge,titles,units,warn,hyst:num(wl['hysteresis.frac'],0.05)}; }
+    const wlist=wl=>{ const w=[]; for(const k of wl._order||[]){ if(k.includes('.')&&!/[A-Z ]/.test(k)) continue; const n=String(wl[k]).split(',').map(s=>parseFloat(s)); if(n.length>=3&&n.slice(0,3).every(Number.isFinite)) w.push([k.toLowerCase(),n]); } return w; };
+    const wl=P.warnlimits||{}, warn=wlist(wl), warnBy={}; for(const f of Object.keys(P)) if(f.startsWith('warnlimits-')){ const own=wlist(P[f]); warnBy[f.slice(11)]=own.concat(warn.filter(([k])=>!own.some(([k2])=>k2===k))); }
+    return {dir:res.dir,P,profiles,alias,roles,gauge,titles,units,warn,warnBy,hyst:num(wl['hysteresis.frac'],0.05)}; }
   const slotsFor=(C,name)=>{ const p=(C.P['page-'+name]||C.P.page||{}).slots; return p?p.split(',').map(s=>s.trim()).filter(Boolean):null; };
 
   // warn tier 0–3 and ramp 0–1 (how close to the approach threshold)
-  function tierOf(C,name,v){ if(!Number.isFinite(v)) return [0,0]; const lname=name.toLowerCase(); const w=C.warn.find(([k])=>lname.includes(k)); if(!w) return [0,0];
+  function tierOf(C,name,v){ if(!Number.isFinite(v)) return [0,0]; const lname=name.toLowerCase(); const w=((C.cur&&C.warnBy&&C.warnBy[C.cur])||C.warn).find(([k])=>lname.includes(k)); if(!w) return [0,0];
     const [a,b,c,d]=w[1]; let down=c<a; if(a===c) down=Number.isFinite(d)?d<a:true;
     const past=x=>down?v<=x:v>=x, t=past(c)?3:past(b)?2:past(a)?1:0;
     const span=Math.abs(c-a)||Math.abs(a)*0.1||1, r=t?1:Math.max(0,1-Math.abs(v-a)/span); return [t,a===c?0:r]; }
@@ -148,7 +149,7 @@ const CLU=(()=>{
     const now=Date.now(); if(now-dimCache.t<60000) return dimCache.night; const [rise,set]=sunTimes(num(D.lat,49.2827),num(D.lon,-123.1207),new Date());
     dimCache={t:now,night:now<rise+num(D['sunrise.offset.min'],15)*6e4||now>set-num(D['sunset.offset.min'],15)*6e4}; return dimCache.night; }
 
-  function frame(el,ctx,dt){ if(!ctx.C) return; if(!M||M.sig!==sig(ctx)||!el.contains(M.cl)) mount(el,ctx); const C=ctx.C, val=s=>s?ctx.num[keyOf(s)]:undefined, txt=s=>s?ctx.cur[keyOf(s)]:undefined, k=1-Math.exp(-dt/Math.max(1,M.tau));
+  function frame(el,ctx,dt){ if(!ctx.C) return; if(!M||M.sig!==sig(ctx)||!el.contains(M.cl)) mount(el,ctx); const C=ctx.C; C.cur=String(ctx.profile||'').replace(/[^A-Za-z0-9_-]/g,'_'); const val=s=>s?ctx.num[keyOf(s)]:undefined, txt=s=>s?ctx.cur[keyOf(s)]:undefined, k=1-Math.exp(-dt/Math.max(1,M.tau));
     if(M.dock){ const sp=ctx.speed, hold=sp>=1?M.dhm:M.dhp; M.dock.classList.toggle('on',!!ctx.dockForce||performance.now()-M.dockT<hold); const rb=M.dock.querySelector('[data-dk=rec]'); if(rb) rb.classList.toggle('act',!!ctx.rec); }
     M.cl.style.filter=!ctx.edit&&isNight(M.dim)?`brightness(${Math.max(.1,Math.min(1,num(M.dim.brightness,42)/100))})`:'';
     const wbS=role(ctx,'WIDEBAND_SOURCE'), ffbS=role(ctx,'COMMANDED_FUEL_SOURCE'), loadS=role(ctx,'LOAD_SOURCE')||sel2(ctx).find(s=>/^Engine Load/.test((ctx.byId[s.id]||{}).name||''));

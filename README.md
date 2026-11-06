@@ -72,7 +72,10 @@ A complete Subaru SSM logger that records standard CSV logs, ready to open in ej
 - **Themes:** cluster and Dock presets (ejLogger Amber, Track Red, STI Gold, Night Ops) that mix and match, with every colour, wall and shape adjustable in the Designer.
 - **Logs tab:** select by date or profile, export to a folder or USB stick, zip, open in Graph, archive to .old. Logs are named `ejlogger_YYYY-MM-DD_HHmm_profile.csv`, with their details in a hidden `.meta` folder. Log storage settings keep the folder tidy and warn on low disk.
 - **Profiles:** each profile switches the logged parameters and the cluster page together. Import an existing ClusterConfig folder from Config → Cluster files.
-- **Parameters:** grouped by category, with units per parameter, plus the bytes and expected rate for your selection. Save selections as profiles.
+- **Parameters:** grouped by category, with units per parameter, plus the bytes and expected rate for your selection. Filter by selected or unselected, see byte-size variants, and save selections as standard profile XML.
+- **Profiles manager:** order, glyph, picker visibility, screensaver, default profile, rename, duplicate, delete and per-profile warn limits. Labels set cluster titles and units; Linked PIDs let a 1-, 2- or 4-byte variant take over the original tile.
+- **Phone panel:** open `ejlogger.local` on a phone on the same Wi-Fi. **Tuner** is the full ejLogger in a phone layout behind a 4-digit passcode (default `5873`, set in Config → Phone panel). **Live view** mirrors the cluster for passengers, with tap-to-graph, the profile and REC timer.
+- **Health and System (Config):** roles found, true rate, last data, recent errors, restart, back up config and skip auto-record for this drive.
 
 - **Connect:** one click connects; the button shows Connecting, Settling and Logging. The ▾ beside it opens the ECU port, logger definition and wideband settings, with every serial port on the PC listed.
 - **Config:** auto-connect, log folder (default `Documents\ejStudio\logs`) and open in Graph when recording stops.
@@ -108,7 +111,8 @@ Download the latest `ejStudio-Setup-x.y.z.exe` from **Releases** and run it. Upd
 Run `build.bat`. It bundles `src\` into `ejstudio.html`, installs dependencies, runs the ejLogger engine tests (`ejLogger\engine\test`), runs the self-test against `tests\fixtures`, and builds the installer into `dist\`.
 
 ## Roadmap
-- **Phone panel:** change cluster settings from a phone on the same network.
+- **Live Table Trace** on the phone panel: the tune's tables with the live crosshair.
+- Tune sync and app updates from a USB stick.
 
 ## Credits
 The logger protocol, logger definitions and table knowledge come from the RomRaider project. The tune format is from Project Lambda.
