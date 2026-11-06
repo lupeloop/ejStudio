@@ -10,7 +10,7 @@ const SENSORS = {
     convs: [{ units: 'AFR Gasoline', expr: 'x', format: '0.00' }, { units: 'Lambda', expr: 'x/14.7', format: '0.00' }] },
   innovate: { label: 'Innovate LC-2 (MTS)', baud: 19200, name: 'Innovate Wideband AFR',
     convs: [{ units: 'AFR Gasoline', expr: 'x', format: '0.00' }, { units: 'Lambda', expr: 'x/14.7', format: '0.00' }] },
-  plx: { label: 'PLX', baud: 19200, name: 'PLX Wideband Air/Fuel',
+  plx: { label: 'PLX', baud: 19200, name: 'PLX O2 - Wideband',
     convs: [{ units: 'AFR Gasoline', expr: 'x', format: '0.00' }, { units: 'Lambda', expr: 'x/14.7', format: '0.00' }] },
 };
 

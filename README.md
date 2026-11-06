@@ -4,15 +4,15 @@
 
 ![ejStudio](docs/img/landing.png)
 
-ejStudio loads your RomRaider or Project Lambda logs together with your Project Lambda `.tune`, replays the drive across every table, finds knock and fuelling problems, suggests corrections, and builds a new revision of the tune for you to flash. Its built-in live logger, **ejLogger**, records those logs straight from the car.
+ejStudio loads your logs together with your Project Lambda `.tune`, replays the drive across every table, finds knock and fuelling problems, suggests corrections, and builds a new revision of the tune for you to flash. Its built-in live logger, **ejLogger**, records those logs straight from the car.
 
 ## Two modes, one app
 | | Mode | What it's for |
 |---|---|---|
 | <img src="logos/ejstudio.svg" width="28"> | **ejStudio** | Tables, Graph, MAF Tools, Scatter and tune editing. Opens by default. |
-| <img src="logos/ejlogger.svg" width="28"> | **ejLogger** | Live logging from the ECU: Live, Parameters and Cluster. |
+| <img src="logos/ejlogger.svg" width="28"> | **ejLogger** | Live logging from the ECU: Live, Parameters, Designer and Config. |
 
-Hover the logo in the top-left corner to switch modes, then click and confirm. Each mode has its own top bar, tabs and ☰ menu. ejLogger keeps logging in the background while you work in ejStudio, shown by a red dot on the logo.
+Hover the logo in the top-left corner to switch modes, then click and confirm. Each mode has its own top bar and tabs. ejLogger keeps logging in the background while you work in ejStudio, shown by a red dot on the logo.
 
 ## Tables
 ![Tables](docs/img/tables.png)
@@ -59,15 +59,20 @@ Scaling, Curve, or Both in one tab.
 ## ejLogger
 ![ejLogger Live](docs/img/logger_live.png)
 
-A 1:1 port of the RomRaider 1.1.0 logger, so logs are interchangeable with RomRaider's.
+A complete Subaru SSM logger that records standard CSV logs, ready to open in ejStudio or any other log tool.
 - **Protocol:** Subaru SSM over K-Line (4800 8N1), ECU init `80 10 F0 01 BF 40`, then continuous A8 fast poll. Rate = 480 / (6 + reply bytes) Hz.
-- **Same definitions:** RomRaider's `logger_METRIC_EN_v370.xml`, with the same check of which parameters your ECU supports.
-- **Same CSV, byte for byte:** `romraiderlog_YYYYMMDD_HHMMSS.csv`, CRLF, `Time (msec)` from 0, `Name (units)` headers, RomRaider's number formatting.
+- **Standard definitions:** uses the `logger_METRIC_EN_v370.xml` logger definitions and only shows the parameters your ECU supports.
+- **Standard CSV logs:** CRLF, `Time (msec)` from 0, `Name (units)` headers and standard number formatting.
 - **External widebands:** AEM UEGO (serial), Innovate LC-2 (MTS) and PLX on their own port. A missing wideband port is retried every second and logging carries on without it.
-- **Live:** cluster view or Basic View (tiles with min/max), true logged rate, ECU and wideband status, and **Open last log in Graph**.
+- **Live:** the cluster, built from simple `.properties` files (layout pages, gauge titles and units, warn limits, trims, warm-up), with three-tier warnings, smooth number motion, a TRIMS tile with CL/OL tag, a warm-up ring, poll rate and rec timer. Or Basic View: tiles with min/max, centred and up to six across. Plus the true logged rate, ECU and wideband status, and **Open last log in Graph**.
+- **Designer:** click a tile to set its title, colours, sizes and bottom row; drag tiles to reorder, add or remove gauges, and pick the grid. Saved per profile.
+- **Cluster settings (Config):** warm-up, warn limits, night dimming, wideband fuel cut and screensavers, saved straight to the cluster files.
+- **Screensavers:** Header Pulses, Ink or Night Sky per profile, driven by RPM, throttle blips and coolant temperature. Car cluster only, with a preview in Config.
+- **Profiles:** each profile switches the logged parameters and the cluster page together. Import an existing ClusterConfig folder from Config → Cluster files.
 - **Parameters:** grouped by category, with units per parameter, plus the bytes and expected rate for your selection. Save selections as profiles.
 
-- **Settings (☰):** ECU port, logger definition, wideband sensor and port, auto-connect, log folder (default `Documents\ejStudio\logs`), and open in Graph when recording stops.
+- **Connect:** one click connects; the button shows Connecting, Settling and Logging. The ▾ beside it opens the ECU port, logger definition and wideband settings, with every serial port on the PC listed.
+- **Config:** auto-connect, log folder (default `Documents\ejStudio\logs`) and open in Graph when recording stops.
 - **Background engine:** the logger runs as its own process, owning the serial ports, polling and CSV writer, so switching to ejStudio never interrupts a recording. Closing while recording asks first.
 - **Desk testing:** the `MOCK` port is a simulated ECU, for trying ejLogger without the car.
 
@@ -79,9 +84,9 @@ Serial ports only (Tactrix OpenPort in VCP mode, a KKL cable or Project Lambda B
 | File | Source | Used for |
 |---|---|---|
 | `.tune` | Project Lambda | Tables, editing, building revisions |
-| `.csv` logs | RomRaider Logger or ejLogger | Everything below |
+| `.csv` logs | ejLogger and other SSM loggers | Everything below |
 | `.csv` logs | Project Lambda | Everything below (KCA is estimated from IAM when not logged) |
-| `logger_*.xml` | RomRaider | ejLogger parameter definitions |
+| `logger_*.xml` | Logger definitions | ejLogger parameters |
 
 Features switch on as channels are found. MAF scaling needs MAF voltage, RPM, wideband and fuel trims; timing analysis needs total timing, FBKC, FLKC and IAM; table traces need the table's axis channels (usually load and RPM).
 
@@ -92,7 +97,6 @@ Download the latest `ejStudio-Setup-x.y.z.exe` from **Releases** and run it. Upd
 Run `build.bat`. It bundles `src\` into `ejstudio.html`, installs dependencies, runs the ejLogger engine tests (`ejLogger\engine\test`), runs the self-test against `tests\fixtures`, and builds the installer into `dist\`.
 
 ## Roadmap
-- **Cluster designer:** lay out the ejLogger cluster, and set each tile's colours, sizes and bottom row (min/max, poll rate or nothing).
 - **In-car mode:** for a dedicated in-car PC. It boots straight into ejLogger full-screen, with auto-record, screensavers, a warm-up display, warning limits and night dimming.
 - **Phone panel:** change cluster settings from a phone on the same network.
 

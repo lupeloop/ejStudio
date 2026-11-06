@@ -58,6 +58,23 @@ function ejlIpc(){
     if(!r.canceled&&r.filePaths[0]){ c.logDir=r.filePaths[0]; ejlSave(); if(ejl.proc) ejl.proc.postMessage({t:'config',cfg:ejlEngineCfg(c)}); } return c; });
   ipcMain.handle('ejl:openDir',()=>{ const d=ejlCfg().logDir; try{ fs.mkdirSync(d,{recursive:true}); }catch(_){} shell.openPath(d); return true; });
   ipcMain.handle('ejl:openLast',()=>{ const f=ejl.last; if(!f||!fs.existsSync(f)) return false; send('open-files',[readOut(f)]); return true; });
+  // cluster sidecars: <userData>/ejLogger/cluster/{customize,profiles}, seeded once from the app's defaults
+  const CLD=()=>ejlCfg().clusterDir||path.join(app.getPath('userData'),'ejLogger','cluster');
+  const copyDir=(src,dst,re)=>{ try{ fs.mkdirSync(dst,{recursive:true}); for(const f of fs.readdirSync(src)) if(re.test(f)&&fs.statSync(path.join(src,f)).isFile()) fs.copyFileSync(path.join(src,f),path.join(dst,f)); return true; }catch(e){ elog('cluster copy '+e); return false; } };
+  function seedCluster(){ const d=CLD(); if(fs.existsSync(path.join(d,'customize'))) return; const def=path.join(__dirname,'ejLogger','defaults'); copyDir(path.join(def,'customize'),path.join(d,'customize'),/\.properties$/i); copyDir(path.join(def,'profiles'),path.join(d,'profiles'),/\.xml$/i); }
+  const readAll=(dir,re)=>{ const o={}; try{ for(const f of fs.readdirSync(dir)) if(re.test(f)) o[f]=fs.readFileSync(path.join(dir,f),'utf8'); }catch(_){} return o; };
+  ipcMain.handle('ejl:cluster',()=>{ seedCluster(); const d=CLD(); return {dir:d,files:readAll(path.join(d,'customize'),/\.properties$/i),profiles:readAll(path.join(d,'profiles'),/\.xml$/i)}; });
+  ipcMain.handle('ejl:importCluster',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose a ClusterConfig folder (or its customize folder)',properties:['openDirectory']}); if(r.canceled||!r.filePaths[0]) return false;
+    let root=r.filePaths[0]; if(/customize$/i.test(root)) root=path.dirname(root); const cz=path.join(root,'customize'), pf=path.join(root,'profiles');
+    if(!fs.existsSync(cz)&&!fs.existsSync(pf)){ dialog.showMessageBox(win,{type:'info',message:'No customize or profiles folder there.',detail:'Pick the ClusterConfig folder that contains customize\\ and profiles\\.'}); return false; }
+    const d=CLD(); if(fs.existsSync(cz)) copyDir(cz,path.join(d,'customize'),/\.properties$/i); if(fs.existsSync(pf)) copyDir(pf,path.join(d,'profiles'),/\.xml$/i); return true; });
+  // sidecar writes: only the keys given change; comments, order and other keys stay; atomic (tmp + rename)
+  ipcMain.handle('ejl:writeProp',(e,file,patchObj)=>{ try{ seedCluster(); const name=String(file).replace(/[^\w.-]/g,''); if(!name) return false; const f=path.join(CLD(),'customize',name+'.properties');
+    let lines=[]; try{ lines=fs.readFileSync(f,'utf8').split(/\r?\n/); }catch(_){ lines=['# '+name+'.properties - written by ejStudio']; }
+    for(const [k,v] of Object.entries(patchObj||{})){ const i=lines.findIndex(l=>{ const t=l.trim(); if(!t||t[0]==='#'||t[0]===';') return false; const j=t.indexOf('='); return j>0&&t.slice(0,j).trim()===k; });
+      if(v===null||v===undefined){ if(i>=0) lines.splice(i,1); } else if(i>=0) lines[i]=k+' = '+String(v).replace(/[\r\n]+/g,' '); else { while(lines.length&&lines[lines.length-1].trim()==='') lines.pop(); lines.push(k+' = '+String(v).replace(/[\r\n]+/g,' ')); } }
+    fs.mkdirSync(path.dirname(f),{recursive:true}); fs.writeFileSync(f+'.tmp',lines.join('\r\n').replace(/(\r\n)*$/,'')+'\r\n'); fs.renameSync(f+'.tmp',f); return true; }catch(err){ elog('writeProp '+err); return false; } });
+  ipcMain.handle('ejl:openCluster',()=>{ seedCluster(); shell.openPath(CLD()); return true; });
   ipcMain.handle('ejl:state',()=>({state:ejl.state,rec:ejl.rec,file:ejl.file,last:ejl.last||null,running:!!ejl.proc}));
 }
 function create(){
