@@ -9,3 +9,15 @@
 !ifndef MUI_INSTFILESPAGE_COLORS
   !define MUI_INSTFILESPAGE_COLORS "8A8A92 000000"
 !endif
+
+!include "FileFunc.nsh"
+
+; Upgrading from ejLab: the old install folder is read back from the registry.
+; Install into ...\ejStudio instead (the old ejLab uninstaller still removes the old folder).
+!macro customInit
+  ${GetFileName} "$INSTDIR" $R0
+  ${If} $R0 == "ejLab"
+    ${GetParent} "$INSTDIR" $R1
+    StrCpy $INSTDIR "$R1\ejStudio"
+  ${EndIf}
+!macroend
