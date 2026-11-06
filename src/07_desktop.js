@@ -2,7 +2,7 @@
 //  Desktop integration — only active inside the rrLab app (window.rrlab)
 // ════════════════════════════════════════════════════════════════════════════
 DESK=(()=>{ const D=window.rrlab; if(!D||!D.desktop) return null;
-  const asFile=o=>({name:o.name,text:async()=>o.text}), st={folder:null,auto:true};
+  const asFile=o=>({name:o.name,path:o.path||'',text:async()=>o.text}), st={folder:null,auto:true};
   D.onOpenFiles(list=>addFiles(list.map(asFile)));
   D.onNewLog(o=>{ toast('New log: '+o.name); addFiles([asFile(o)]); });
   copyText=(txt,ok)=>{ D.copy(txt).then(()=>toast(ok),()=>toast('Copy failed')); };

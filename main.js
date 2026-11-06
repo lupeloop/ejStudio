@@ -13,7 +13,7 @@ function pruneLogs(){ try{ const cut=Date.now()-5*864e5; for(const f of fs.readd
 process.on('uncaughtException',e=>elog(new Date().toISOString()+' MAIN '+(e&&e.stack||e)));
 const saveCfg=()=>{ try{ fs.writeFileSync(CFGF(),JSON.stringify(cfg)); }catch(_){} };
 const argFiles=argv=>argv.slice(1).filter(a=>/\.(csv|tune|json|ejlab)$/i.test(a)&&fs.existsSync(a));
-const readOut=p=>({name:path.basename(p),text:fs.readFileSync(p,'utf8')});
+const readOut=p=>({name:path.basename(p),path:p,text:fs.readFileSync(p,'utf8')});
 const send=(ch,d)=>{ if(win&&!win.isDestroyed()) win.webContents.send(ch,d); if(ch==='ejl'&&typeof phoneBroadcast==='function') phoneBroadcast(d); };
 const csvs=dir=>{ try{ return fs.readdirSync(dir).filter(f=>/\.csv$/i.test(f)); }catch(_){ return []; } };
 function startWatch(){
@@ -61,6 +61,7 @@ function ejlIpc(){
   reg('ejl:pickDir',async()=>{ const c=ejlCfg(); const r=await dialog.showOpenDialog(win,{title:'Choose the ejLogger log folder',properties:['openDirectory','createDirectory'],defaultPath:c.logDir||undefined});
     if(!r.canceled&&r.filePaths[0]){ c.logDir=r.filePaths[0]; ejlSave(); if(ejl.proc) ejl.proc.postMessage({t:'config',cfg:ejlEngineCfg(c)}); } return c; });
   reg('ejl:openDir',()=>{ const d=ejlCfg().logDir; try{ fs.mkdirSync(d,{recursive:true}); }catch(_){} shell.openPath(d); return true; });
+  reg('ejl:readLogs',(e,names)=>{ const L=listLogs(), out=[]; for(const n of names||[]){ const f=L.find(x=>x.name===n&&!x.old); if(f) try{ out.push(readOut(pathOf(f))); }catch(_){} } return out; });
   reg('ejl:openLast',()=>{ const f=ejl.last; if(!f||!fs.existsSync(f)) return false; send('open-files',[readOut(f)]); return true; });
   // cluster sidecars: <userData>/ejLogger/cluster/{customize,profiles}, seeded once from the app's defaults
   const CLD=()=>ejlCfg().clusterDir||path.join(app.getPath('userData'),'ejLogger','cluster');
@@ -202,6 +203,7 @@ else {
     ipcMain.handle('capture',async(e,r)=>{ const w=BrowserWindow.fromWebContents(e.sender); const img=await e.sender.capturePage({x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.w),height:Math.round(r.h)});
       const s=await dialog.showSaveDialog(w,{defaultPath:r.name,filters:[{name:'PNG image',extensions:['png']}]}); if(s.canceled||!s.filePath) return null; fs.writeFileSync(s.filePath,img.toPNG()); return s.filePath; });
     ipcMain.handle('info',()=>({version:app.getVersion(),electron:process.versions.electron,chrome:process.versions.chrome,userData:app.getPath('userData')}));
+    ipcMain.handle('readFiles',(e,ps)=>{ const out=[]; for(const p of (ps||[]).slice(0,60)){ if(!/\.(csv|tune|json)$/i.test(String(p))) continue; try{ if(fs.existsSync(p)) out.push(readOut(p)); }catch(_){} } return out; });
     ipcMain.handle('openData',()=>shell.openPath(app.getPath('userData')));
     ipcMain.handle('openUrl',(e,u)=>{ if(/^https:\/\//.test(String(u))) shell.openExternal(u); return true; });
     ipcMain.handle('log',(e,t)=>{ elog(String(t)); return true; });
