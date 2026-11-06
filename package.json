@@ -1,0 +1,78 @@
+{
+  "name": "ejstudio",
+  "productName": "ejStudio",
+  "version": "2.1.11",
+  "description": "ejStudio - log analyzer, tuning tool and live logger (ejLogger)",
+  "author": "Teddy",
+  "main": "main.js",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "test:logger": "node ejLogger/engine/test/golden.test.js && node ejLogger/engine/test/engine.test.js"
+  },
+  "build": {
+    "appId": "com.ejlab.app",
+    "productName": "ejStudio",
+    "files": [
+      "main.js",
+      "preload.js",
+      "ejstudio.html",
+      "logos/ejstudio.ico",
+      "ghtoken.js",
+      "ejLogger/engine/engine.js",
+      "ejLogger/engine/src/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "logos/ejstudio.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "logos/ejstudio.ico",
+      "uninstallerIcon": "logos/ejstudio.ico",
+      "installerHeaderIcon": "logos/ejstudio.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
+      "createDesktopShortcut": true,
+      "runAfterFinish": true,
+      "artifactName": "ejStudio-Setup-${version}.exe",
+      "deleteAppDataOnUninstall": false,
+      "shortcutName": "ejStudio",
+      "include": "build/installer.nsh"
+    },
+    "fileAssociations": [
+      {
+        "ext": "ejlab",
+        "name": "ejStudio Session",
+        "description": "ejStudio session"
+      }
+    ],
+    "npmRebuild": false,
+    "asarUnpack": [
+      "node_modules/@serialport/**"
+    ]
+  },
+  "devDependencies": {
+    "electron": "38.2.0",
+    "electron-builder": "26.0.12",
+    "resedit": "2.0.3"
+  },
+  "dependencies": {
+    "serialport": "13.0.0"
+  }
+}

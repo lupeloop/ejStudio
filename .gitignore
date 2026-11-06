@@ -1,0 +1,11 @@
+node_modules/
+dist/
+selftest.txt
+tests/fixtures/
+*.log
+ghtoken.js
+
+# local only
+Claude outputs/
+ejLogger/.old/
+ejstudio.html
