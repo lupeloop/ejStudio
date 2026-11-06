@@ -25,7 +25,7 @@ class FileUpdateHandler {
   isStarted() { return this.fd !== null; }
   start(now = new Date()) {
     if (this.isStarted()) return;
-    let p = this.dir; if (!p.endsWith(path.sep)) p += path.sep; p += 'romraiderlog_' + (this.nameText ? this.nameText + '_' : '') + stamp(now) + '.csv';
+    let p = this.dir; if (!p.endsWith(path.sep)) p += path.sep; if (this.makeName) p = this.makeName(now, p); else p += 'romraiderlog_' + (this.nameText ? this.nameText + '_' : '') + stamp(now) + '.csv'; // ejLogger names its own logs
     this.fd = fs.openSync(p, 'w'); this.file = p; this.startTs = 0; this.buf = [];
     this.listeners.forEach(l => l(true, p)); this.writeHeaders();
   }

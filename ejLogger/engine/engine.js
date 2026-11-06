@@ -20,7 +20,7 @@ process.on('uncaughtException', e => post({ t: 'error', text: 'engine: ' + (e &&
 process.on('unhandledRejection', e => post({ t: 'error', text: 'engine: ' + (e && e.stack || e) }));
 
 const MOCK = 'MOCK';
-let cfg = { defPath: '', ecuPort: '', wbType: 'none', wbPort: '', wbUnits: 'AFR Gasoline', logDir: '', fastPoll: true, logfileNameText: '', locale: 'en_CA' };
+let cfg = { appVersion: '', profile: '', defPath: '', ecuPort: '', wbType: 'none', wbPort: '', wbUnits: 'AFR Gasoline', logDir: '', fastPoll: true, logfileNameText: '', locale: 'en_CA' };
 let xml = null, def = null, mod = null, init = null, qm = null, fh = null, wb = null, mock = null, state = 'idle';
 let sel = []; // [{id, units}] in registration (CSV column) order
 const items = new Map(); // 'id|units' → item (identity kept so the CSV handler and query map stay consistent)
@@ -88,10 +88,34 @@ function resetLogger() { // after (re)init: same objects, rebound to the verifie
   if (qm) want.forEach(it => qm.addQuery('ejl', it));
   applied = want; stats(true);
 }
+// ejLogger log names: ejlogger_YYYY-MM-DD_HHmm_<profile>.csv (+ _2… if that minute is taken; _split when a profile switch cuts one)
+const pad = n => String(n).padStart(2, '0');
+const safe = s => String(s || 'log').replace(/[^\w.-]+/g, '_').slice(0, 40);
+function logName(now, dirSlash) { const d = new Date(now), base = `ejlogger_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}_${safe(cfg.profile)}`;
+  let p = dirSlash + base + '.csv', k = 2; while (fs.existsSync(p)) p = dirSlash + base + '_' + (k++) + '.csv'; return p; }
+// metadata beside each log, in a hidden .meta folder: written at start, completed at stop
+const metaPath = f => path.join(path.dirname(f), '.meta', path.basename(f).replace(/\.csv$/i, '.json'));
+let meta = null, metaFull = null, recRows = 0;
+function writeMeta() { if (!meta || !metaFull) return; try { const m = metaPath(metaFull); fs.mkdirSync(path.dirname(m), { recursive: true });
+  if (process.platform === 'win32' && !fs.existsSync(m)) { try { require('child_process').execFile('attrib', ['+h', path.dirname(m)], () => {}); } catch (_) {} }
+  fs.writeFileSync(m + '.tmp', JSON.stringify(meta, null, 1)); fs.renameSync(m + '.tmp', m); } catch (e) { post({ t: 'error', text: 'Log metadata: ' + e.message }); } }
 function newFileHandler() {
   const h = new FileUpdateHandler({ dir: cfg.logDir, logfileNameText: cfg.logfileNameText, locale: cfg.locale });
-  h.listeners.push((on, file) => post({ t: 'rec', on, file })); return h;
+  h.makeName = (now, dirSlash) => logName(now, dirSlash);
+  h.listeners.push((on, file) => {
+    if (on) { recRows = 0; meta = { file: path.basename(file), profile: cfg.profile || '', ecuId: init ? init.ecuId : null, ejLogger: cfg.appVersion || '', definition: cfg.defPath ? path.basename(cfg.defPath) : '',
+      ecuPort: cfg.ecuPort, wideband: cfg.wbType !== 'none' ? cfg.wbType : null, columns: ['Time (msec)'].concat(applied.map(i => i.name + ' (' + i.units() + ')')), started: new Date().toISOString(), stopped: null, stopReason: null, rows: 0, rateHz: null, theoreticalHz: null };
+      metaFull = file; writeMeta(); }
+    else if (meta) { meta.stopped = new Date().toISOString(); meta.stopReason = meta.stopReason || stopWhy || 'stopped'; meta.rows = recRows; const dur = (Date.parse(meta.stopped) - Date.parse(meta.started)) / 1000; meta.rateHz = dur > 0 ? +(recRows / dur).toFixed(2) : null;
+      const ecu = applied.filter(i => !i.external), uniq = SSM.filterDuplicates(ecu.map(i => ({ addrs: i.addrs }))), bytes = uniq.reduce((s, q) => s + q.addrs.length, 0); meta.theoreticalHz = bytes ? +(480 / (6 + bytes)).toFixed(2) : null;
+      writeMeta(); meta = null; metaFull = null; }
+    post({ t: 'rec', on, file }); });
+  return h;
 }
+let stopWhy = null;
+// a log whose metadata never got a stop time was cut by a power loss or crash
+function markOrphans() { try { const md = path.join(cfg.logDir, '.meta'); for (const f of fs.readdirSync(md)) { if (!/\.json$/i.test(f)) continue; const p = path.join(md, f), j = JSON.parse(fs.readFileSync(p, 'utf8'));
+  if (!j.stopped) { let mt = null; try { mt = fs.statSync(path.join(cfg.logDir, j.file)).mtime.toISOString(); } catch (_) {} j.stopped = mt; j.stopReason = 'power cut or crash'; fs.writeFileSync(p + '.tmp', JSON.stringify(j, null, 1)); fs.renameSync(p + '.tmp', p); } } } catch (_) {} }
 function stats(force) {
   const now = Date.now(); if (!force && now - lastStats < 500) return; lastStats = now;
   const ecu = applied.filter(i => !i.external), uniq = SSM.filterDuplicates(ecu.map(i => ({ addrs: i.addrs }))), bytes = uniq.reduce((s, q) => s + q.addrs.length, 0);
@@ -123,12 +147,13 @@ async function connect() {
 }
 function onFrame(r) {
   if (!firstFrame) { firstFrame = true; setState('logging', 'ECU ' + (init ? init.ecuId : '')); }
+  if (fh && fh.isStarted()) recRows++;
   try { fh && fh.handleDataUpdate(r); } catch (e) { post({ t: 'error', text: 'CSV: ' + e.message }); stopRec(); }
   const v = {}, f = {};
   for (const [it, val] of r.values) { v[it.key] = val; try { f[it.key] = it.format(val); } catch (_) { f[it.key] = String(val); } }
   frames.push(r.timestamp); post({ t: 'frame', ts: r.timestamp, v, f }); stats(false);
 }
-function disconnect() { stopRec(); if (qm) qm.stop(); stopWb(); }
+function disconnect() { stopRec('disconnected'); if (qm) qm.stop(); stopWb(); }
 function startWb() {
   stopWb(); if (!cfg.wbType || cfg.wbType === 'none' || !cfg.wbPort) { post({ t: 'wb', state: 'off' }); return; }
   wb = new WB.Wideband(cfg.wbType, cfg.wbPort, cfg.wbUnits, { openRaw: SER.openRaw, onState: s => post(Object.assign({ t: 'wb' }, s)) });
@@ -142,7 +167,7 @@ function startRec() {
   try { fs.mkdirSync(cfg.logDir, { recursive: true }); fh.dir = cfg.logDir; fh.nameText = cfg.logfileNameText || ''; fh.start(); }
   catch (e) { post({ t: 'error', text: 'Cannot start the log file: ' + e.message }); }
 }
-function stopRec() { if (fh && fh.isStarted()) { try { fh.stop(); } catch (e) { post({ t: 'error', text: 'Closing the log: ' + e.message }); } } }
+function stopRec(why) { stopWhy = why || null; if (fh && fh.isStarted()) { try { fh.stop(); } catch (e) { post({ t: 'error', text: 'Closing the log: ' + e.message }); } } }
 
 // ── messages ───────────────────────────────────────────────────────────────
 onMsg(async m => {
@@ -150,7 +175,7 @@ onMsg(async m => {
   try {
     switch (m.t) {
       case 'config': {
-        const old = cfg; cfg = Object.assign({}, cfg, m.cfg || {});
+        const old = cfg; cfg = Object.assign({}, cfg, m.cfg || {}); if (cfg.logDir && cfg.logDir !== old.logDir) markOrphans();
         if (cfg.defPath !== old.defPath || !def) { init = qm && qm.isRunning() ? init : null; if (loadDef()) { if (qm && qm.isRunning()) resetLogger(); sendParams(); } }
         if (qm && qm.isRunning() && (cfg.wbType !== old.wbType || cfg.wbPort !== old.wbPort || cfg.wbUnits !== old.wbUnits)) startWb();
         if (fh && !fh.isStarted()) fh.dir = cfg.logDir;
@@ -163,7 +188,8 @@ onMsg(async m => {
       case 'select': sel = (m.list || []).filter(s => s && s.id); applySelection(); break;
       case 'connect': await connect(); break;
       case 'disconnect': disconnect(); break;
-      case 'rec': m.on ? startRec() : stopRec(); break;
+      case 'rec': m.on ? startRec() : stopRec(m.why || 'stopped by hand'); break;
+      case 'split': if (fh && fh.isStarted()) { const old = fh.file; stopRec('profile switch'); try { const nf = old.replace(/\.csv$/i, '_split.csv'); fs.renameSync(old, nf); const om = metaPath(old); if (fs.existsSync(om)) { const j = JSON.parse(fs.readFileSync(om, 'utf8')); j.file = path.basename(nf); fs.writeFileSync(metaPath(nf), JSON.stringify(j, null, 1)); fs.unlinkSync(om); } } catch (e) { post({ t: 'error', text: 'Split rename: ' + e.message }); } startRec(); } break;
       case 'state': post({ t: 'status', state, msg: '' }); post({ t: 'rec', on: !!(fh && fh.isStarted()), file: fh && fh.file }); stats(true); break;
       case 'quit': disconnect(); setTimeout(() => process.exit(0), 400); break;
     }

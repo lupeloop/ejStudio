@@ -37,7 +37,7 @@ const CLU=(()=>{
 @font-face{font-family:ejDIN;src:url('ejLogger/ui/fonts/HunDIN1451.ttf')}@font-face{font-family:ejMono;src:url('ejLogger/ui/fonts/SpaceMono-Regular.ttf')}
 #ejl .cl{width:min(100%,calc((100vh - 130px)*1024/600));aspect-ratio:1024/600;background:#000;position:relative;display:grid;container-type:inline-size;padding:.8cqw .6cqw;gap:0;user-select:none}
 #ejl .cl .g{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;overflow:hidden;color:#f2f2f2;--s:1}
-#ejl .cl .g.dv::before{content:'';position:absolute;left:0;top:9%;bottom:9%;width:var(--dvw,1px);background:var(--dvc,#3a3a3e)}
+#ejl .cl .walls{position:absolute;inset:.8cqw .6cqw;pointer-events:none;z-index:1}#ejl .cl .walls i{position:absolute;background:var(--dvc,#424242);border-radius:9px}
 #ejl .cl .t{color:var(--tc,#f2f2f2);font:700 calc(1.75cqw*var(--s)*var(--ts,1)) ejMono,var(--mono);letter-spacing:.04em;white-space:nowrap;max-width:94%;overflow:hidden;text-overflow:clip}
 #ejl .cl .vr{display:flex;align-items:flex-end;gap:.5cqw;line-height:.86;margin:.9cqw 0 .5cqw}
 #ejl .cl .v{color:var(--vc,#f2f2f2);font:calc(9.6cqw*var(--s)*var(--vs,1))/.9 ejDIN,"Arial Narrow",sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap;transition:color .18s}
@@ -54,6 +54,7 @@ const CLU=(()=>{
 #ejl .cl .ring{position:absolute;inset:0;pointer-events:none;transition:opacity .5s}
 #ejl .cl.ol .g{border:var(--olw,1px) solid var(--olc,#2a2a2e);margin:2px}#ejl .cl{background:var(--bg0,#000)}#ejl .cl .tr .row b{color:var(--uc,#8a8a92)}#ejl .cl .g{border-radius:var(--rad,0)}
 #ejl .cl.ed .g{cursor:pointer}#ejl .cl.ed .g:hover{background:#0a0a0d}#ejl .cl.ed .g.sel{outline:2px solid var(--acc);outline-offset:-2px;z-index:2}#ejl .cl.ed .g.nl{opacity:.45}#ejl .cl.ed .g.dragover{background:var(--acc-d)}#ejl .cl .g.nl .v{color:#3a3a40}
+#ejl .cl .dock.left{left:0;right:auto;border-left:0;border-right:var(--dkbw,0px) solid var(--dkbc,transparent);transform:translateX(-1.2cqw)}#ejl .cl .dock.left.on{transform:none}
 #ejl .cl .dock{position:absolute;top:0;bottom:0;right:0;width:calc(var(--dkw,92)/1024*100cqw);background:var(--dkbg,#060608);display:flex;flex-direction:column;justify-content:space-evenly;align-items:stretch;padding:1cqw .6cqw;gap:.8cqw;z-index:5;opacity:0;transform:translateX(1.2cqw);pointer-events:none;transition:opacity .18s ease,transform .18s ease;border-left:var(--dkbw,0px) solid var(--dkbc,transparent)}
 #ejl .cl .dock.on{opacity:1;transform:none;pointer-events:auto}
 #ejl .cl .dock button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5cqw;background:var(--dkbtn,transparent);border:var(--dkbtnb,0px) solid var(--dkbtnc,transparent);border-radius:var(--dkr,0px);color:var(--dkic,#E8E8EE);font:700 calc(1.15cqw*var(--dkls,1.15)) ejMono,var(--mono);letter-spacing:.08em;cursor:pointer;padding:0}
@@ -101,7 +102,7 @@ const CLU=(()=>{
       d.ondragover=e=>{ e.preventDefault(); d.classList.add('dragover'); }; d.ondragleave=()=>d.classList.remove('dragover');
       d.ondrop=e=>{ e.preventDefault(); d.classList.remove('dragover'); const from=e.dataTransfer.getData('text/plain'); if(from&&from!==cid&&ctx.onMove) ctx.onMove(from,cid); }; };
     list.forEach((cid,i)=>{ if(used.has(i)) return; const r=Math.floor(i/cols), c=i%cols, it=find(ctx,cid), p=(it&&ctx.byId[it.id])||{name:(C.gauge[cid]||{}).name||cid};
-      const d=mk('div','g'+(c>0?' dv':'')+(it?'':' nl'),cl); d.style.gridRow=(r+1); d.style.gridColumn=(c+1); d.style.setProperty('--s',s); style(d,cid);
+      const d=mk('div','g'+(it?'':' nl'),cl); d.style.gridRow=(r+1); d.style.gridColumn=(c+1); d.style.setProperty('--s',s); style(d,cid);
       if(merge&&(cid===afc||cid===afl)){ const other=cid===afc?afl:afc, j=list.indexOf(other);
         if(j>=0&&j%cols===c&&Math.abs(Math.floor(j/cols)-r)===1){ used.add(j); d.style.gridRow=`${Math.min(r,Math.floor(j/cols))+1} / span 2`; }
         else if(j>=0) used.add(j);
@@ -112,6 +113,12 @@ const CLU=(()=>{
       d.innerHTML=`<div class="t">${esc(tget(cid,'title')||titleOf(C,cid,p.name))}</div><div class="vr"><span class="v">--</span><span class="u">${esc(it?unitOf(C,cid,it.units):'')}</span></div><div class="mm"></div>${fl.includes('recDot')?'<div class="rd"><i></i><span></span></div>':''}`;
       editable(d,cid);
       tiles.push({kind:'g',el:d,cid,it,name:p.name,fl,bot,v:d.querySelector('.v'),mm:d.querySelector('.mm'),rd:d.querySelector('.rd'),disp:null,dp:null,last:''}); });
+    // column walls: on a tile's right edge, one per row, only when a tile sits to its right in that row (original rrOS look)
+    { const occ={}; for(const T of tiles){ const el=T.el, gr=String(el.style.gridRow), r0=parseInt(gr)-1, span=/span\s*(\d+)/.test(gr)?+gr.match(/span\s*(\d+)/)[1]:1, c=parseInt(el.style.gridColumn)-1; for(let k=0;k<span;k++) occ[(r0+k)+','+c]=el; }
+      const wl=mk('div','walls',cl), on=bool(G('wall.on'),true), len=Math.max(.1,Math.min(1,num(G('wall.len'),0.72))), px=num(G('divider.px'),2), ron=bool(G('rowdiv.on'),false), rlen=Math.max(.1,Math.min(1,num(G('rowdiv.len'),0.8))), rpx=num(G('rowdiv.px'),1), rc=G('rowdiv');
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){ const a=occ[r+','+c];
+        if(on&&a&&c+1<cols&&occ[r+','+(c+1)]&&occ[r+','+(c+1)]!==a){ const w=mk('i',null,wl); w.style.left=`calc(${(c+1)/cols*100}% - ${px/2}px)`; w.style.width=px+'px'; w.style.top=((r+(1-len)/2)/rows*100)+'%'; w.style.height=(len/rows*100)+'%'; }
+        if(ron&&a&&r+1<rows&&occ[(r+1)+','+c]&&occ[(r+1)+','+c]!==a){ const w=mk('i',null,wl); w.style.top=`calc(${(r+1)/rows*100}% - ${rpx/2}px)`; w.style.height=rpx+'px'; w.style.left=((c+(1-rlen)/2)/cols*100)+'%'; w.style.width=(rlen/cols*100)+'%'; if(/^#[0-9a-f]{6}$/i.test(rc||'')) w.style.background=rc; } } }
     const wu=P.warmup||{}; let ring=null; if(bool(wu.enabled,true)&&bool(wu['ring.enabled'],true)){ ring=document.createElementNS('http://www.w3.org/2000/svg','svg'); ring.setAttribute('class','ring'); ring.setAttribute('viewBox','0 0 1024 600'); ring.setAttribute('preserveAspectRatio','none'); const px=num(wu['ring.px'],5);
       ring.innerHTML=`<rect x="${px/2}" y="${px/2}" width="${1024-px}" height="${600-px}" fill="none" stroke="#1a1a1e" stroke-width="${px}" ${bool(wu['ring.track'],true)?'':'opacity="0"'}/><rect class="rp" x="${px/2}" y="${px/2}" width="${1024-px}" height="${600-px}" fill="none" stroke-width="${px}" pathLength="100" stroke-dasharray="0 100"/>`; cl.appendChild(ring); }
     // dock (theme keys dock.*; profile theme, then base)
@@ -123,7 +130,7 @@ const CLU=(()=>{
       profiles:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="5" rx="1"/><rect x="3" y="11" width="18" height="5" rx="1"/><path d="M3 20h18"/></svg>',
       rec:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg>'};
     const LAB={qr:'QR',reset:'RESET',profiles:'PROFILES',rec:'REC'};
-    const dock=mk('div','dock'+(bool(G('dock.labels'),true)?'':' nolab'),cl);
+    const dock=mk('div','dock'+(bool(G('dock.labels'),true)?'':' nolab')+(String(G('dock.side')||'right')==='left'?' left':''),cl);
     String(G('dock.order')||'qr,reset,profiles,rec').split(',').map(x=>x.trim()).filter(x=>ICON[x]).forEach(k=>{ const b=mk('button',null,dock); b.dataset.dk=k; b.innerHTML=ICON[k]+`<span>${LAB[k]}</span>`; b.onclick=e=>{ e.stopPropagation(); ctx.onDock&&ctx.onDock(k); wake(); }; });
     const wake=()=>{ if(!M) return; M.dockT=performance.now(); };
     if(!ctx.edit) cl.addEventListener('click',wake);

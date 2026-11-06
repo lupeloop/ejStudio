@@ -37,7 +37,7 @@ const send = m => eng.send(m);
     await wait(m => m.t === 'status' && m.state === 'settling'); ok(true, 'state → settling');
     await wait(m => m.t === 'status' && m.state === 'logging'); ok(true, 'state → logging');
     const fr = await wait(m => m.t === 'frame'); ok(Object.keys(fr.v).length === want.length, 'live frame carries ' + Object.keys(fr.v).length + ' values: ' + Object.values(fr.f).join(', '));
-    send({ t: 'rec', on: true }); const r1 = await wait(m => m.t === 'rec' && m.on); ok(/romraiderlog_\d{8}_\d{6}\.csv$/.test(r1.file), 'recording ' + path.basename(r1.file));
+    send({ t: 'rec', on: true }); const r1 = await wait(m => m.t === 'rec' && m.on); ok(/ejlogger_\d{4}-\d\d-\d\d_\d{4}_[\w.-]+\.csv$/.test(r1.file), 'recording ' + path.basename(r1.file));
     await new Promise(r => setTimeout(r, 2500));
     const st = seen.filter(m => m.t === 'stats').pop(); ok(st && st.hz > 0, `true rate ${st.hz.toFixed(1)} Hz, theoretical 480/(6+${st.bytes}) = ${st.theo.toFixed(1)} Hz`);
     send({ t: 'rec', on: false }); await wait(m => m.t === 'rec' && !m.on);

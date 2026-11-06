@@ -68,6 +68,9 @@ A complete Subaru SSM logger that records standard CSV logs, ready to open in ej
 - **Designer:** click a tile to set its title, colours, sizes and bottom row; drag tiles to reorder, add or remove gauges, and pick the grid. Saved per profile.
 - **Cluster settings (Config):** warm-up, warn limits, night dimming, wideband fuel cut and screensavers, saved straight to the cluster files.
 - **Screensavers:** Header Pulses, Ink or Night Sky per profile, driven by RPM, throttle blips and coolant temperature. Car cluster only, with a preview in Config.
+- **Dock:** QR, Reset peaks, Profiles and Record on a side rail that wakes with a tap. The profile picker opens as a side sheet; the QR overlay walks a phone through joining the Wi-Fi and opening the panel.
+- **Themes:** cluster and Dock presets (ejLogger Amber, Track Red, STI Gold, Night Ops) that mix and match, with every colour, wall and shape adjustable in the Designer.
+- **Logs tab:** select by date or profile, export to a folder or USB stick, zip, open in Graph, archive to .old. Logs are named `ejlogger_YYYY-MM-DD_HHmm_profile.csv`, with their details in a hidden `.meta` folder. Log storage settings keep the folder tidy and warn on low disk.
 - **Profiles:** each profile switches the logged parameters and the cluster page together. Import an existing ClusterConfig folder from Config → Cluster files.
 - **Parameters:** grouped by category, with units per parameter, plus the bytes and expected rate for your selection. Save selections as profiles.
 
