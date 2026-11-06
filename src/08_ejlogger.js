@@ -4,7 +4,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 const EJL=(()=>{
   const API=window.rrlab&&window.rrlab.ejl;
-  const CAR=new URLSearchParams(location.search).get('car')==='1'; // car cluster: boots into ejLogger full-screen, no ejStudio
+  const CAR=new URLSearchParams(location.search).get('car')==='1', ISPHONE=new URLSearchParams(location.search).get('phone')==='1'; // car cluster: boots into ejLogger full-screen, no ejStudio
   const pf=(v,d)=>{ const n=parseFloat(v); return Number.isFinite(n)?n:d; };
   const SV={
     studio:'<svg class="mk-ic" viewBox="0 0 64 64" aria-hidden="true"><rect x="9" y="9" width="46" height="46" rx="8" fill="#0c0c10" stroke="#111" stroke-width="5"/><rect x="9" y="9" width="46" height="46" rx="8" fill="none" stroke="#e8e8ea" stroke-width="2.6"/><rect x="14" y="14" width="10.5" height="10.5" rx="2" fill="#5a9fd4"/><rect x="26.5" y="14" width="10.5" height="10.5" rx="2" fill="#48a8ac"/><rect x="39" y="14" width="10.5" height="10.5" rx="2" fill="#3baf84"/><rect x="14" y="26.5" width="10.5" height="10.5" rx="2" fill="#48a8ac"/><rect x="26.5" y="26.5" width="10.5" height="10.5" rx="2" fill="#3baf84"/><rect x="39" y="26.5" width="10.5" height="10.5" rx="2" fill="#e4aa28"/><rect x="14" y="39" width="10.5" height="10.5" rx="2" fill="#3baf84"/><rect x="26.5" y="39" width="10.5" height="10.5" rx="2" fill="#e4aa28"/><rect x="39" y="39" width="10.5" height="10.5" rx="2" fill="#eb5a3c"/><path d="M32 4v56M4 32h56" fill="none" stroke="#111" stroke-width="4.6" stroke-linecap="round"/><path d="M32 4v56M4 32h56" fill="none" stroke="#e8e8ea" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="32" r="4.2" fill="#ff1e1e" stroke="#000" stroke-width="1.7"/></svg>',
@@ -67,6 +67,19 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
 #ejl #ejl-logs{gap:14px}#ejl .lgd{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--card-b);border-radius:8px;overflow:hidden}#ejl .lgdh{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--grid);font:12px var(--mono);color:var(--mut2)}#ejl .lgdh b{color:var(--tx)}
 #ejl .lgr{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:7px 12px;border-bottom:1px solid var(--grid);font-size:12.5px;cursor:pointer}#ejl .lgr:last-child{border-bottom:0}#ejl .lgr .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono)}#ejl .lgr .tg{font:11px var(--mono);color:var(--acc)}#ejl .lgr .mt{font:11px var(--mono);color:var(--mut)}#ejl .lgr.recg{opacity:.55}#ejl .lgr input,#ejl .lgdh input{accent-color:var(--acc)}
 #ejl .lgold summary{cursor:pointer;font:12px var(--mono);color:var(--mut2);padding:6px 2px}#ejl .lgold[open] summary{margin-bottom:8px}
+#ejl .ejl-graph{position:fixed;left:0;right:0;bottom:0;z-index:150;background:#08080b;border-top:1px solid #2a2a32;border-radius:14px 14px 0 0;padding:10px 12px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;height:min(42vh,320px);animation:ejlup .18s ease-out}@keyframes ejlup{from{transform:translateY(30px);opacity:0}}
+#ejl .ejl-graph .gh{display:flex;align-items:center;gap:6px}#ejl .ejl-graph .gh b{font:700 13px var(--mono);letter-spacing:.08em}#ejl .ejl-graph .gv{font:13px var(--mono);color:var(--acc)}#ejl .ejl-graph button{background:var(--ctl);border:1px solid var(--ctl-b);color:var(--mut2);border-radius:7px;padding:4px 8px;font:11px var(--mono)}#ejl .ejl-graph button.on{color:var(--acc);border-color:var(--acc-b)}#ejl .ejl-graph canvas{flex:1;width:100%;min-height:0;border-radius:8px}
+body.ejl-phone #ejl header.top{flex-wrap:wrap;gap:8px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top))}body.ejl-phone #ejl .tabs{order:9;width:100%;margin:0;overflow-x:auto;scrollbar-width:none}body.ejl-phone #ejl .tabs button{padding:.45rem .7rem .35rem}
+body.ejl-phone #ejl .msg,body.ejl-phone #ejl .ejl-fullbtn,body.ejl-phone #ejl .ejl-edge{display:none!important}body.ejl-phone #ejl .edtop{padding:.32rem .6rem;font-size:11px}
+body.ejl-phone #ejl .sub{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:6px 10px;min-height:0}body.ejl-phone #ejl .sub>*{flex:none}
+body.ejl-phone #ejl .views,body.ejl-phone #ejl .view.on{flex-direction:column}body.ejl-phone #ejl .stage{padding:6px;place-items:start center;flex:none}body.ejl-phone #ejl .cl{width:min(100vw - 12px,calc((100vh - 140px)*1024/600))}
+body.ejl-phone #ejl .enav{width:auto;border:0;border-bottom:1px solid var(--card-b);display:flex;gap:4px;overflow-x:auto;padding:6px 8px;flex:none;scrollbar-width:none}body.ejl-phone #ejl .enav .g{display:none}body.ejl-phone #ejl .enav button{width:auto;white-space:nowrap;padding:6px 10px;border:1px solid var(--ctl-b);border-radius:16px}body.ejl-phone #ejl .enav button span{margin-left:6px}
+body.ejl-phone #ejl .ebody{padding:10px}body.ejl-phone #ejl .knob{grid-template-columns:1fr auto;gap:6px 10px}body.ejl-phone #ejl .knob>input[type=range],body.ejl-phone #ejl .knob>select,body.ejl-phone #ejl .knob>input[type=text],body.ejl-phone #ejl .knob>.seg,body.ejl-phone #ejl .knob>.path{grid-column:1/-1;grid-row:2}
+body.ejl-phone #ejl .pc{grid-template-columns:1fr}body.ejl-phone #ejl .basic>.bt{flex:0 0 calc((100% - 8px)/2)}
+body.ejl-phone #ejl .dside{position:fixed;left:0;right:0;bottom:0;width:auto;max-height:52vh;border:0;border-top:1px solid #2a2a32;border-radius:14px 14px 0 0;background:#08080b;z-index:120;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+body.ejl-phone #ejl .lgr{grid-template-columns:auto minmax(0,1fr);row-gap:2px}body.ejl-phone #ejl .lgr .tg,body.ejl-phone #ejl .lgr .mt{grid-column:2}
+body.ejl-phone #ejl .pksheet{width:min(92vw,420px)}body.ejl-phone #ejl .qrw{flex-direction:column;gap:18px}body.ejl-phone #ejl .qrw .qc{width:min(60vw,36vh)}body.ejl-phone #ejl .qrw .ar{transform:rotate(90deg)}
+body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,body.ejl-pass #ejl .sub{display:none!important}
 #ejl .ejl-cpop{position:fixed;z-index:300;width:540px;max-width:calc(100vw - 16px);max-height:calc(100vh - 70px);overflow:auto;background:var(--card);border:1px solid var(--ctl-b);border-radius:10px;padding:12px 14px;box-shadow:0 14px 40px rgba(0,0,0,.75);display:flex;flex-direction:column;gap:10px;animation:ejlpi .16s ease-out}
 #ejl .ejl-cpop .cph{display:flex;align-items:baseline;gap:10px}#ejl .ejl-cpop .cph b{font-size:13px}#ejl .ejl-cpop .sec h2{margin-bottom:2px}#ejl .ejl-cpop .cpf{display:flex;align-items:center;gap:8px;border-top:1px solid var(--grid);padding-top:10px}
 #ejl .bt{background:var(--card);border:1px solid var(--card-b);border-radius:8px;padding:10px 12px;min-width:0}#ejl .bt .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
@@ -172,7 +185,7 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
         case 'disk': { const was=S.disk&&S.disk.low; S.disk=m; if(m.low&&!was) toast(`Low disk space: ${m.freeGB} GB free for logs`); if(S.mode==='logger'&&S.view==='live') S.dirty=true; return; }
         case 'wb': S.wb=m; if(S.mode==='logger'&&S.view==='live') S.dirty=true; return;
         case 'rec': { if(S.view==='logs') setTimeout(loadLogs,300); const was=S.rec; S.rec=!!m.on; if(m.on&&!was) S.recT0=Date.now(); if(m.file) S.file=m.file; if(was&&!m.on){ S.last=m.file; toast('Log saved: '+String(m.file).split(/[\\/]/).pop()); if(S.cfg&&S.cfg.openOnStop&&S.cfg.role!=='car') openInGraph(); } bg(); break; }
-        case 'frame': for(const k in m.f){ S.cur[k]=m.f[k]; const v=m.v[k]; S.num[k]=v; if(Number.isFinite(v)){ if(!(k in S.mn)||v<S.mn[k].v) S.mn[k]={v,f:m.f[k]}; if(!(k in S.mx)||v>S.mx[k].v) S.mx[k]={v,f:m.f[k]}; } } if(S.mode==='logger'&&S.view==='live') S.dirty=true; return;
+        case 'frame': for(const k in m.f){ S.cur[k]=m.f[k]; const v=m.v[k]; S.num[k]=v; histPush(k,v); if(Number.isFinite(v)){ if(!(k in S.mn)||v<S.mn[k].v) S.mn[k]={v,f:m.f[k]}; if(!(k in S.mx)||v>S.mx[k].v) S.mx[k]={v,f:m.f[k]}; } } if(S.mode==='logger'&&S.view==='live') S.dirty=true; return;
       }
       S.dirty=true; if(S.mode==='logger') paintAll(); else bg();
     });
@@ -287,7 +300,7 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
     if(d.kind==='color'&&!/^#[0-9a-f]{6}$/i.test(v)){ return; }
     setProp(d.pf,d.pk,v); }
   $('ejl-sbody').addEventListener('input',propInput); $('ejl-sbody').addEventListener('change',propInput);
-  function drawCluster(dt){ CLU.frame($('ejl-stage'),{onDock,speed:roleVal('SPEED_SOURCE',/^Vehicle Speed/),C:S.clu,profile:(S.cfg&&S.cfg.profile)||'master',page:S.page,sel:sel(),byId:S.byId,cur:S.cur,num:S.num,mn:S.mn,mx:S.mx,rec:S.rec,recT0:S.recT0,hz:S.stats.hz,logging:S.state==='logging',onPage:k=>{ S.page=k; CLU.reset(); }},dt); }
+  function drawCluster(dt){ CLU.frame($('ejl-stage'),{noDock:ISPHONE,onTile:ISPHONE?openGraph:null,onDock,speed:roleVal('SPEED_SOURCE',/^Vehicle Speed/),C:S.clu,profile:(S.cfg&&S.cfg.profile)||'master',page:S.page,sel:sel(),byId:S.byId,cur:S.cur,num:S.num,mn:S.mn,mx:S.mx,rec:S.rec,recT0:S.recT0,hz:S.stats.hz,logging:S.state==='logging',onPage:k=>{ S.page=k; CLU.reset(); }},dt); }
 
   // Parameters: Grouped (categories down the side, tickable cards)
   function paintParams(){ const q=S.pq.trim().toLowerCase(), cfg=S.cfg||{};
@@ -337,9 +350,12 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
       ['Log storage',()=>{ const st=S.cfg.storage||{}, n=(k,l,mn,mx,d,note)=>`<div class="knob"><label>${l}</label><input type="range" min="${mn}" max="${mx}" step="1" value="${st[k]==null?d:st[k]}" data-st="${k}" style="accent-color:var(--acc)"><output>${(st[k]==null?d:st[k])||'Off'}</output>${note?`<div class="note">${note}</div>`:''}</div>`;
         return n('oldAfterDays','Move logs to .old after (days)',0,365,0,'0 = off. .old keeps everything until you delete it.')+n('deleteOldAfterDays','Delete logs in .old after (days)',0,730,0,'0 = never (default).')+n('diskWarnGB','Warn when free space is below (GB)',0,50,2,'')+`<div class="knob"><label>Free space now</label><span class="path">${S.disk?S.disk.freeGB+' GB':'…'}</span><button class="xb" data-a="stnow">APPLY NOW</button></div>`; }],
       ['USB stick',()=>`<div class="knob"><label>Offer to sync logs to a stick labelled</label><input type="text" id="ejl-usbl" value="${esc(S.cfg.usbLabel!=null?S.cfg.usbLabel:'tedd')}" placeholder="any stick"><span></span><div class="note">Car mode only. Plug in the stick and a prompt offers SYNC LOGS: new logs copy to its logs folder and the copied ones move to .old here. Leave empty to offer it for any stick. Any stick also appears as an export target in the Logs tab.</div></div>`]]],
-    ['PHONE & NETWORK',[['Phone panel',()=>soon('ejlogger.local · passcode (on hold until the laptop UI is done)')]]]];
+    ['PHONE & NETWORK',[['Phone panel',()=>{ const on=S.cfg.phone==null?CAR:!!S.cfg.phone, pc=((S.clu&&S.clu.P.network)||{})['tuner.passcode']||'5873', ad=S.net||{};
+        return `<div class="knob"><label for="ejl-phon">Phone panel</label><span></span><input type="checkbox" id="ejl-phon" ${on?'checked':''} style="justify-self:end"><div class="note">Serves ejLogger to phones on this PC's network: the Tuner (passcode) and a passenger Live view. On by default in car mode, off on a laptop.</div></div>
+        <div class="knob"><label>Address</label><span class="path">${on?esc('http://ejlogger.local'+(ad.port&&ad.port!==80?':'+ad.port:'')):'Off'}</span><span></span>${on&&ad.ips&&ad.ips.length?`<div class="note">Also ${ad.ips.map(i=>esc('http://'+i+(ad.port&&ad.port!==80?':'+ad.port:''))).join(' · ')}</div>`:''}</div>
+        <div class="knob"><label>Tuner passcode</label><input type="text" id="ejl-pass" inputmode="numeric" maxlength="4" value="${esc(pc)}" style="width:90px;justify-self:end;font:16px var(--mono);letter-spacing:.3em;text-align:center"><span></span><div class="note">Four digits. Kept on this PC only (network.properties), never in the repo. Changing it signs every phone out. No passcode is needed on this PC itself.</div></div>`; }]]]];
   function paintSet(){ if(!S.cfg) return; const q=S.q.trim().toLowerCase(), all=SECS.flatMap(s=>s[1]);
-    $('ejl-snav').innerHTML=SECS.map(([g,it])=>`<div class="g">${g}</div>`+it.map(([n])=>`<button data-n="${n}" class="${n===S.sec&&!q?'on':''} ${g==='PHONE & NETWORK'?'dim':''}">${n}</button>`).join('')).join('');
+    $('ejl-snav').innerHTML=SECS.map(([g,it])=>`<div class="g">${g}</div>`+it.map(([n])=>`<button data-n="${n}" class="${n===S.sec&&!q?'on':''} ">${n}</button>`).join('')).join('');
     let h; if(q){ const tmp=document.createElement('div'); h=all.map(([n,f])=>{ tmp.innerHTML=f(); const ks=[...tmp.querySelectorAll('.knob')].filter(k=>(n+' '+k.textContent).toLowerCase().includes(q)); return ks.length?`<div class="sec"><h2>${n}</h2><div class="card">${ks.map(k=>k.outerHTML).join('')}</div></div>`:''; }).join('')||'<span class="lbl">No settings match</span>'; }
     else { const it=all.find(x=>x[0]===S.sec)||all[0]; S.sec=it[0]; h=`<div class="sec"><h2>${it[0]}</h2><div class="card">${it[1]()}</div></div>`; }
     $('ejl-sbody').innerHTML=h; }
@@ -354,7 +370,7 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
     if(a==='rescan') rescan(); if(a==='open'&&API) API.openDir();
     if(a==='def'&&API) API.pickDef().then(c=>{ S.cfg=c; S.dirty=true; paintAll(); });
     if(a==='dir'&&API) API.pickDir().then(c=>{ S.cfg=c; S.dirty=true; paintAll(); }); }
-  function setChange(e){ const d=e.target.dataset; if(e.target.id==='ejl-usbl'){ setCfg({usbLabel:e.target.value.trim()}); return; } if(d.st){ setCfg({storage:Object.assign({},S.cfg.storage||{},{[d.st]:+e.target.value})}); return; } if(e.target.id==='ejl-carmode'){ setCfg({role:e.target.checked?'car':'laptop'}); return; }
+  function setChange(e){ const d=e.target.dataset; if(e.target.id==='ejl-phon'){ setCfg({phone:e.target.checked}); return; } if(e.target.id==='ejl-pass'){ const v=e.target.value.trim(); if(!/^\d{4}$/.test(v)){ toast('The passcode is four digits'); return; } setProp('network','tuner.passcode',v); toast('Passcode changed; phones need to unlock again'); return; } if(e.target.id==='ejl-usbl'){ setCfg({usbLabel:e.target.value.trim()}); return; } if(d.st){ setCfg({storage:Object.assign({},S.cfg.storage||{},{[d.st]:+e.target.value})}); return; } if(e.target.id==='ejl-carmode'){ setCfg({role:e.target.checked?'car':'laptop'}); return; }
     if(d.k) setCfg({[d.k]:e.target.checked});
     if(d.c){ const v=e.target.value, p={[d.c]:v};
       if(d.c==='wbType'){ const l=sel().filter(s=>!String(s.id).startsWith('wb:')); if(v!=='none') l.push({id:'wb:'+v,units:S.cfg.wbUnits||'AFR Gasoline'}); setSel(l); p.sel=S.cfg.sel; }
@@ -483,6 +499,32 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
     if(a==='refresh') return loadLogs(); if(a==='all'){ files.forEach(f=>{ if(!(f.name===S.logs.recording&&!f.old)) S.lsel.add(fkey(f)); }); } else if(a==='none') S.lsel.clear();
     else { const names=[...S.lsel], o=a==='usb'?{dest:el.dataset.dl+':\\logs'}:undefined; API.logsDo(a==='usb'?'export':a,names,o).then(r=>{ if(r&&r.ok){ if(a==='graph'){ setMode('studio'); } else toast(a==='delete'?`Deleted ${r.n}`:a==='zip'?'Zip saved':a==='export'||a==='usb'?`Exported ${r.n} to ${r.dest}`:'Done'); if(/delete|toOld|fromOld/.test(a)) S.lsel.clear(); loadLogs(); } else if(r&&r.error) toast(r.error); }); return; }
     S.dirty=true; paintAll(); }
+
+  // ════ Phone panel: the same ejLogger, laid out for a phone; passengers get the cluster only ════
+  const QS=new URLSearchParams(location.search), PHONE=QS.get('phone')==='1', PASS=QS.get('passenger')==='1';
+  // live history for graphs (last 2 min per value)
+  S.hist={};
+  function histPush(k,v){ if(!Number.isFinite(v)) return; const a=S.hist[k]||(S.hist[k]=[]), t=performance.now(); a.push([t,v]); while(a.length&&t-a[0][0]>121000) a.shift(); }
+  let gsheet=null, gkey=null, gwin=30;
+  function openGraph(k,title,unit,name){ gkey=k; if(!gsheet){ gsheet=mk('div','ejl-graph',root); gsheet.onclick=e=>{ const w=e.target.dataset.gw; if(w){ gwin=+w; drawGraph(); } if(e.target.dataset.gx){ gsheet.remove(); gsheet=null; gkey=null; } }; }
+    gsheet.dataset.title=title; gsheet.dataset.unit=unit||''; gsheet.dataset.name=name||'';
+    gsheet.innerHTML=`<div class="gh"><b>${esc(title)}</b><span class="gv"></span><span class="fill"></span>${[10,30,60,120].map(w=>`<button data-gw="${w}" class="${w===gwin?'on':''}">${w<60?w+' s':w/60+' m'}</button>`).join('')}<button data-gx="1">✕</button></div><canvas></canvas>`; drawGraph(); }
+  function drawGraph(){ if(!gsheet) return; gsheet.querySelectorAll('[data-gw]').forEach(b=>b.classList.toggle('on',+b.dataset.gw===gwin));
+    const cv=gsheet.querySelector('canvas'), dpr=Math.min(2,devicePixelRatio||1), W=cv.width=cv.clientWidth*dpr, H=cv.height=cv.clientHeight*dpr, x=cv.getContext('2d'), now=performance.now(), a=(S.hist[gkey]||[]).filter(p=>now-p[0]<=gwin*1000);
+    x.fillStyle='#0c0c10'; x.fillRect(0,0,W,H); const v=gsheet.querySelector('.gv'); v.textContent=S.cur[gkey]!=null?S.cur[gkey]+' '+gsheet.dataset.unit:'';
+    if(a.length<2) return; let lo=Math.min(...a.map(p=>p[1])), hi=Math.max(...a.map(p=>p[1]));
+    // dashed warn-limit lines for this parameter
+    const W3=S.clu&&S.clu.warn.find(([k])=>String(gsheet.dataset.name).toLowerCase().includes(k)); const lines=W3?W3[1].slice(0,3):[];
+    for(const l of lines){ if(l>=lo-Math.abs(hi-lo)*.5&&l<=hi+Math.abs(hi-lo)*.5){ lo=Math.min(lo,l); hi=Math.max(hi,l); } }
+    if(hi-lo<1e-6){ hi+=1; lo-=1; } const pad=(hi-lo)*.1; lo-=pad; hi+=pad; const X=t=>(1-(now-t)/(gwin*1000))*W, Y=val=>H-(val-lo)/(hi-lo)*H;
+    x.font=`${11*dpr}px ui-monospace,monospace`; x.fillStyle='#55555c'; x.fillText(hi.toFixed(2),4*dpr,12*dpr); x.fillText(lo.toFixed(2),4*dpr,H-4*dpr);
+    ['rgba(228,170,40,.85)','rgba(240,120,40,.85)','rgba(235,35,35,.9)'].forEach((c,i)=>{ const l=lines[i]; if(l==null||l<lo||l>hi) return; x.setLineDash([6*dpr,5*dpr]); x.strokeStyle=c; x.lineWidth=1*dpr; x.beginPath(); x.moveTo(0,Y(l)); x.lineTo(W,Y(l)); x.stroke(); }); x.setLineDash([]);
+    // knock ticks: FBKC dropping
+    const fb=sel().find(s2=>/^Feedback Knock/.test((S.byId[s2.id]||{}).name||'')), fk=fb&&(fb.id+'|'+(fb.units||'')), fa=(fk&&S.hist[fk]||[]).filter(p=>now-p[0]<=gwin*1000);
+    x.strokeStyle='rgba(255,64,64,.8)'; x.lineWidth=2*dpr; for(let i=1;i<fa.length;i++) if(fa[i][1]<fa[i-1][1]-0.005){ const px=X(fa[i][0]); x.beginPath(); x.moveTo(px,H-10*dpr); x.lineTo(px,H); x.stroke(); }
+    x.strokeStyle='#e4aa28'; x.lineWidth=2*dpr; x.beginPath(); a.forEach((p,i)=>i?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1]))); x.stroke(); }
+  setInterval(()=>{ if(gsheet) drawGraph(); },250);
+  if(PHONE){ document.body.classList.add('ejl-phone','ejl-car'); if(PASS) document.body.classList.add('ejl-pass'); setMode('logger'); }
 
   restyleMarks(); show('live');
   function setFull(on){ document.body.classList.toggle('ejl-full',on); if(on){ S.live='cluster'; show('live'); } CLU.reset(); S.dirty=true; paintAll(); }

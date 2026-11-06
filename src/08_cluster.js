@@ -111,7 +111,7 @@ const CLU=(()=>{
         editable(d,afc); tiles.push({kind:'trim',el:d}); return; }
       const fl=((C.gauge[cid]||{}).flags||'').split(',').map(x=>x.trim()).filter(Boolean), bot=tget(cid,'bottom');
       d.innerHTML=`<div class="t">${esc(tget(cid,'title')||titleOf(C,cid,p.name))}</div><div class="vr"><span class="v">--</span><span class="u">${esc(it?unitOf(C,cid,it.units):'')}</span></div><div class="mm"></div>${fl.includes('recDot')?'<div class="rd"><i></i><span></span></div>':''}`;
-      editable(d,cid);
+      editable(d,cid); if(!ctx.edit&&it&&ctx.onTile){ d.style.cursor='pointer'; d.onclick=e=>{ e.stopPropagation(); ctx.onTile(keyOf(it),tget(cid,'title')||titleOf(C,cid,p.name),unitOf(C,cid,it.units),p.name); }; }
       tiles.push({kind:'g',el:d,cid,it,name:p.name,fl,bot,v:d.querySelector('.v'),mm:d.querySelector('.mm'),rd:d.querySelector('.rd'),disp:null,dp:null,last:''}); });
     // column walls: on a tile's right edge, one per row, only when a tile sits to its right in that row (original rrOS look)
     { const occ={}; for(const T of tiles){ const el=T.el, gr=String(el.style.gridRow), r0=parseInt(gr)-1, span=/span\s*(\d+)/.test(gr)?+gr.match(/span\s*(\d+)/)[1]:1, c=parseInt(el.style.gridColumn)-1; for(let k=0;k<span;k++) occ[(r0+k)+','+c]=el; }
@@ -133,7 +133,7 @@ const CLU=(()=>{
     const dock=mk('div','dock'+(bool(G('dock.labels'),true)?'':' nolab')+(String(G('dock.side')||'right')==='left'?' left':''),cl);
     String(G('dock.order')||'qr,reset,profiles,rec').split(',').map(x=>x.trim()).filter(x=>ICON[x]).forEach(k=>{ const b=mk('button',null,dock); b.dataset.dk=k; b.innerHTML=ICON[k]+`<span>${LAB[k]}</span>`; b.onclick=e=>{ e.stopPropagation(); ctx.onDock&&ctx.onDock(k); wake(); }; });
     const wake=()=>{ if(!M) return; M.dockT=performance.now(); };
-    if(!ctx.edit) cl.addEventListener('click',wake);
+    if(!ctx.edit&&!ctx.noDock) cl.addEventListener('click',wake); if(ctx.noDock) dock.style.display='none';
     if(L.pages>1){ const d=mk('div','pg',cl); for(let k=0;k<L.pages;k++){ const i=mk('i',k===L.page?'on':'',d); i.onclick=()=>{ ctx.onPage&&ctx.onPage(k); }; } }
     M={dock,dockT:-1e9,dhp:num(G('dock.hide.parked'),10)*1000,dhm:num(G('dock.hide.moving'),3)*1000,sig:sig(ctx),clc:/^#/.test(clc||'')?clc:null,olc:/^#/.test(olc||'')?olc:null,wa:/^#[0-9a-f]{6}$/i.test(G('warn.amber')||'')?G('warn.amber'):'#f0b030',cl,tiles,ring,tau:num(disp['ease.tau.ms'],55),ramp:bool(disp['color.ramp'],true),wbcut:num(disp['wb.cut.afr'],24),minload:num(disp['lambda.dev.minload'],1),wu,trim,dim:P.dimming||{},coolEta:{t:0,v:null,rate:0}}; }
 

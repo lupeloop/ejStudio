@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ejLogger">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icon-192.png">
+<title>ejLogger</title>
+<style>
+@font-face{font-family:ejDIN;src:url('/fonts/HunDIN1451.ttf')}@font-face{font-family:ejMono;src:url('/fonts/SpaceMono-Regular.ttf')}
+:root{--bg:#000;--tx:#e8e8ea;--mut:#7d7d85;--acc:#e4aa28;--acc-d:#2a2208;--acc-b:#5a4410;--card:#0c0c10;--card-b:#1c1c22;--red:#ff6b6b;--mono:ejMono,ui-monospace,Consolas,monospace;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:15px/1.45 -apple-system,'Segoe UI',Roboto,sans-serif}
+.scr{display:none;min-height:100%;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:calc(24px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom))}.scr.on{display:flex}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:24px;letter-spacing:.06em}.brand b{color:var(--acc)}.brand svg{width:44px;height:44px}
+.sub{font:12px var(--mono);letter-spacing:.12em;color:var(--mut);text-transform:uppercase;margin-top:-12px}
+.hb{width:min(100%,380px);display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--card-b);border-radius:16px;padding:18px 18px;color:var(--tx);text-decoration:none;font:inherit;text-align:left;cursor:pointer}
+.hb .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;flex:none}.hb .ic svg{width:26px;height:26px}.hb b{display:block;font-size:18px}.hb small{color:var(--mut);font-size:13px}
+.hb.t .ic{background:var(--acc-d);color:var(--acc);border:1px solid var(--acc-b)}.hb.l .ic{background:#0d2a16;color:#32c85a;border:1px solid #1d5a30}
+.st{display:flex;gap:8px;font:12px var(--mono);color:var(--mut)}.st i{width:7px;height:7px;border-radius:50%;background:#333;display:inline-block;margin-right:6px;vertical-align:middle}.st .on i{background:#32c85a}.st .rec i{background:#eb2323}
+.lk{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:var(--acc-d);border:1px solid var(--acc-b);color:var(--acc)}.lk svg{width:26px;height:26px}
+.gt{font:700 18px var(--mono);letter-spacing:.1em}.gm{font-size:13px;color:var(--mut);margin-top:-14px}
+.dots{display:flex;gap:16px}.dots i{width:14px;height:14px;border-radius:50%;border:2px solid #3a3a42}.dots i.f{background:var(--acc);border-color:var(--acc)}
+.dots.bad{animation:shake .4s}.dots.bad i{border-color:var(--red);background:transparent}@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.pad{display:grid;grid-template-columns:repeat(3,76px);gap:14px}.pad button{height:76px;border-radius:50%;background:var(--card);border:1px solid var(--card-b);color:var(--tx);font:28px ejDIN,sans-serif;cursor:pointer}.pad button:active{background:var(--acc-d);border-color:var(--acc-b)}.pad .x{background:none;border:0;font:13px var(--mono);color:var(--mut)}
+.back{background:none;border:0;color:var(--mut);font:13px var(--mono);letter-spacing:.06em;cursor:pointer}
+.a2{background:none;border:1px dashed #2a2a32;color:var(--mut);border-radius:12px;padding:10px 14px;font:12px var(--mono);cursor:pointer}
+</style></head><body>
+<div class="scr on" id="hub">
+  <div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 6h26l12 12v40H14z" fill="#0c0c10" stroke="#111" stroke-width="5" stroke-linejoin="round"/><path d="M14 6h26l12 12v40H14z" fill="none" stroke="#e8e8ea" stroke-width="2.6" stroke-linejoin="round"/><path d="M40 6v12h12" fill="none" stroke="#e8e8ea" stroke-width="2.2"/><path d="M19 34h5l3-9 4 14 4-11 3 6h8" fill="none" stroke="#e4aa28" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="47" cy="34" r="4.2" fill="#ff1e1e" stroke="#000" stroke-width="1.7"/></svg><span><b>ej</b>Logger</span></div>
+  <div class="sub" id="car">Phone panel</div>
+  <div class="st" id="st"></div>
+  <a class="hb t" href="/unlock" id="tun"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg></span><span><b>Tuner</b><small>Settings, PIDs, Designer, logs · passcode</small></span></a>
+  <a class="hb l" href="/live"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/></svg></span><span><b>Live view</b><small>The cluster, for passengers · no passcode</small></span></a>
+  <button class="a2" id="a2" hidden>＋ Add to Home Screen</button>
+</div>
+<div class="scr" id="gate">
+  <div class="lk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+  <div class="gt">TUNER LOCKED</div><div class="gm" id="gm">Enter passcode</div>
+  <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
+  <div class="pad" id="pad"></div>
+  <button class="back" onclick="location.href='/go'">← Back</button>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+if(location.pathname==='/unlock'){ $('hub').classList.remove('on'); $('gate').classList.add('on'); }
+// status line on the hub
+fetch('/pub/status').then(r=>r.json()).then(s=>{ $('st').innerHTML=`<span class="${s.logging?'on':''}"><i></i>${s.logging?'Logging':'Not logging'}</span>${s.profile?`<span>· ${s.profile}</span>`:''}${s.rec?'<span class="rec"><i></i>REC</span>':''}`; }).catch(()=>{});
+// keypad: 4 digits; a right code keeps this phone unlocked for 30 days
+let code='';
+const dots=()=>[...$('dots').children].forEach((d,i)=>d.classList.toggle('f',i<code.length));
+$('pad').innerHTML=[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>k===''?'<span></span>':`<button class="${k==='⌫'?'x':''}" data-k="${k}">${k}</button>`).join('');
+$('pad').onclick=e=>{ const k=e.target.dataset.k; if(k==null) return; if(k==='⌫'){ code=code.slice(0,-1); dots(); return; } if(code.length>=4) return; code+=k; dots();
+  if(code.length===4) fetch('/api/gate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})}).then(r=>{ if(r.ok){ location.href='/'; } else { const d=$('dots'); d.classList.add('bad'); $('gm').textContent='Wrong passcode'; setTimeout(()=>{ d.classList.remove('bad'); code=''; dots(); $('gm').textContent='Enter passcode'; },600); } }); };
+let bip=null; addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); bip=e; $('a2').hidden=false; }); $('a2').onclick=()=>bip&&bip.prompt();
+</script>
+</body></html>
