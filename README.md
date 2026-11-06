@@ -92,9 +92,9 @@ Download the latest `ejStudio-Setup-x.y.z.exe` from **Releases** and run it. Upd
 Run `build.bat`. It bundles `src\` into `ejstudio.html`, installs dependencies, runs the ejLogger engine tests (`ejLogger\engine\test`), runs the self-test against `tests\fixtures`, and builds the installer into `dist\`.
 
 ## Roadmap
-- **Cluster designer:** per-tile colours, sizes and bottom row, and your rrOS cluster layout carried over.
-- **Car mode:** the in-car PC boots straight into ejLogger full-screen, with auto-record, screensavers (Header Pulses, Ink, Night Sky), warm-up, warn limits and night dimming.
-- **Phone panel:** change cluster settings from your phone at `ejlogger.local`.
+- **Cluster designer:** lay out the ejLogger cluster, and set each tile's colours, sizes and bottom row (min/max, poll rate or nothing).
+- **In-car mode:** for a dedicated in-car PC. It boots straight into ejLogger full-screen, with auto-record, screensavers, a warm-up display, warning limits and night dimming.
+- **Phone panel:** change cluster settings from a phone on the same network.
 
 ## Credits
 The logger protocol, logger definitions and table knowledge come from the RomRaider project. The tune format is from Project Lambda.
