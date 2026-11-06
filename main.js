@@ -28,7 +28,7 @@ function startWatch(){
 const EJL_CFGF=()=>path.join(app.getPath('userData'),'ejlogger.json');
 const EJL_DEF={role:'laptop',defPath:'',ecuPort:'',wbType:'none',wbPort:'',wbUnits:'AFR Gasoline',autoConnect:false,logDir:'',openOnStop:false,fastPoll:true,sel:[],profiles:{},profile:''};
 let ejl={cfg:null,proc:null,rec:false,file:null,state:'idle',quitting:false};
-function ejlCfg(){ if(!ejl.cfg){ ejl.cfg=Object.assign({},EJL_DEF); try{ Object.assign(ejl.cfg,JSON.parse(fs.readFileSync(EJL_CFGF(),'utf8'))); }catch(_){ try{ const r=fs.readFileSync(path.join(path.dirname(process.execPath),'ejstudio-role.txt'),'utf8').trim(); if(r==='car'||r==='laptop'){ ejl.cfg.role=r; if(r==='car') ejl.cfg.autoConnect=true; } }catch(_){} } if(!ejl.cfg.logDir) ejl.cfg.logDir=path.join(app.getPath('documents'),'ejStudio','logs'); } return ejl.cfg; }
+function ejlCfg(){ if(!ejl.cfg){ ejl.cfg=Object.assign({},EJL_DEF); try{ Object.assign(ejl.cfg,JSON.parse(fs.readFileSync(EJL_CFGF(),'utf8'))); }catch(_){} if(!ejl.cfg.logDir) ejl.cfg.logDir=path.join(app.getPath('documents'),'ejStudio','logs'); } return ejl.cfg; }
 function ejlSave(){ try{ const f=EJL_CFGF(); fs.writeFileSync(f+'.tmp',JSON.stringify(ejl.cfg,null,1)); fs.renameSync(f+'.tmp',f); }catch(e){ elog('ejl cfg '+e); } }
 const ejlEngineCfg=c=>({defPath:c.defPath,ecuPort:c.ecuPort,wbType:c.wbType,wbPort:c.wbPort,wbUnits:c.wbUnits,logDir:c.logDir,fastPoll:c.fastPoll!==false});
 function ejlStart(){

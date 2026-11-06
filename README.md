@@ -79,8 +79,9 @@ A complete Subaru SSM logger that records standard CSV logs, ready to open in ej
 ![ejLogger Parameters](docs/img/logger_params.png)
 
 ### Car mode
-For a dedicated in-car PC with a small screen. The installer asks once whether the PC is the car cluster or a laptop (and suggests car cluster on a 1024 × 600 screen); you can change it later in Config → This PC.
-- Starts straight into ejLogger full-screen and connects on its own, retrying until the ECU answers.
+For a dedicated in-car PC with a small screen. Turn it on in Config → This PC; it takes effect from the next launch.
+- Opens straight into ejLogger, full screen on the cluster, and connects on its own, retrying until the ECU answers.
+- Tap the top edge of the screen or press Esc for the full ejLogger (Parameters, Designer, Config, COM ports); ⤢ returns to the cluster.
 - Records automatically once data has settled. On a cold start it waits until coolant reaches 60 °C (or 75 s), so the secondary air pump doesn't skew the log.
 - Screensaver after a few minutes stopped; wakes on speed or touch. Night dimming after sunset.
 - Ctrl+Shift+Q closes it.
