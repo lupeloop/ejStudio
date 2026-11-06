@@ -57,6 +57,8 @@ Scaling, Curve, or Both in one tab.
 - Scatter with colour channel and trend lines, two-log compare (A/B), WOT pull splitter, diagnostics timeline, session report.
 
 ## ejLogger
+![ejLogger Live](docs/img/logger_live.png)
+
 A 1:1 port of the RomRaider 1.1.0 logger, so logs are interchangeable with RomRaider's.
 - **Protocol:** Subaru SSM over K-Line (4800 8N1), ECU init `80 10 F0 01 BF 40`, then continuous A8 fast poll. Rate = 480 / (6 + reply bytes) Hz.
 - **Same definitions:** RomRaider's `logger_METRIC_EN_v370.xml`, with the same check of which parameters your ECU supports.
@@ -64,9 +66,12 @@ A 1:1 port of the RomRaider 1.1.0 logger, so logs are interchangeable with RomRa
 - **External widebands:** AEM UEGO (serial), Innovate LC-2 (MTS) and PLX on their own port. A missing wideband port is retried every second and logging carries on without it.
 - **Live:** cluster view or Basic View (tiles with min/max), true logged rate, ECU and wideband status, and **Open last log in Graph**.
 - **Parameters:** grouped by category, with units per parameter, plus the bytes and expected rate for your selection. Save selections as profiles.
+
 - **Settings (☰):** ECU port, logger definition, wideband sensor and port, auto-connect, log folder (default `Documents\ejStudio\logs`), and open in Graph when recording stops.
 - **Background engine:** the logger runs as its own process, owning the serial ports, polling and CSV writer, so switching to ejStudio never interrupts a recording. Closing while recording asks first.
 - **Desk testing:** the `MOCK` port is a simulated ECU, for trying ejLogger without the car.
+
+![ejLogger Parameters](docs/img/logger_params.png)
 
 Serial ports only (Tactrix OpenPort in VCP mode, a KKL cable or Project Lambda Bluetooth). J2534 is not used.
 
