@@ -28,7 +28,7 @@ function startWatch(){
 const EJL_CFGF=()=>path.join(app.getPath('userData'),'ejlogger.json');
 const EJL_DEF={role:'laptop',defPath:'',ecuPort:'',wbType:'none',wbPort:'',wbUnits:'AFR Gasoline',autoConnect:false,logDir:'',openOnStop:false,fastPoll:true,sel:[],profiles:{},profile:''};
 let ejl={cfg:null,proc:null,rec:false,file:null,state:'idle',quitting:false};
-function ejlCfg(){ if(!ejl.cfg){ ejl.cfg=Object.assign({},EJL_DEF); try{ Object.assign(ejl.cfg,JSON.parse(fs.readFileSync(EJL_CFGF(),'utf8'))); }catch(_){} if(!ejl.cfg.logDir) ejl.cfg.logDir=path.join(app.getPath('documents'),'ejStudio','logs'); } return ejl.cfg; }
+function ejlCfg(){ if(!ejl.cfg){ ejl.cfg=Object.assign({},EJL_DEF); try{ Object.assign(ejl.cfg,JSON.parse(fs.readFileSync(EJL_CFGF(),'utf8'))); }catch(_){ try{ const r=fs.readFileSync(path.join(path.dirname(process.execPath),'ejstudio-role.txt'),'utf8').trim(); if(r==='car'||r==='laptop'){ ejl.cfg.role=r; if(r==='car') ejl.cfg.autoConnect=true; } }catch(_){} } if(!ejl.cfg.logDir) ejl.cfg.logDir=path.join(app.getPath('documents'),'ejStudio','logs'); } return ejl.cfg; }
 function ejlSave(){ try{ const f=EJL_CFGF(); fs.writeFileSync(f+'.tmp',JSON.stringify(ejl.cfg,null,1)); fs.renameSync(f+'.tmp',f); }catch(e){ elog('ejl cfg '+e); } }
 const ejlEngineCfg=c=>({defPath:c.defPath,ecuPort:c.ecuPort,wbType:c.wbType,wbPort:c.wbPort,wbUnits:c.wbUnits,logDir:c.logDir,fastPoll:c.fastPoll!==false});
 function ejlStart(){
@@ -75,11 +75,13 @@ function ejlIpc(){
       if(v===null||v===undefined){ if(i>=0) lines.splice(i,1); } else if(i>=0) lines[i]=k+' = '+String(v).replace(/[\r\n]+/g,' '); else { while(lines.length&&lines[lines.length-1].trim()==='') lines.pop(); lines.push(k+' = '+String(v).replace(/[\r\n]+/g,' ')); } }
     fs.mkdirSync(path.dirname(f),{recursive:true}); fs.writeFileSync(f+'.tmp',lines.join('\r\n').replace(/(\r\n)*$/,'')+'\r\n'); fs.renameSync(f+'.tmp',f); return true; }catch(err){ elog('writeProp '+err); return false; } });
   ipcMain.handle('ejl:openCluster',()=>{ seedCluster(); shell.openPath(CLD()); return true; });
+  ipcMain.handle('ejl:relaunch',()=>{ ejlSave(); if(ejl.rec) return false; app.relaunch(); app.exit(0); return true; });
   ipcMain.handle('ejl:state',()=>({state:ejl.state,rec:ejl.rec,file:ejl.file,last:ejl.last||null,running:!!ejl.proc}));
 }
 function create(){
-  win=new BrowserWindow({width:1600,height:960,minWidth:1100,minHeight:680,backgroundColor:'#000000',title:'ejStudio',icon:path.join(__dirname,'logos/ejstudio.ico'),
-    autoHideMenuBar:true,show:false,titleBarStyle:'hidden',titleBarOverlay:{color:'#000000',symbolColor:'#e8e8ea',height:38},webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,spellcheck:false}});
+  const CAR=ejlCfg().role==='car';
+  win=new BrowserWindow({width:CAR?1024:1600,height:CAR?600:960,minWidth:CAR?640:1100,minHeight:CAR?400:680,fullscreen:CAR,frame:!CAR,backgroundColor:'#000000',title:'ejStudio',icon:path.join(__dirname,'logos/ejstudio.ico'),
+    autoHideMenuBar:true,show:false,titleBarStyle:CAR?undefined:'hidden',titleBarOverlay:CAR?false:{color:'#000000',symbolColor:'#e8e8ea',height:38},webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,spellcheck:false}});
   win.removeMenu();
   win.on('close',e=>{ if(ejl.rec&&!ejl.quitting){ e.preventDefault(); const r=dialog.showMessageBoxSync(win,{type:'warning',buttons:['Keep recording','Stop and close'],defaultId:0,cancelId:0,title:'ejLogger is recording',message:'ejLogger is recording a log.',detail:'Stop the recording and close ejStudio? The log file is closed cleanly first.'});
     if(r===1){ ejl.quitting=true; try{ ejl.proc.postMessage({t:'rec',on:false}); }catch(_){ app.quit(); } setTimeout(()=>app.quit(),3000); } } });
@@ -89,7 +91,8 @@ function create(){
   win.webContents.setWindowOpenHandler(({url})=>(!url||url==='about:blank')?{action:'allow',overrideBrowserWindowOptions:{backgroundColor:'#000000',autoHideMenuBar:true,icon:path.join(__dirname,'logos/ejstudio.ico')}}:{action:'deny'});
   win.webContents.on('will-navigate',e=>e.preventDefault());
   win.webContents.on('did-finish-load',()=>{ const f=argFiles(process.argv); if(f.length) send('open-files',f.map(readOut)); });
-  win.loadFile(path.join(__dirname,'ejstudio.html'));
+  win.loadFile(path.join(__dirname,'ejstudio.html'),CAR?{query:{car:'1'}}:undefined);
+  if(CAR) win.webContents.on('before-input-event',(e,i)=>{ if(i.type==='keyDown'&&i.control&&i.shift&&i.key.toLowerCase()==='q'){ e.preventDefault(); win.close(); } });
 }
 process.on('uncaughtException',err=>{ try{ elog('main crash: '+(err&&err.stack||err)); }catch(_){} });
 const SELFA=process.argv.find(a=>a.startsWith('--selftest')), SELF=!!SELFA, SELFOUT=v=>{ v=String(v).replace(/→/g,'->').replace(/[·•]/g,'-').replace(/[^\x00-\x7e\r\n]/g,''); const p=process.argv.find(a=>a.startsWith('--out=')); try{ if(p) fs.writeFileSync(p.slice(6),v); }catch(_){} console.log(v); };

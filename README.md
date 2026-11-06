@@ -78,6 +78,13 @@ A complete Subaru SSM logger that records standard CSV logs, ready to open in ej
 
 ![ejLogger Parameters](docs/img/logger_params.png)
 
+### Car mode
+For a dedicated in-car PC with a small screen. The installer asks once whether the PC is the car cluster or a laptop (and suggests car cluster on a 1024 × 600 screen); you can change it later in Config → This PC.
+- Starts straight into ejLogger full-screen and connects on its own, retrying until the ECU answers.
+- Records automatically once data has settled. On a cold start it waits until coolant reaches 60 °C (or 75 s), so the secondary air pump doesn't skew the log.
+- Screensaver after a few minutes stopped; wakes on speed or touch. Night dimming after sunset.
+- Ctrl+Shift+Q closes it.
+
 Serial ports only (Tactrix OpenPort in VCP mode, a KKL cable or Project Lambda Bluetooth). J2534 is not used.
 
 ## Supported files
@@ -97,7 +104,6 @@ Download the latest `ejStudio-Setup-x.y.z.exe` from **Releases** and run it. Upd
 Run `build.bat`. It bundles `src\` into `ejstudio.html`, installs dependencies, runs the ejLogger engine tests (`ejLogger\engine\test`), runs the self-test against `tests\fixtures`, and builds the installer into `dist\`.
 
 ## Roadmap
-- **In-car mode:** for a dedicated in-car PC. It boots straight into ejLogger full-screen, with auto-record, screensavers, a warm-up display, warning limits and night dimming.
 - **Phone panel:** change cluster settings from a phone on the same network.
 
 ## Credits

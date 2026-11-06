@@ -4,6 +4,8 @@
 // ════════════════════════════════════════════════════════════════════════════
 const EJL=(()=>{
   const API=window.rrlab&&window.rrlab.ejl;
+  const CAR=new URLSearchParams(location.search).get('car')==='1'; // car cluster: boots into ejLogger full-screen, no ejStudio
+  const pf=(v,d)=>{ const n=parseFloat(v); return Number.isFinite(n)?n:d; };
   const SV={
     studio:'<svg class="mk-ic" viewBox="0 0 64 64" aria-hidden="true"><rect x="9" y="9" width="46" height="46" rx="8" fill="#0c0c10" stroke="#111" stroke-width="5"/><rect x="9" y="9" width="46" height="46" rx="8" fill="none" stroke="#e8e8ea" stroke-width="2.6"/><rect x="14" y="14" width="10.5" height="10.5" rx="2" fill="#5a9fd4"/><rect x="26.5" y="14" width="10.5" height="10.5" rx="2" fill="#48a8ac"/><rect x="39" y="14" width="10.5" height="10.5" rx="2" fill="#3baf84"/><rect x="14" y="26.5" width="10.5" height="10.5" rx="2" fill="#48a8ac"/><rect x="26.5" y="26.5" width="10.5" height="10.5" rx="2" fill="#3baf84"/><rect x="39" y="26.5" width="10.5" height="10.5" rx="2" fill="#e4aa28"/><rect x="14" y="39" width="10.5" height="10.5" rx="2" fill="#3baf84"/><rect x="26.5" y="39" width="10.5" height="10.5" rx="2" fill="#e4aa28"/><rect x="39" y="39" width="10.5" height="10.5" rx="2" fill="#eb5a3c"/><path d="M32 4v56M4 32h56" fill="none" stroke="#111" stroke-width="4.6" stroke-linecap="round"/><path d="M32 4v56M4 32h56" fill="none" stroke="#e8e8ea" stroke-width="2" stroke-linecap="round"/><circle cx="32" cy="32" r="4.2" fill="#ff1e1e" stroke="#000" stroke-width="1.7"/></svg>',
     logger:'<svg class="mk-ic" viewBox="0 0 64 64" aria-hidden="true"><path d="M14 6h26l12 12v40H14z" fill="#0c0c10" stroke="#111" stroke-width="5" stroke-linejoin="round"/><path d="M14 6h26l12 12v40H14z" fill="none" stroke="#e8e8ea" stroke-width="2.6" stroke-linejoin="round"/><path d="M40 6v12h12" fill="none" stroke="#e8e8ea" stroke-width="2.2" stroke-linejoin="round"/><path d="M20 16h14M20 46h26M20 52h20" stroke="#e8e8ea" stroke-width="2.2" stroke-linecap="round" opacity=".6"/><path d="M19 34h5l3-9 4 14 4-11 3 6h8" fill="none" stroke="#111" stroke-width="5.6" stroke-linejoin="round" stroke-linecap="round"/><path d="M19 34h5l3-9 4 14 4-11 3 6h8" fill="none" stroke="#e4aa28" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="47" cy="34" r="4.2" fill="#ff1e1e" stroke="#000" stroke-width="1.7"/></svg>'};
@@ -23,7 +25,7 @@ const EJL=(()=>{
 body.ejl-bg .brand .bgdot{display:block}body.ejl-bgrec .brand .bgdot{animation:ejlp 1s steps(2) infinite}
 .ejl-pop{position:fixed;z-index:400;background:var(--card);border:1px solid var(--ctl-b);border-radius:10px;padding:10px 12px;box-shadow:0 12px 34px rgba(0,0,0,.7);display:flex;flex-direction:column;gap:9px;font-size:12.5px;animation:ejlpi .18s ease-out;max-width:260px}
 .ejl-pop .r{display:flex;gap:6px;justify-content:flex-end}.ejl-pop small{color:var(--mut)}@keyframes ejlpi{from{opacity:0;transform:translateY(4px) scale(.97)}}@keyframes ejlp{50%{opacity:.45}}
-body.ejl-on #app,body.ejl-on #land{display:none!important}
+body.ejl-on #app,body.ejl-on #land{display:none!important}body.ejl-car #ejl .brand{pointer-events:none}body.ejl-car #land,body.ejl-car #app{display:none!important}
 #ejl{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;flex-direction:column;--dig:"Barlow Semi Condensed","Arial Narrow","Roboto Condensed",sans-serif}
 body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin{from{opacity:0;transform:translateY(6px)}}
 #ejl .lbl{font:600 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
@@ -132,18 +134,18 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
   // ── engine link ──
   function loadCluster(){ if(API&&API.cluster) API.cluster().then(r=>{ try{ S.clu=CLU.parse(r); CLU.reset(); }catch(e){ S.clu=null; toast('Cluster files: '+e.message); } S.dirty=true; paintAll(); }); }
   function start(){ if(S.started||!API) return; S.started=true; loadCluster(); API.send({t:'state'}); API.send({t:'params'}); rescan();
-    if(sel().length) API.send({t:'select',list:sel()}); if(S.cfg&&S.cfg.autoConnect&&S.state==='idle') setTimeout(connect,300); }
+    if(sel().length) API.send({t:'select',list:sel()}); if(S.cfg&&(CAR||S.cfg.autoConnect)&&S.state==='idle') setTimeout(connect,300); }
   function connect(){ const c=S.cfg||{}; if(!c.defPath){ openCpop(); return toast('Choose the logger definition file first'); }
     if(!c.ecuPort){ openCpop(); return toast('Choose the ECU port first'); }
     S.err=''; S.cur={}; S.mn={}; S.mx={}; API.send({t:'select',list:sel()}); API.send({t:'connect'}); }
   function rescan(){ if(API) API.send({t:'ports'}); }
   function setCfg(p){ if(!API) return Promise.resolve(); return API.set(p).then(c=>{ S.cfg=c; S.dirty=true; paintAll(); }); }
   if(API){
-    API.cfg().then(c=>{ S.cfg=c; S.dirty=true; paintAll(); });
+    API.cfg().then(c=>{ S.cfg=c; S.dirty=true; paintAll(); if(S.started&&S.state==='idle'&&(CAR||c.autoConnect)) setTimeout(connect,300); });
     API.state().then(s=>{ if(s&&s.running){ S.state=s.state; S.rec=s.rec; S.file=s.file; S.last=s.last; bg(); } });
     API.on(m=>{
       switch(m.t){
-        case 'status': S.state=m.state||'idle'; if(m.msg) S.msg=m.msg; if(S.state==='connecting') S.err=''; if(S.state==='idle'){ S.rec=false; S.stats.hz=0; } bg(); break;
+        case 'status': S.state=m.state||'idle'; if(S.state!=='logging'){ S.logT0=0; if(S.state==='idle') S.autoDone=false; } if(m.msg) S.msg=m.msg; if(S.state==='connecting') S.err=''; if(S.state==='idle'){ S.rec=false; S.stats.hz=0; } bg(); break;
         case 'msg': S.msg=m.text; if(S.mode==='logger') paintTop(); return;
         case 'error': S.err=m.text; if(S.mode==='logger'&&!/^engine:/.test(m.text)) toast(m.text); break;
         case 'ports': S.ports=m.list||[]; break;
@@ -289,7 +291,7 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
   const rng3=(f,k,l,mn,mx,st,d)=>{ const P=(cl()&&cl()[f])||{}; let v=parseFloat(P[k]); if(!Number.isFinite(v)) v=d; return `<div class="knob"><label>${l}</label><input type="range" min="${mn}" max="${mx}" step="${st}" value="${v}" data-pf="${f}" data-pk="${k}" style="accent-color:var(--acc)"><output>${v}</output></div>`; };
   const soon=t=>`<div class="knob soon"><label>${t}</label><span class="lbl">Later build</span><span></span></div>`;
   const SECS=[
-    ['THIS PC',[['This PC',()=>`<div class="knob"><label>This PC is</label><div class="seg" id="ejl-role"><button data-r="car" class="${S.cfg.role==='car'?'on':''}">Car cluster</button><button data-r="laptop" class="${S.cfg.role!=='car'?'on':''}">Laptop</button></div><span></span><div class="note">Car: boots straight into ejLogger full-screen, auto-record, screensaver, phone panel (car mode arrives in a later build; the installer will ask once). Laptop: this window, manual recording.</div></div>`]]],
+    ['THIS PC',[['This PC',()=>`<div class="knob"><label>This PC is</label><div class="seg" id="ejl-role"><button data-r="car" class="${S.cfg.role==='car'?'on':''}">Car cluster</button><button data-r="laptop" class="${S.cfg.role!=='car'?'on':''}">Laptop</button></div>${(S.cfg.role==='car')!==CAR?'<button class="xb acc" data-a="relaunch">RESTART TO APPLY</button>':'<span></span>'}<div class="note">Car cluster: starts straight into ejLogger full-screen, connects and records on its own, screensaver on. Ctrl+Shift+Q closes it. Laptop: the normal ejStudio window, manual recording. The installer asks this once.</div></div>`]]],
     ['CONNECTION',[['ECU',()=>`<div class="knob"><label>ECU port (Tactrix / K-Line)</label><select data-c="ecuPort">${portOpts(S.cfg.ecuPort)}</select><button class="xb" data-a="rescan" title="Rescan ports">↻</button><div class="note">Every serial port on this PC. Serial only (J2534 is not used). "MOCK" is a simulated ECU for testing at the desk.</div></div>
         <div class="knob"><label>Logger definition</label><span class="path" title="${esc(S.cfg.defPath||'')}">${S.cfg.defPath?esc(S.cfg.defPath.split(/[\\/]/).pop()):'None chosen'}</span><button class="xb" data-a="def">CHOOSE…</button><div class="note">The standard logger definitions file (logger_METRIC_EN_v370.xml). A copy is kept with ejStudio's settings.${S.verified?' ECU '+esc(S.ecuId||'')+': showing supported parameters only.':''}</div></div>
         ${tick('autoConnect','Connect automatically when ejLogger opens')}${tick('fastPoll','Fast poll (continuous A8 stream)','Continuous streaming from the ECU. Leave on.')}`],
@@ -307,7 +309,7 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
       ['Warn limits',()=>{ if(!cl()) return ''; const W=cl().warnlimits||{}; return `<div class="knob"><label>How it works</label><span></span><span></span><div class="note">Approach, warn, critical (an optional 4th = hard critical). Lower than approach means lower is worse, like knock. Matched on the parameter name.</div></div>`+(W._order||[]).filter(k=>!k.includes('.')).map(k=>`<div class="knob"><label>${esc(k)}</label><input type="text" data-pf="warnlimits" data-pk="${esc(k)}" data-kind="warn" value="${esc(W[k])}"><span></span></div>`).join('')+rng3('warnlimits','hysteresis.frac','Tier hysteresis',0,0.5,0.01,0.05); }],
       ['Night',()=>{ if(!cl()) return ''; const D=cl().dimming||{}, m=String(D.mode||'auto').toLowerCase(); return `<div class="knob"><label>Mode</label><div class="seg" id="ejl-dmode">${['auto','day','night'].map(x=>`<button data-dm="${x}" class="${m===x?'on':''}">${x[0].toUpperCase()+x.slice(1)}</button>`).join('')}</div><span></span><div class="note">Auto follows sunrise and sunset for the location below, worked out offline.</div></div>${rng3('dimming','brightness','Night brightness (%)',10,100,1,42)}${rng3('dimming','sunrise.offset.min','Sunrise offset (min)',-120,120,5,15)}${rng3('dimming','sunset.offset.min','Sunset offset (min)',-120,120,5,15)}<div class="knob"><label>Latitude</label><input type="text" data-pf="dimming" data-pk="lat" data-kind="num" min="-90" max="90" value="${esc(parseFloat(D.lat)||49.2827)}"><span></span></div><div class="knob"><label>Longitude</label><input type="text" data-pf="dimming" data-pk="lon" data-kind="num" min="-180" max="180" value="${esc(parseFloat(D.lon)||-123.1207)}"><span></span></div>`; }],
       ['Wideband fuel cut',()=>cl()?rng3('display','wb.cut.afr','Show - - - - at or above (AFR)',16,40,0.5,24)+`<div class="knob"><label></label><span></span><span></span><div class="note">On overrun the wideband reads very lean; at or above this AFR the WB tile shows - - - - instead of a number.</div></div>`:'']]],
-    ['RECORDING',[['Auto-record',()=>`<div class="knob soon"><label>Auto-record</label><span class="lbl">Car only</span><span></span><div class="note">On this laptop, recording is manual (● Rec).</div></div>`],
+    ['RECORDING',[['Auto-record',()=>cl()?`<div class="knob"><label></label><span></span><span></span><div class="note">${CAR?'Recording starts on its own once data has settled, and stops when the ECU disconnects. Stop it by hand and it stays off until the next connection.':'Car cluster only. On this laptop, recording is manual (● Rec).'}</div></div>${tg3('record','auto.enabled','Auto-record',true)}${rng3('record','auto.arm.ms','Settle time before recording (ms)',0,20000,500,3000)}${tg3('record','cold.gate','Wait out a cold start (secondary air pump)',true)}${rng3('record','cold.until.c','…until coolant reaches (°C)',20,90,1,60)}${rng3('record','cold.max.ms','…or at most (ms)',10000,300000,5000,75000)}${rng3('record','cold.unknown.ms','If coolant is not logged, wait (ms)',0,300000,5000,45000)}`:''],,
       ['Log files',()=>`<div class="knob"><label>Log folder</label><span class="path" title="${esc(S.cfg.logDir||'')}">${esc(S.cfg.logDir||'')}</span><span style="display:flex;gap:6px"><button class="xb" data-a="dir">CHANGE…</button><button class="xb" data-a="open">OPEN</button></span><div class="note">Files are named romraiderlog_YYYYMMDD_HHMMSS.csv, in the standard logger format.</div></div>${tick('openOnStop','Open in Graph when recording stops')}`]]],
     ['PHONE & NETWORK',[['Phone panel',()=>soon('ejlogger.local · passcode (on hold until the laptop UI is done)')]]]];
   function paintSet(){ if(!S.cfg) return; const q=S.q.trim().toLowerCase(), all=SECS.flatMap(s=>s[1]);
@@ -321,6 +323,7 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
     if(b.dataset.r) setCfg({role:b.dataset.r}); if(b.dataset.dm){ setProp('dimming','mode',b.dataset.dm); S.dirty=true; paintAll(); }
     if(a==='cimp'&&API) API.importCluster().then(ok=>{ if(ok){ toast('Cluster files imported'); loadCluster(); } }); if(a==='copen'&&API) API.openCluster();
     if(a==='sspv'&&S.clu){ const sp=S.clu.P.screensaver||{}; SS.showPreview(sp['style.'+curProf()]||'header',sp); }
+    if(a==='relaunch'&&API&&API.relaunch) API.relaunch().then(ok=>{ if(ok===false) toast('Stop the recording first'); });
     if(a==='rescan') rescan(); if(a==='open'&&API) API.openDir();
     if(a==='def'&&API) API.pickDef().then(c=>{ S.cfg=c; S.dirty=true; paintAll(); });
     if(a==='dir'&&API) API.pickDir().then(c=>{ S.cfg=c; S.dirty=true; paintAll(); }); }
@@ -348,11 +351,16 @@ body.ejl-on #ejl{display:flex}#ejl.in{animation:ejlin .35s ease}@keyframes ejlin
   // frames arrive ~13 Hz; paint at most once per animation frame
   function roleVal(r,re){ const C=S.clu; let id=C&&C.roles[r], it=id&&sel().find(x=>x.id===id||(C.alias[x.id]===id)); if(!it&&re) it=sel().find(x=>re.test((S.byId[x.id]||{}).name||'')); return it?S.num[it.id+'|'+(it.units||'')]:undefined; }
   (function loop(now){ const dt=Math.min(100,(now||0)-lastT); lastT=now||0;
+    if(CAR&&API&&S.clu&&S.state==='logging'&&!S.rec&&!S.autoDone){ const R=S.clu.P.record||{};
+      if(String(R['auto.enabled']||'true').toLowerCase()!=='false'){ if(!S.logT0) S.logT0=performance.now(); const el=performance.now()-S.logT0, clt=roleVal('COOLANT_SOURCE',/^Coolant Temp/);
+        let go=el>=pf(R['auto.arm.ms'],3000); if(go&&String(R['cold.gate']||'true').toLowerCase()!=='false') go=Number.isFinite(clt)?(clt>=pf(R['cold.until.c'],60)||el>=pf(R['cold.max.ms'],75000)):el>=pf(R['cold.unknown.ms'],45000);
+        if(go){ S.autoDone=true; API.send({t:'rec',on:true}); } } }
     if(S.mode==='logger'&&S.clu&&!SS.preview){ const sp=S.clu.P.screensaver||{}; SS.tick({P:sp,style:sp['style.'+curProf()]||'header',enabled:!!(S.cfg&&S.cfg.role==='car'),logging:S.state==='logging',rpm:roleVal('RPM_SOURCE',/^Engine Speed/),speed:roleVal('SPEED_SOURCE',/^Vehicle Speed/),load:roleVal('LOAD_SOURCE',/^Engine Load/),clt:roleVal('COOLANT_SOURCE',/^Coolant Temp/),dt,now:now||performance.now()}); } if(S.mode==='logger'&&S.view==='cluster'&&S.clu) drawDesigner(dt); if(S.mode==='logger'&&S.view==='live'){ if(S.dirty){ if(S.live==='basic') paintLive(); paintSub(); S.dirty=false; } if(S.live==='cluster'&&S.clu) drawCluster(dt); } requestAnimationFrame(loop); })();
   setInterval(()=>{ if(S.mode==='logger'&&S.view==='live'&&S.state==='logging') { S.dirty=true; } },1000);
   // keep the pop-out current (ports, state, config)
   const _pa=paintAll; paintAll=function(){ _pa(); if(cpop) paintCpop(); };
 
   restyleMarks(); show('live');
+  if(CAR){ document.body.classList.add('ejl-car'); setMode('logger'); }
   return { S, setMode, show };
 })();
