@@ -1,18 +1,41 @@
-<p align="center"><img src="logos/ejstudio.svg" width="96" alt="ejStudio"></p>
+<p align="center"><img src="logos/ejstudio.svg" width="104" alt="ejStudio"></p>
 <h1 align="center">ejStudio</h1>
-<p align="center">Log analyzer, Project Lambda tune editor and live logger for Subaru EJ engines.</p>
+<p align="center"><b>Log analyzer · Tune editor · Live logger</b><br>for Subaru EJ engines tuned with Project Lambda</p>
 
-![ejStudio](docs/img/landing.png)
+<p align="center">
+  <img src="docs/img/badges/version.svg" alt="Version 3.0.6">
+  <img src="docs/img/badges/windows.svg" alt="Windows 10 and 11">
+  <img src="docs/img/badges/ecu.svg" alt="Subaru SSM over K-Line">
+  <img src="docs/img/badges/tunes.svg" alt="Project Lambda">
+</p>
 
-ejStudio loads your logs together with your Project Lambda `.tune`, replays the drive across every table, finds knock and fuelling problems, suggests corrections, and builds a new revision of the tune for you to flash. Its built-in live logger, **ejLogger**, records those logs straight from the car.
+<p align="center">
+  <a href="#ejstudio-1">ejStudio</a> ·
+  <a href="#ejlogger">ejLogger</a> ·
+  <a href="#phone-panel">Phone panel</a> ·
+  <a href="#car-pc-mode">Car PC mode</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#supported-files">Files</a>
+</p>
+
+![ejStudio and ejLogger](docs/img/hero.png)
+
+ejStudio is one app for the whole tuning loop. It loads logs alongside a Project Lambda `.tune`, replays the drive across every table, finds knock and fuelling problems, suggests corrections and builds the next revision for you to flash. Its built-in logger, **ejLogger**, records those logs from the car, drives an in-car cluster, and puts it all on a phone.
+
+<p align="center"><b>Load tune</b> &nbsp;→&nbsp; <b>Drive</b> &nbsp;→&nbsp; <b>Log</b> &nbsp;→&nbsp; <b>Analyze</b> &nbsp;→&nbsp; <b>Edit</b></p>
 
 ## Two modes, one app
-| | Mode | What it's for |
-|---|---|---|
-| <img src="logos/ejstudio.svg" width="28"> | **ejStudio** | Tables, Graph, MAF Tools, Scatter and tune editing. Opens by default. |
-| <img src="logos/ejlogger.svg" width="28"> | **ejLogger** | Live logging from the ECU: Live, Parameters, Designer and Config. |
 
-Hover the logo in the top-left corner to switch modes, then click and confirm. Each mode has its own top bar and tabs. ejLogger keeps logging in the background while you work in ejStudio, shown by a red dot on the logo.
+| | Mode | What it's for |
+|:-:|---|---|
+| <img src="logos/ejstudio.svg" width="30"> | **ejStudio** | Tables, Graph, MAF Tools, Scatter Plots and tune editing. Opens by default. |
+| <img src="logos/ejlogger.svg" width="30"> | **ejLogger** | Live logging: Live cluster, Parameters, Designer, Logs and Config. |
+
+Hover the logo in the top-left corner to switch modes. ejLogger keeps logging in the background while you work in ejStudio, shown by a red dot on the logo.
+
+---
+
+# ejStudio
 
 ## Tables
 ![Tables](docs/img/tables.png)
@@ -23,28 +46,29 @@ Every table and setting card in the tune, with the log replayed live on top.
 - Knock windows (FBKC, FLKC and IAM ranges from the tune), visited-cell and fuel-cut overlays.
 - Cruise / Non-Cruise (TGV closed / open) base timing with an **● ECU** marker on the active table.
 - Pooled across all logs recorded on the current revision.
-- One-axis tables such as MAF scaling are shown vertically with a tall graph.
 
 ## Edit tune
 ![Edit mode](docs/img/edit.png)
 
-Edit any table, axis or setting card directly.
 - Right-click menu: set, add, multiply, change by %, interpolate, smooth, copy/paste, undo/redo, revert, copy from another revision.
 - Type to edit (`*1.02`, `+0.5`, `-0.35`), arrow keys, selection stats.
-- Undo history, read-only compare against any revision.
-- **Build** writes a new `revN.tune` and keeps an automatic backup. The original file is never overwritten, and unedited values are written back byte-for-byte.
+- Undo history and a read-only compare against any revision.
+- **Build** writes a new `revN.tune` and keeps an automatic backup.
 
 ## Suggestions
 ![Suggestions](docs/img/suggestions.png)
 
 MAF scaling and knock timing corrections, grouped by area with the evidence for each.
-- Timing follows strict rules: only repeated, sustained knock on the current revision; nothing if IAM has dropped; only the table the ECU was using; spread over the cells the ECU blends; max 2° per cell; tapered with no humps; fuel-cut areas left alone; base timing only; never adds timing.
-- Switch any cell or whole group on or off before applying. Nothing reaches the file until you Build.
+
+> [!IMPORTANT]
+> Timing suggestions follow strict rules: only repeated, sustained knock on the current revision; nothing if IAM has dropped; only the table the ECU was using; spread over the cells the ECU blends; max 2° per cell; tapered with no humps; fuel-cut areas left alone; base timing only; **never adds timing**.
+
+Switch any cell or whole group on or off before applying. Nothing reaches the file until you Build.
 
 ## MAF Tools
 ![MAF Tools](docs/img/maf.png)
 
-Scaling, Curve, or Both in one tab.
+- Scaling, Curve, or Both in one tab.
 - Zoned scaling list (Idle, Cruise, Load, Boost) with zone averages, an overview strip and a pinned side panel for the selected bin.
 - Closed-loop, open-loop and mixed corrections with slope-kink, monotonic and CL/OL agreement checks.
 - Corrected vs current curve with the live position.
@@ -53,66 +77,146 @@ Scaling, Curve, or Both in one tab.
 ![Graph](docs/img/graph.png)
 
 - Multi-lane graph with Full log view, event ticks and hover details; drag to scrub.
-- Searchable Jump to event menu (knock, boost, fuelling, AVCS, tip-in and more).
-- Scatter with colour channel and trend lines, two-log compare (A/B), WOT pull splitter, diagnostics timeline, session report.
+- Searchable **Jump to event** menu: knock, boost, fuelling, AVCS, tip-in and more.
+- Scatter Plots with colour channel and trend lines, two-log compare (A/B), WOT pull splitter, diagnostics timeline and session report.
 
-## ejLogger
-![ejLogger Live](docs/img/logger_live.png)
+---
 
-A complete Subaru SSM logger that records standard CSV logs, ready to open in ejStudio or any other log tool.
-- **Protocol:** Subaru SSM over K-Line (4800 8N1), ECU init `80 10 F0 01 BF 40`, then continuous A8 fast poll. Rate = 480 / (6 + reply bytes) Hz.
-- **Standard definitions:** uses the `logger_METRIC_EN_v370.xml` logger definitions and only shows the parameters your ECU supports.
-- **Standard CSV logs:** CRLF, `Time (msec)` from 0, `Name (units)` headers and standard number formatting.
-- **External widebands:** AEM UEGO (serial), Innovate LC-2 (MTS) and PLX on their own port. A missing wideband port is retried every second and logging carries on without it.
-- **Live:** the cluster, built from simple `.properties` files (layout pages, gauge titles and units, warn limits, trims, warm-up), with three-tier warnings, smooth number motion, a TRIMS tile with CL/OL tag, a warm-up ring, poll rate and rec timer. Or Basic View: tiles with min/max, centred and up to six across. Plus the true logged rate, ECU and wideband status, and **Open last log in Graph**.
-- **Designer:** click a tile to set its title, colours, sizes and bottom row; drag tiles to reorder, add or remove gauges, and pick the grid. Saved per profile.
-- **Cluster settings (Config):** warm-up, warn limits, night dimming, wideband fuel cut and screensavers, saved straight to the cluster files.
-- **Screensavers:** Header Pulses, Ink or Night Sky per profile, driven by RPM, throttle blips and coolant temperature. Car cluster only, with a preview in Config.
-- **Dock:** QR, Reset peaks, Profiles and Record on a side rail that wakes with a tap. The profile picker opens as a side sheet; the QR overlay walks a phone through joining the Wi-Fi and opening the panel.
-- **Themes:** cluster and Dock presets (ejLogger Amber, Track Red, STI Gold, Night Ops) that mix and match, with every colour, wall and shape adjustable in the Designer.
-- **Logs tab:** select by date or profile, export to a folder or USB stick, zip, open in Graph, archive to .old. Logs are named `ejlogger_YYYY-MM-DD_HHmm_profile.csv`, with their details in a hidden `.meta` folder. Log storage settings keep the folder tidy and warn on low disk.
-- **Profiles:** each profile switches the logged parameters and the cluster page together. Import an existing ClusterConfig folder from Config → Cluster files.
-- **Parameters:** grouped by category, with units per parameter, plus the bytes and expected rate for your selection. Filter by selected or unselected, see byte-size variants, and save selections as standard profile XML.
-- **Profiles manager:** order, glyph, picker visibility, screensaver, default profile, rename, duplicate, delete and per-profile warn limits. Labels set cluster titles and units; Linked PIDs let a 1-, 2- or 4-byte variant take over the original tile.
-- **Phone panel:** open `ejlogger.local` on a phone on the same Wi-Fi. **Tuner** is the full ejLogger in a phone layout behind a 4-digit passcode (default `5873`, set in Config → Phone panel). **Live view** mirrors the cluster for passengers, with tap-to-graph, the profile and REC timer.
-- **Health and System (Config):** roles found, true rate, last data, recent errors, restart, back up config and skip auto-record for this drive.
+# ejLogger
 
-- **Connect:** one click connects; the button shows Connecting, Settling and Logging. The ▾ beside it opens the ECU port, logger definition and wideband settings, with every serial port on the PC listed.
-- **Config:** auto-connect, log folder (default `Documents\ejStudio\logs`) and open in Graph when recording stops.
-- **Background engine:** the logger runs as its own process, owning the serial ports, polling and CSV writer, so switching to ejStudio never interrupts a recording. Closing while recording asks first.
-- **Desk testing:** the `MOCK` port is a simulated ECU, for trying ejLogger without the car.
+![ejLogger](docs/img/logger_live.png)
 
-![ejLogger Parameters](docs/img/logger_params.png)
+A complete Subaru SSM logger, cluster and log manager built into ejStudio. Watch the drive on the cluster, or switch to Basic View for a simple tile per parameter. Logs are standard CSV, ready for ejStudio or any other log tool.
 
-### Car mode
-For a dedicated in-car PC with a small screen. Turn it on in Config → This PC; it takes effect from the next launch.
-- Opens straight into ejLogger, full screen on the cluster, and connects on its own, retrying until the ECU answers.
-- Tap the top edge of the screen or press Esc for the full ejLogger (Parameters, Designer, Config, COM ports); ⤢ returns to the cluster.
-- Records automatically once data has settled. On a cold start it waits until coolant reaches 60 °C (or 75 s), so the secondary air pump doesn't skew the log.
-- Screensaver after a few minutes stopped; wakes on speed or touch. Night dimming after sunset.
-- Ctrl+Shift+Q closes it.
+<table>
+<tr>
+<td width="33%" valign="top"><b>Fast, standard logging</b><br><sub>SSM over K-Line with continuous fast poll and the standard logger definitions.</sub></td>
+<td width="33%" valign="top"><b>A real in-car cluster</b><br><sub>Three-tier warnings, warm-up indicator, night dimming, screensavers and a dock.</sub></td>
+<td width="33%" valign="top"><b>Runs in the background</b><br><sub>Switching to ejStudio, or closing a window, never interrupts a recording.</sub></td>
+</tr>
+<tr>
+<td valign="top"><b>Profiles</b><br><sub>Each profile switches the logged parameters, cluster page, theme and warn limits together.</sub></td>
+<td valign="top"><b>Phone panel</b><br><sub>Full control from a phone, or a live cluster for passengers.</sub></td>
+<td valign="top"><b>Car PC mode</b><br><sub>Boots straight into a full-screen cluster and records every drive.</sub></td>
+</tr>
+</table>
 
-Serial ports only (Tactrix OpenPort in VCP mode, a KKL cable or Project Lambda Bluetooth). J2534 is not used.
+## Designer and themes
+![ejLogger Designer](docs/img/logger_designer.png)
+
+Lay out the cluster for each profile: click a tile to style it, drag to reorder, add or remove gauges and pick the grid.
+
+![Cluster themes](docs/img/logger_themes.png)
+
+Four cluster themes and four Dock styles to mix and match, then fine-tune.
+
+## Parameters and profiles
+<table>
+<tr>
+<td width="50%"><img src="docs/img/logger_params.png" alt="Parameters"></td>
+<td width="50%"><img src="docs/img/logger_profiles.png" alt="Profiles"></td>
+</tr>
+</table>
+
+- **Parameters** grouped by category, with the expected logging rate for the selection. Only what the ECU supports is shown.
+- **Profiles** saved as standard profile XML, with their own order, glyph, screensaver and warn limits.
+- **Labels** set the title and unit each parameter shows on the cluster.
+
+## Logs
+![ejLogger Logs](docs/img/logger_logs.png)
+
+Every log is named by date, time and profile, like `ejlogger_2026-11-06_1755_master.csv`. Zip, export, archive or delete them by day or profile, and copy new logs to a USB stick as soon as one is plugged in.
+
+## Config
+![ejLogger Config](docs/img/logger_config.png)
+
+Every setting in one searchable place, saved as it changes:
+
+| Section | What's there |
+|---|---|
+| **This PC** | Car mode |
+| **Connection** | ECU port, logger definition, wideband |
+| **Cluster** | Cluster files, screensaver, warm-up, warn limits, night dimming |
+| **Recording** | Auto-record, log folder, log storage, USB stick |
+| **System** | Health, restart, config backup |
+| **Phone & network** | Phone panel, address and passcode |
+
+---
+
+## Phone panel
+![Phone panel](docs/img/phone_panel.png)
+
+Open **`ejlogger.local`** on any phone on the same Wi-Fi as the car PC, and add it to the home screen.
+
+| | Tuner | Live view |
+|---|---|---|
+| **Who** | You | Passengers |
+| **Passcode** | 4 digits, remembered for 30 days | None |
+| **What** | The full ejLogger in a phone layout: Live, Parameters, Designer, Logs and Config | The cluster, mirrored exactly, with the profile, REC timer and Reset peaks |
+| **Graphs** | Tap any tile | Tap any tile |
+
+Changes made on the phone show up on the car straight away, and the other way round. Logs and config backups download straight to the phone as zips.
+
+> [!TIP]
+> Each install gets its own random passcode. See or change it in **Config → Phone panel**. The car PC itself never asks for it.
+
+## Car PC mode
+![ejLogger car cluster](docs/img/logger_cluster.png)
+
+ejStudio can run a dedicated in-car PC as a full-screen cluster. Turn on **Config → This PC → Car mode**, and from the next launch it:
+- opens straight into ejLogger, full screen on the cluster, and loads the default profile;
+- connects on its own and keeps retrying until the ECU answers;
+- auto-records each drive, with warm-up, warn limits, night dimming and screensavers (Header Pulses, Ink or Night Sky);
+- shows the **Dock** with a tap: QR, Reset peaks, Profiles and Record.
+
+Tap the top edge of the screen or press **Esc** for the full ejLogger.
+
+<details>
+<summary><b>Under the hood</b></summary>
+
+<br>
+
+| | |
+|---|---|
+| **Protocol** | Subaru SSM over K-Line (4800 8N1). ECU init `80 10 F0 01 BF 40`, then continuous A8 fast poll. Rate = 480 / (6 + reply bytes) Hz. |
+| **Definitions** | `logger_METRIC_EN_v370.xml` logger definitions; only the parameters the ECU supports are shown. |
+| **CSV format** | CRLF, `Time (msec)` from 0, `Name (units)` headers and standard number formatting. |
+| **Widebands** | AEM UEGO (serial), Innovate LC-2 (MTS) and PLX on their own port. A missing wideband port is retried every second and logging carries on without it. |
+| **Hardware** | Serial ports only: Tactrix OpenPort in VCP mode, a KKL cable or Project Lambda Bluetooth. J2534 is not used. |
+| **Engine** | Runs as its own process, owning the serial ports, polling and CSV writer. Closing while recording asks first. |
+| **Desk testing** | The `MOCK` port is a simulated ECU, for trying ejLogger without the car. |
+| **Cluster files** | Plain `.properties` files (pages, themes, gauges, labels, trims, warn limits, display, warm-up, dimming, screensaver, record, profile settings) plus profile XML. Import an existing ClusterConfig folder from **Config → Cluster files**. |
+
+</details>
+
+---
 
 ## Supported files
 | File | Source | Used for |
 |---|---|---|
 | `.tune` | Project Lambda | Tables, editing, building revisions |
 | `.csv` logs | ejLogger and other SSM loggers | Everything below |
-| `.csv` logs | Project Lambda | Everything below (KCA is estimated from IAM when not logged) |
+| `.csv` logs | Project Lambda | Everything below |
 | `logger_*.xml` | Logger definitions | ejLogger parameters |
+| `profiles\*.xml` | Logger profiles | ejLogger profiles |
 
 Features switch on as channels are found. MAF scaling needs MAF voltage, RPM, wideband and fuel trims; timing analysis needs total timing, FBKC, FLKC and IAM; table traces need the table's axis channels (usually load and RPM).
 
 ## Install
-Download the latest `ejStudio-Setup-x.y.z.exe` from **Releases** and run it. Updates are announced inside the app. Coming from ejLab? Your settings and tune carry over automatically on first launch.
+Download the latest `ejStudio-Setup-x.y.z.exe` from **Releases** and run it. Updates are announced inside the app.
 
 ## Building from source
 Run `build.bat`. It bundles `src\` into `ejstudio.html`, installs dependencies, runs the ejLogger engine tests (`ejLogger\engine\test`), runs the self-test against `tests\fixtures`, and builds the installer into `dist\`.
 
-## Roadmap
-- **Live Table Trace** on the phone panel: the tune's tables with the live crosshair.
-- Tune sync and app updates from a USB stick.
-
 ## Credits
-The logger protocol, logger definitions and table knowledge come from the RomRaider project. The tune format is from Project Lambda.
+ejStudio grew out of tooling built around **[RomRaider](https://www.romraider.com)** and **[Project Lambda](https://lambdatuning.com)**.
+
+| | |
+|---|---|
+| **RomRaider** | The SSM logger protocol, logger definitions, profile format and the table knowledge behind the analysis. |
+| **Project Lambda** | The `.tune` format and its CSV logs. |
+| **Open-Meteo** | Weather data from [open-meteo.com](https://open-meteo.com), CC BY 4.0. |
+| **Space Mono** | Monospace type by Colophon Foundry, SIL Open Font License. |
+| **Electron** and **serialport** | The desktop app and the serial connection to the ECU and widebands. |
+
+<sub>Private build for personal use. Not for sale or redistribution.</sub>

@@ -80,7 +80,8 @@ body.ejl-phone #ejl .dside{position:fixed;left:0;right:0;bottom:0;width:auto;max
 body.ejl-phone #ejl .lgr{grid-template-columns:auto minmax(0,1fr);row-gap:2px}body.ejl-phone #ejl .lgr .tg,body.ejl-phone #ejl .lgr .mt{grid-column:2}
 body.ejl-phone #ejl .pksheet{width:min(92vw,420px)}body.ejl-phone #ejl .qrw{flex-direction:column;gap:18px}body.ejl-phone #ejl .qrw .qc{width:min(60vw,36vh)}body.ejl-phone #ejl .qrw .ar{transform:rotate(90deg)}
 body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,body.ejl-pass #ejl .sub{display:none!important}
-#ejl .prow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:9px 0;border-top:1px solid var(--grid);font-size:12.5px}#ejl .prow:first-child{border-top:0}#ejl .prow.on .pn b{color:var(--acc)}#ejl .prow .pn{display:flex;flex-direction:column;min-width:120px;flex:1}#ejl .prow .pn small{font:11px var(--mono);color:var(--mut)}#ejl .prow label{display:inline-flex;gap:4px;align-items:center;color:var(--mut2)}#ejl .prow input{accent-color:var(--acc)}#ejl .prow .pb{display:flex;gap:4px;flex-wrap:wrap}
+#ejl .prow .pmb{display:flex;flex-direction:row;flex-wrap:wrap;gap:4px;justify-content:flex-end;margin-left:auto}#ejl .prow .pmb .xb{display:inline-flex;width:auto;margin:0}#ejl .prow select{width:auto}#ejlv-params.nonav{grid-template-columns:1fr}#ejlv-params.nonav .enav{display:none}#ejlv-params.nonav .ebody{grid-column:1/-1}
+#ejl .prow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:9px 0;border-top:1px solid var(--grid);font-size:12.5px}#ejl .prow:first-child{border-top:0}#ejl .prow.on .pn b{color:var(--acc)}#ejl .prow .pn{display:flex;flex-direction:column;min-width:120px;flex:1}#ejl .prow .pn small{font:11px var(--mono);color:var(--mut)}#ejl .prow label{display:inline-flex;gap:4px;align-items:center;color:var(--mut2)}#ejl .prow input{accent-color:var(--acc)}
 #ejl .hroles{display:flex;flex-wrap:wrap;gap:6px}#ejl .hr{font:11px var(--mono);padding:3px 8px;border-radius:10px;background:var(--red-d);color:var(--red);display:inline-flex;gap:5px;align-items:center}#ejl .hr i{width:6px;height:6px;border-radius:50%;background:currentColor}#ejl .hr.ok{background:var(--green-d);color:var(--green)}
 #ejl .pstrip,#ejl .pres{display:none}body.ejl-pass #ejl .pstrip{display:inline-flex;gap:10px;align-items:center;font:12px var(--mono)}body.ejl-pass #ejl .pres{display:inline-flex}#ejl .pstrip span{display:inline-flex;gap:5px;align-items:center}#ejl .pstrip i{width:7px;height:7px;border-radius:50%;background:currentColor}#ejl .pstrip .r{color:#32c85a}#ejl .pstrip .s{color:#eb2323}#ejl .pstrip .o{color:var(--mut)}
 #ejl .ejl-cpop{position:fixed;z-index:300;width:540px;max-width:calc(100vw - 16px);max-height:calc(100vh - 70px);overflow:auto;background:var(--card);border:1px solid var(--ctl-b);border-radius:10px;padding:12px 14px;box-shadow:0 14px 40px rgba(0,0,0,.75);display:flex;flex-direction:column;gap:10px;animation:ejlpi .16s ease-out}
@@ -174,7 +175,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
   function setCfg(p){ if(!API) return Promise.resolve(); return API.set(p,MYID).then(c=>{ S.cfg=c; S.dirty=true; paintAll(); }); }
   if(API){
     API.cfg().then(c=>{ S.cfg=c; S.dirty=true; paintAll(); if(S.started&&S.state==='idle'&&(CAR||c.autoConnect)) setTimeout(connect,300); });
-    API.state().then(s=>{ if(s&&s.running){ S.state=s.state; S.rec=s.rec; S.file=s.file; S.last=s.last; bg(); } });
+    API.state().then(s=>{ if(s&&s.running){ S.state=s.state; S.rec=s.rec; if(s.rec) S.recT0=Date.now()-(s.recMs||0); S.file=s.file; S.last=s.last; bg(); } });
     API.on(m=>{
       switch(m.t){
         case 'status': S.state=m.state||'idle'; if(S.state!=='logging'){ S.logT0=0; if(S.state==='idle') S.autoDone=false; } if(m.msg) S.msg=m.msg; if(S.state==='connecting') S.err=''; if(S.state==='idle'){ S.rec=false; S.stats.hz=0; } bg(); break;
@@ -217,7 +218,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
     c.className='edtop'+(st==='logging'?' on':st==='idle'?'':' wait'); c.textContent=st==='idle'?'● Connect':st==='logging'?'● Logging':st==='settling'?'● Settling…':'● Connecting…';
     c.title=st==='idle'?'Connect to the ECU':'Disconnect';
     const r=$('ejl-rec'); r.disabled=st!=='logging'&&!S.rec; r.className='edtop rec'+(S.rec?' on':''); r.textContent=S.rec?'■ Stop':'● Rec';
-    const m=$('ejl-msg'); m.textContent=S.err||(st!=='idle'?S.msg:''); m.className='msg'+(S.err?' err':''); m.title=m.textContent; }
+    const m=$('ejl-msg'); m.textContent=S.err||(st!=='idle'&&!/^(logging|connecting|settling|connected)\b/i.test(S.msg||'')?S.msg:''); m.className='msg'+(S.err?' err':''); m.title=m.textContent; }
   function pstat(){ return `${sel().length} logged · ${S.stats.bytes} bytes · <b style="color:var(--tx)">${S.stats.theo?S.stats.theo.toFixed(1):'–'} Hz</b>`; }
   function chip(cls,txt,title){ return `<span class="chip ${cls}" title="${esc(title||'')}"><i></i>${esc(txt)}</span>`; }
   function allProfiles(){ return Object.assign({},(S.clu&&S.clu.profiles)||{},(S.cfg&&S.cfg.profiles)||{}); }
@@ -310,7 +311,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
   function drawCluster(dt){ CLU.frame($('ejl-stage'),{noDock:ISPHONE,onTile:ISPHONE?openGraph:null,onDock,speed:roleVal('SPEED_SOURCE',/^Vehicle Speed/),C:S.clu,profile:(S.cfg&&S.cfg.profile)||'master',page:S.page,sel:sel(),byId:S.byId,cur:S.cur,num:S.num,mn:S.mn,mx:S.mx,rec:S.rec,recT0:S.recT0,hz:S.stats.hz,logging:S.state==='logging',onPage:k=>{ S.page=k; CLU.reset(); }},dt); }
 
   // Parameters: Grouped (categories down the side, tickable cards)
-  function paintParams(){ if(S.pview==='profiles') return paintProfiles(); if(S.pview==='labels') return paintLabels(); const q=S.pq.trim().toLowerCase(), cfg=S.cfg||{};
+  function paintParams(){ if(S.pview==='profiles') return paintProfiles(); if(S.pview==='labels') return paintLabels(); $('ejlv-params').classList.remove('nonav'); const q=S.pq.trim().toLowerCase(), cfg=S.cfg||{};
     if(!S.params.length){ $('ejl-pnav').innerHTML=''; $('ejl-pbody').innerHTML=`<div class="empty">${cfg.defPath?'Loading the logger definition…':'Choose the logger definition (logger_METRIC_EN_v370.xml)<br>in ☰ → Connection → ECU.'}</div>`; return; }
     const list=S.params.filter(p=>p.kind!=='external'||p.wb===cfg.wbType), by={}; list.forEach(p=>{ const c=catOf(p); (by[c]=by[c]||[]).push(p); });
     const cats=CAT_ORDER.filter(c=>by[c]); if(!S.cat||!by[S.cat]) S.cat=cats[0];
@@ -358,7 +359,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
         return n('oldAfterDays','Move logs to .old after (days)',0,365,0,'0 = off. .old keeps everything until you delete it.')+n('deleteOldAfterDays','Delete logs in .old after (days)',0,730,0,'0 = never (default).')+n('diskWarnGB','Warn when free space is below (GB)',0,50,2,'')+`<div class="knob"><label>Free space now</label><span class="path">${S.disk?S.disk.freeGB+' GB':'…'}</span><button class="xb" data-a="stnow">APPLY NOW</button></div>`; }],
       ['USB stick',()=>`<div class="knob"><label>Offer to sync logs to a stick labelled</label><input type="text" id="ejl-usbl" value="${esc(S.cfg.usbLabel!=null?S.cfg.usbLabel:'tedd')}" placeholder="any stick"><span></span><div class="note">Car mode only. Plug in the stick and a prompt offers SYNC LOGS: new logs copy to its logs folder and the copied ones move to .old here. Leave empty to offer it for any stick. Any stick also appears as an export target in the Logs tab.</div></div>`]]],
     ['SYSTEM',[['Health',()=>healthHtml()],['System',()=>systemHtml()]]],
-    ['PHONE & NETWORK',[['Phone panel',()=>{ const on=S.cfg.phone==null?CAR:!!S.cfg.phone, pc=((S.clu&&S.clu.P.network)||{})['tuner.passcode']||'5873', ad=S.net||{};
+    ['PHONE & NETWORK',[['Phone panel',()=>{ const on=S.cfg.phone==null?CAR:!!S.cfg.phone, pc=((S.clu&&S.clu.P.network)||{})['tuner.passcode']||'', ad=S.net||{};
         return `<div class="knob"><label for="ejl-phon">Phone panel</label><span></span><input type="checkbox" id="ejl-phon" ${on?'checked':''} style="justify-self:end"><div class="note">Serves ejLogger to phones on this PC's network: the Tuner (passcode) and a passenger Live view. On by default in car mode, off on a laptop.</div></div>
         <div class="knob"><label>Address</label><span class="path">${on?esc('http://ejlogger.local'+(ad.port&&ad.port!==80?':'+ad.port:'')):'Off'}</span><span></span>${on&&ad.ips&&ad.ips.length?`<div class="note">Also ${ad.ips.map(i=>esc('http://'+i+(ad.port&&ad.port!==80?':'+ad.port:''))).join(' · ')}</div>`:''}</div>
         <div class="knob"><label>Tuner passcode</label><input type="text" id="ejl-pass" inputmode="numeric" maxlength="4" value="${esc(pc)}" style="width:90px;justify-self:end;font:16px var(--mono);letter-spacing:.3em;text-align:center"><span></span><div class="note">Four digits. Kept on this PC only (network.properties), never in the repo. Changing it signs every phone out. No passcode is needed on this PC itself.</div></div>`; }]]]];
@@ -541,7 +542,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
   const PM=()=>(S.clu&&S.clu.P['profile-meta'])||{}, pmset=(k,v)=>setProp('profile-meta',k,v);
   function profOrder(){ const all=Object.keys(allProfiles()), o=String(PM().order||'').split(',').map(x=>x.trim()).filter(x=>all.includes(x)); return o.concat(all.filter(x=>!o.includes(x))); }
   S.pview='params'; S.pfilt='all';
-  function paintProfiles(){ const M=PM(), order=profOrder(), cur=curProf(), def=M.default||'';
+  function paintProfiles(){ $('ejlv-params').classList.add('nonav'); const M=PM(), order=profOrder(), cur=curProf(), def=M.default||'';
     $('ejl-pnav').innerHTML='';
     $('ejl-pbody').innerHTML=`<div class="sec"><h2>Profiles</h2><div class="card">${order.map((n,i)=>{ const k=pkey(n), cnt=(CLU.slotsFor(S.clu,n)||allProfiles()[n]||[]).length;
       return `<div class="prow ${n===cur?'on':''}"><select data-pg="${esc(n)}" title="Glyph">${Object.keys(glyphs).map(g=>`<option value="${g}" ${(M['glyph.'+k]||'none')===g?'selected':''}>${g}</option>`).join('')}</select>
@@ -549,7 +550,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
         <label title="Shown in the picker"><input type="checkbox" data-ph="${esc(n)}" ${String(M['hidden.'+k]).toLowerCase()==='true'?'':'checked'}> Picker</label>
         <label title="Screensaver for this profile"><input type="checkbox" data-pss="${esc(n)}" ${String(M['ss.'+k]).toLowerCase()==='false'?'':'checked'}> Screensaver</label>
         <label title="Profile loaded at start, and used if the last one is missing"><input type="radio" name="pdef" data-pd="${esc(n)}" ${n===def?'checked':''}> Default</label>
-        <span class="pb"><button class="xb" data-pmv="${esc(n)}" data-dir="-1" ${i?'':'disabled'}>↑</button><button class="xb" data-pmv="${esc(n)}" data-dir="1" ${i<order.length-1?'':'disabled'}>↓</button>
+        <span class="pmb"><button class="xb" data-pmv="${esc(n)}" data-dir="-1" ${i?'':'disabled'}>↑</button><button class="xb" data-pmv="${esc(n)}" data-dir="1" ${i<order.length-1?'':'disabled'}>↓</button>
         ${n!==cur?`<button class="xb acc" data-psw="${esc(n)}">SWITCH</button>`:''}<button class="xb" data-pren="${esc(n)}">RENAME</button><button class="xb" data-pdup="${esc(n)}">DUPLICATE</button><button class="xb" data-pwl="${esc(n)}">WARN LIMITS</button><button class="xb" data-pdel="${esc(n)}">DELETE</button></span></div>`; }).join('')}</div></div>`; }
   function nameAsk(e,label,init,go){ ask(e,label+'<br><input type="text" id="ejl-pn2" style="width:100%;margin-top:6px" value="'+esc(init||'')+'">','OK',()=>{},null); setTimeout(()=>{ const b=pop&&pop.querySelector('[data-a=go]'), inp=$('ejl-pn2'); if(!b||!inp) return; inp.focus(); inp.select();
     const ok=()=>{ const v=inp.value.trim(); if(!v) return; closePop(); go(v); }; b.onclick=e2=>{ e2.stopPropagation(); ok(); }; inp.onkeydown=k=>{ if(k.key==='Enter') ok(); }; },0); }
@@ -566,7 +567,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
     if(d.pss) pmset('ss.'+pkey(d.pss),e.target.checked?null:'false');
     if(d.pd) pmset('default',d.pd); setTimeout(paintProfiles,100); });
   // Labels: titles for the current profile's PIDs (gauges.properties)
-  function paintLabels(){ const C=S.clu; $('ejl-pnav').innerHTML=''; if(!C){ $('ejl-pbody').innerHTML=''; return; }
+  function paintLabels(){ $('ejlv-params').classList.add('nonav'); const C=S.clu; $('ejl-pnav').innerHTML=''; if(!C){ $('ejl-pbody').innerHTML=''; return; }
     $('ejl-pbody').innerHTML=`<div class="sec"><h2>Labels · ${esc(curProf())}</h2><div class="card">${sel().map(s2=>{ const cid=C.alias[s2.id]||s2.id, p=S.byId[s2.id]||{name:s2.id}, g=C.gauge[cid]||{};
       return `<div class="knob"><label>${esc(p.name)}</label><input type="text" data-lbl="${esc(cid)}" value="${esc(g.title||'')}" placeholder="${esc(CLU.titleOf(C,cid,p.name))}"><input type="text" data-lun="${esc(cid)}" value="${esc(g.unit||'')}" placeholder="${esc(s2.units||'unit')}" style="width:90px"></div>`; }).join('')||'<span class="lbl">No parameters ticked.</span>'}</div><span class="lbl" style="text-transform:none;letter-spacing:0">Titles and units shown on the cluster for every profile. The Designer can still override a title per profile.</span></div>`; }
   $('ejl-pbody').addEventListener('change',e=>{ const d=e.target.dataset; if(d.lbl!=null) setProp('gauges','gauge.'+d.lbl+'.title',e.target.value.trim()||null); if(d.lun!=null) setProp('gauges','gauge.'+d.lun+'.unit',e.target.value.trim()||null); });
@@ -579,7 +580,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
   // Health and System (Config)
   S.errs=[]; S.lastFrame=0;
   function healthHtml(){ const C=S.clu||{roles:{},alias:{}}, now=Date.now(), age=S.lastFrame?((now-S.lastFrame)/1000):null;
-    const roles=Object.entries(C.roles||{}).map(([r,id])=>{ const ok=sel().some(x=>x.id===id||C.alias[x.id]===id); return `<span class="hr ${ok?'ok':''}"><i></i>${esc(r.replace(/_SOURCE$/,'').replace(/_/g,' '))}</span>`; }).join('');
+    const roles=Object.entries(C.roles||{}).map(([r,id])=>{ const ok=sel().some(x=>x.id===id||C.alias[x.id]===id||XID[x.id]===id); return `<span class="hr ${ok?'ok':''}"><i></i>${esc(r.replace(/_SOURCE$/,'').replace(/_/g,' '))}</span>`; }).join('');
     return `<div class="knob"><label>Roles found in this profile</label><span></span><span></span><div class="note hroles">${roles||'—'}</div></div>
       <div class="knob"><label>True rate</label><span class="path">${S.state==='logging'&&S.stats.hz?S.stats.hz.toFixed(2)+' Hz (limit '+(S.stats.theo||0).toFixed(1)+' Hz)':'—'}</span><span></span></div>
       <div class="knob"><label>Last data</label><span class="path">${age==null?'none yet':age<1?'just now':age.toFixed(0)+' s ago'}</span><span></span></div>
@@ -611,6 +612,6 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
   if(CAR){ document.body.classList.add('ejl-car'); setMode('logger'); setFull(true);
     const edge=mk('div','ejl-edge',root); edge.title='Show the ejLogger controls'; edge.onclick=()=>setFull(false);
     const fb=mk('button','ibtn ejl-fullbtn',null); fb.textContent='⤢'; fb.title='Full-screen cluster'; fb.onclick=()=>setFull(true); root.querySelector('header.top').appendChild(fb);
-    document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.classList.contains('ejl-full')&&!SS.on){ setFull(false); } }); }
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.body.classList.contains('ejl-full')&&!SS.on){ setFull(false); } },true); }
   return { S, setMode, show };
 })();

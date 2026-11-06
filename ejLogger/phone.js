@@ -9,7 +9,10 @@ module.exports = function phonePanel(o) {
   // o = { H, root, cfg(), clusterDir(), zipLogs(names), zipConfig(), log(msg), version }
   const st = { srv: null, port: 0, clients: new Set(), mdns: null };
   const localIPs = () => Object.values(os.networkInterfaces()).flat().filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address);
-  const passcode = () => { try { const t = fs.readFileSync(path.join(o.clusterDir(), 'customize', 'network.properties'), 'utf8'); const m = t.match(/^\s*tuner\.passcode\s*=\s*(\d{4})\s*$/m); if (m) return m[1]; } catch (_) {} return '5873'; };
+  // the passcode lives in network.properties; a new install gets its own random one (shown in Config → Phone panel)
+  const passcode = () => { const f = path.join(o.clusterDir(), 'customize', 'network.properties'); let t = '';
+    try { t = fs.readFileSync(f, 'utf8'); const m = t.match(/^\s*tuner\.passcode\s*=\s*(\d{4})\s*$/m); if (m) return m[1]; } catch (_) {}
+    const pc = String(1000 + crypto.randomInt(9000)); try { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, (t && !t.endsWith('\n') ? t + '\n' : t) + 'tuner.passcode = ' + pc + '\n'); o.onPass && o.onPass(); } catch (e) { o.log('passcode ' + e.message); } return pc; };
   const token = () => crypto.createHash('sha256').update('ejlogger-panel:' + passcode()).digest('hex').slice(0, 40);
   const remote = req => String(req.socket.remoteAddress || '').replace(/^::ffff:/, '');
   const isLocal = req => { const a = remote(req); return a === '127.0.0.1' || a === '::1' || localIPs().includes(a); };
@@ -73,7 +76,7 @@ module.exports = function phonePanel(o) {
       s.bind(5353, () => { try { s.addMembership('224.0.0.251'); s.setMulticastTTL(255); } catch (e) { o.log('mdns join ' + e.message); } });
     } catch (e) { o.log('mdns ' + e.message); } }
   function stop() { if (st.srv) { try { st.srv.close(); } catch (_) {} st.srv = null; st.port = 0; } for (const c of st.clients) try { c.res.end(); } catch (_) {} st.clients.clear(); if (st.mdns) { try { st.mdns.close(); } catch (_) {} st.mdns = null; } }
-  function start() { if (st.srv) return; const tryPort = (ports) => { if (!ports.length) { o.log('phone panel: no free port'); return; }
+  function start() { if (st.srv) return; passcode(); const tryPort = (ports) => { if (!ports.length) { o.log('phone panel: no free port'); return; }
       const srv = http.createServer(handle); srv.once('error', () => tryPort(ports.slice(1)));
       srv.listen(ports[0], '0.0.0.0', () => { st.srv = srv; st.port = ports[0]; o.log('phone panel on port ' + ports[0]); mdns(); o.onState && o.onState(); }); };
     tryPort([80, 8787]); }

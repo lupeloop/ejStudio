@@ -37,7 +37,7 @@ function ejlStart(){
   if(p.stdout) p.stdout.on('data',d=>elog('ENGINE '+String(d).trim())); if(p.stderr) p.stderr.on('data',d=>elog('ENGINE ERR '+String(d).trim()));
   p.on('message',m=>{ if(!m) return;
     if(m.t==='status') ejl.state=m.state;
-    if(m.t==='rec'){ ejl.rec=!!m.on; if(m.file) ejl.file=m.file; if(!m.on&&m.file){ ejl.last=m.file; } if(!m.on&&ejl.quitting) setTimeout(()=>app.quit(),150); }
+    if(m.t==='rec'){ if(m.on&&!ejl.rec) ejl.recT0=Date.now(); ejl.rec=!!m.on; if(m.file) ejl.file=m.file; if(!m.on&&m.file){ ejl.last=m.file; } if(!m.on&&ejl.quitting) setTimeout(()=>app.quit(),150); }
     if(m.t==='error') elog('ejLogger: '+m.text);
     send('ejl',m); });
   p.on('exit',code=>{ elog('ejLogger engine exited '+code); ejl.proc=null; ejl.rec=false; ejl.state='idle'; send('ejl',{t:'status',state:'idle',msg:'Engine stopped'}); });
@@ -157,12 +157,12 @@ function ejlIpc(){
       send('ejl',{t:'cluster'}); return {ok:true}; }catch(err){ elog('profileOp '+err); return {ok:false,error:String(err.message||err)}; } });
   reg('ejl:backup',async()=>{ const r=await dialog.showSaveDialog(win,{title:'Back up the cluster config',defaultPath:path.join(app.getPath('documents'),`ejlogger_config_${new Date().toISOString().slice(0,10)}.zip`),filters:[{name:'Zip',extensions:['zip']}]}); if(r.canceled||!r.filePath) return false; fs.writeFileSync(r.filePath,ejl.zipConfig()); return true; });
   reg('ejl:net',()=>({port:phone.port||0,ips:localIPs(),on:!!phone.srv}));
-  const panel=require('./ejLogger/phone')({H,root:__dirname,cfg:ejlCfg,clusterDir:CLD,zipLogs:n=>ejl.zipLogs(n),zipConfig:()=>ejl.zipConfig(),log:elog,
+  const panel=require('./ejLogger/phone')({H,root:__dirname,cfg:ejlCfg,clusterDir:CLD,zipLogs:n=>ejl.zipLogs(n),zipConfig:()=>ejl.zipConfig(),log:elog,onPass:()=>send('ejl',{t:'cluster',origin:'main'}),
     onState:()=>{ phone=panel.state; send('ejl',{t:'net',port:phone.port,ips:localIPs(),on:!!phone.srv}); }});
   phone=panel.state; phoneBroadcast=m=>panel.broadcast(m);
   phoneServe=()=>{ const c=ejlCfg(), want=c.phone==null?c.role==='car':!!c.phone; if(want) panel.start(); else { panel.stop(); send('ejl',{t:'net',port:0,ips:[],on:false}); } };
   setTimeout(phoneServe,1500);
-  reg('ejl:state',()=>({state:ejl.state,rec:ejl.rec,file:ejl.file,last:ejl.last||null,running:!!ejl.proc}));
+  reg('ejl:state',()=>({state:ejl.state,rec:ejl.rec,recMs:ejl.rec&&ejl.recT0?Date.now()-ejl.recT0:0,file:ejl.file,last:ejl.last||null,running:!!ejl.proc}));
 }
 function create(){
   const CAR=ejlCfg().role==='car';

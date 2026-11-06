@@ -595,7 +595,7 @@ function MafCurveView(){
   mk('span','vlab',bar).textContent='Source'; seg(bar,[['all','All logs'],['play','To playhead'],['ab','A–B']],M.src,v=>{ M.src=v; cache.key=null; save(); RP.dirty=true; });
   seg(bar,[['curve','Curve'],['delta','Δ %']],M.mode,v=>{ M.mode=v; save(); RP.dirty=true; });
   seg(bar,[['both','Both'],['new','Corrected'],['old','Current']],M.show||'both',v=>{ M.show=v; save(); RP.dirty=true; }).title='Which maf_scale curve to draw';
-  const scBtn=mk('button','chip'+(M.scatter?' on':''),bar); scBtn.textContent='Scatter'; scBtn.title='Show every kept frame behind the curve';
+  const scBtn=mk('button','chip'+(M.scatter?' on':''),bar); scBtn.textContent='Scatter Plot'; scBtn.title='Show every kept frame behind the curve';
   scBtn.onclick=()=>{ M.scatter=!M.scatter; scBtn.classList.toggle('on',M.scatter); save(); RP.dirty=true; };
     const covBtn=mk('button','chip'+(M.cov!==false?' on':''),bar); covBtn.textContent='Coverage';
   covBtn.onclick=()=>{ M.cov=M.cov===false; covBtn.classList.toggle('on',M.cov!==false); cov.style.display=M.cov===false?'none':''; save(); RP.dirty=true; };
