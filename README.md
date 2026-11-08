@@ -158,7 +158,7 @@ Open **`ejlogger.local`** on any phone on the same Wi-Fi as the car PC, and add 
 Changes made on the phone show up on the car straight away, and the other way round. Logs and config backups download straight to the phone as zips.
 
 > [!TIP]
-> Each install gets its own random passcode. See or change it in **Config → Phone panel**. The car PC itself never asks for it.
+> Each install gets its own random passcode. See or change it in **Config → Phone panel**.
 
 ## Car PC mode
 ![ejLogger car cluster](docs/img/logger_cluster.png)
