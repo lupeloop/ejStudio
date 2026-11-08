@@ -1,7 +1,7 @@
 {
   "name": "ejstudio",
   "productName": "ejStudio",
-  "version": "3.0.7",
+  "version": "3.0.8",
   "description": "ejStudio - log analyzer, tuning tool and live logger (ejLogger)",
   "author": "Teddy",
   "main": "main.js",
@@ -68,7 +68,8 @@
     ],
     "npmRebuild": false,
     "asarUnpack": [
-      "node_modules/@serialport/**"
+      "node_modules/@serialport/**",
+      "ejLogger/defaults/*.xml"
     ]
   },
   "devDependencies": {

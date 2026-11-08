@@ -26,9 +26,11 @@ function startWatch(){
     pending.set(fn,t); }); }catch(_){ watcher=null; } }
 // ── ejLogger engine: its own background process (owns ports, polling, CSV) ──
 const EJL_CFGF=()=>path.join(app.getPath('userData'),'ejlogger.json');
+const CLUSTER_FILE=/^(page|page-[\w.-]+|theme-[\w.-]+|gauges|labels|trim|warnlimits|warnlimits-[\w.-]+|display|warmup|dimming|screensaver|record|profile-meta|network)\.properties$/i;
 const EJL_DEF={role:'laptop',defPath:'',ecuPort:'',wbType:'none',wbPort:'',wbUnits:'AFR Gasoline',autoConnect:false,logDir:'',openOnStop:false,fastPoll:true,sel:[],profiles:{},profile:''};
 let ejl={cfg:null,proc:null,rec:false,file:null,state:'idle',quitting:false};
-function ejlCfg(){ if(!ejl.cfg){ ejl.cfg=Object.assign({},EJL_DEF); try{ Object.assign(ejl.cfg,JSON.parse(fs.readFileSync(EJL_CFGF(),'utf8'))); }catch(_){} if(!ejl.cfg.logDir) ejl.cfg.logDir=path.join(app.getPath('documents'),'ejStudio','logs'); } return ejl.cfg; }
+const BUILTIN_DEF=path.join(__dirname,'ejLogger','defaults','logger_METRIC_EN_v370.xml').replace('app.asar'+path.sep,'app.asar.unpacked'+path.sep);
+function ejlCfg(){ if(!ejl.cfg){ ejl.cfg=Object.assign({},EJL_DEF); try{ Object.assign(ejl.cfg,JSON.parse(fs.readFileSync(EJL_CFGF(),'utf8'))); }catch(_){} if(!ejl.cfg.defPath||!fs.existsSync(ejl.cfg.defPath)) ejl.cfg.defPath=BUILTIN_DEF; if(!ejl.cfg.logDir) ejl.cfg.logDir=path.join(app.getPath('documents'),'ejStudio','logs'); } return ejl.cfg; }
 function ejlSave(){ try{ const f=EJL_CFGF(); fs.writeFileSync(f+'.tmp',JSON.stringify(ejl.cfg,null,1)); fs.renameSync(f+'.tmp',f); }catch(e){ elog('ejl cfg '+e); } }
 const ejlEngineCfg=c=>({appVersion:app.getVersion(),profile:c.profile||'',defPath:c.defPath,ecuPort:c.ecuPort,wbType:c.wbType,wbPort:c.wbPort,wbUnits:c.wbUnits,logDir:c.logDir,fastPoll:c.fastPoll!==false});
 function ejlStart(){
@@ -73,7 +75,18 @@ function ejlIpc(){
   reg('ejl:importCluster',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose a ClusterConfig folder (or its customize folder)',properties:['openDirectory']}); if(r.canceled||!r.filePaths[0]) return false;
     let root=r.filePaths[0]; if(/customize$/i.test(root)) root=path.dirname(root); const cz=path.join(root,'customize'), pf=path.join(root,'profiles');
     if(!fs.existsSync(cz)&&!fs.existsSync(pf)){ dialog.showMessageBox(win,{type:'info',message:'No customize or profiles folder there.',detail:'Pick the ClusterConfig folder that contains customize\\ and profiles\\.'}); return false; }
-    const d=CLD(); if(fs.existsSync(cz)) copyDir(cz,path.join(d,'customize'),/\.properties$/i); if(fs.existsSync(pf)) copyDir(pf,path.join(d,'profiles'),/\.xml$/i); return true; });
+    const d=CLD(); try{ const bk=path.join(path.dirname(d),'ClusterConfig-backup-'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')+'.zip'); fs.writeFileSync(bk,ejl.zipConfig()); }catch(e){ elog('import backup '+e); }
+    const took=[], left=[], ls=dd=>{ try{ return fs.readdirSync(dd,{withFileTypes:true}); }catch(_){ return []; } };
+    for(const e of ls(cz)){ if(!e.isFile()) { left.push('customize\\'+e.name+'\\'); continue; } if(CLUSTER_FILE.test(e.name)){ fs.mkdirSync(path.join(d,'customize'),{recursive:true}); fs.copyFileSync(path.join(cz,e.name),path.join(d,'customize',e.name)); took.push(e.name); } else left.push('customize\\'+e.name); }
+    let np=0; for(const e of ls(pf)){ const f=path.join(pf,e.name); let ok=false; if(e.isFile()&&/\.xml$/i.test(e.name)){ try{ ok=/<profile[\s>]/i.test(fs.readFileSync(f,'utf8').slice(0,4000)); }catch(_){} } if(ok){ fs.mkdirSync(path.join(d,'profiles'),{recursive:true}); fs.copyFileSync(f,path.join(d,'profiles',e.name)); np++; } else left.push('profiles\\'+e.name); }
+    for(const e of ls(root)) if(!/^(customize|profiles)$/i.test(e.name)) left.push(e.name+(e.isDirectory()?'\\':''));
+    dialog.showMessageBox(win,{type:'info',message:`Imported ${took.length} cluster file${took.length===1?'':'s'} and ${np} profile${np===1?'':'s'}.`,detail:(left.length?`Left out ${left.length} item${left.length===1?'':'s'} ejLogger doesn't use:\n`+left.slice(0,25).join('\n')+(left.length>25?`\n…and ${left.length-25} more`:'')+'\n\n':'')+'Your previous cluster files were backed up next to the cluster folder.'});
+    send('ejl',{t:'cluster',origin:'main'}); return true; });
+  // move anything ejLogger doesn't read out of the cluster folder (into _unused, nothing is deleted)
+  reg('ejl:tidyCluster',()=>{ const d=CLD(), un=path.join(d,'_unused'), moved=[]; const mv=(dir,f)=>{ fs.mkdirSync(un,{recursive:true}); try{ fs.renameSync(path.join(dir,f),path.join(un,f)); moved.push(f); }catch(_){} };
+    try{ for(const f of fs.readdirSync(path.join(d,'customize'))) if(!CLUSTER_FILE.test(f)) mv(path.join(d,'customize'),f); }catch(_){}
+    try{ for(const f of fs.readdirSync(path.join(d,'profiles'))){ const p=path.join(d,'profiles',f); let ok=false; try{ ok=/\.xml$/i.test(f)&&/<profile[\s>]/i.test(fs.readFileSync(p,'utf8').slice(0,4000)); }catch(_){} if(!ok) mv(path.join(d,'profiles'),f); } }catch(_){}
+    if(moved.length) send('ejl',{t:'cluster',origin:'main'}); return {moved}; });
   // sidecar writes: only the keys given change; comments, order and other keys stay; atomic (tmp + rename)
   reg('ejl:writeProp',(e,file,patchObj,origin)=>{ setTimeout(()=>send('ejl',{t:'cluster',origin}),50); try{ seedCluster(); const name=String(file).replace(/[^\w.-]/g,''); if(!name) return false; const f=path.join(CLD(),'customize',name+'.properties');
     let lines=[]; try{ lines=fs.readFileSync(f,'utf8').split(/\r?\n/); }catch(_){ lines=['# '+name+'.properties - written by ejStudio']; }
