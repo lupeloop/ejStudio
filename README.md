@@ -133,14 +133,10 @@ A complete Subaru SSM logger, cluster and log manager built into ejStudio. Watch
 
 The **Codes** tab reads current and stored codes when ejLogger connects, and again on **Scan**. **Reset ECU** clears them along with the ECU's learned values, and only unlocks with the ignition on and the engine off. In car mode, codes open from the Dock.
 
-## Designer and themes
+## Designer
 ![ejLogger Designer](docs/img/logger_designer.png)
 
 Lay out the cluster for each profile: click a tile to style it and size it (Wide, Tall, Hero or Banner), drag to reorder, add or remove gauges and pick the grid.
-
-![Cluster themes](docs/img/logger_themes.png)
-
-Four cluster themes and four Dock styles to mix and match, then fine-tune.
 
 ## Parameters and profiles
 ![Parameters](docs/img/logger_params.png)
@@ -187,7 +183,7 @@ Open **`ejlogger.local`** on any phone on the same Wi-Fi as the car PC, and add 
 | **What** | The full ejLogger in a phone layout: Live, Parameters, Designer, Logs and Config | The cluster, mirrored exactly, with the profile, REC timer and Reset peaks |
 | **Graphs** | Tap any tile | Tap any tile |
 
-Changes made on the phone show up on the car straight away, and the other way round. Logs and config backups download straight to the phone as zips.
+Turn the phone sideways for a full-screen cluster. Changes made on the phone show up on the car straight away, and the other way round. Logs and config backups download straight to the phone as zips.
 
 > [!TIP]
 > Each install gets its own random passcode. See or change it in **Config → Phone panel**.
