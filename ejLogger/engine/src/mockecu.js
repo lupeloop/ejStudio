@@ -11,6 +11,7 @@ function mockEcu({ ecuId = '5104504007', initBytes = null, memory = (a, t) => (a
   function onRequest(req) {
     rx = Buffer.concat([rx, req]); // K-Line echo
     if (req[4] === 0xBF) { deliver(reply(0xFF, init)); return; }
+    if (req[4] === 0xB8) { deliver(reply(0xF8, [req[req.length - 2]])); return; }
     if (req[4] === 0xA8) {
       const addrs = []; for (let i = 6; i + 3 <= req.length - 1; i += 3) addrs.push((req[i] << 16) | (req[i + 1] << 8) | req[i + 2]);
       const pkt = () => { tick++; const r = reply(0xE8, addrs.map(a => memory(a, tick))); if (corruptEvery && tick % corruptEvery === 0) r[r.length - 1] ^= 0xff; return r; };

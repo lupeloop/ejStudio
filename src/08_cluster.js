@@ -60,6 +60,7 @@ const CLU=(()=>{
 #ejl .cl .dock.on{opacity:1;transform:none;pointer-events:auto}
 #ejl .cl .dock button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5cqw;background:var(--dkbtn,transparent);border:var(--dkbtnb,0px) solid var(--dkbtnc,transparent);border-radius:var(--dkr,0px);color:var(--dkic,#E8E8EE);font:700 calc(1.15cqw*var(--dkls,1.15)) ejMono,var(--mono);letter-spacing:.08em;cursor:pointer;padding:0}
 #ejl .cl .dock button svg{width:calc(3.2cqw*var(--dkis,1.3));height:calc(3.2cqw*var(--dkis,1.3))}#ejl .cl .dock button.act,#ejl .cl .dock button:active{color:var(--dkac,#E4AA28)}#ejl .cl .dock.nolab button span{display:none}
+#ejl .cl .dock button{position:relative}#ejl .cl .dock .dbd{position:absolute;top:6%;right:14%;min-width:1.7em;height:1.7em;border-radius:1em;background:#e02424;color:#fff;font:700 calc(1.2cqw) ejMono,monospace;display:grid;place-items:center;font-style:normal}#ejl .cl .dock button[data-dk=codes] svg{color:#ff6b6b}
 #ejl .cl .pg{position:absolute;bottom:-1.8em;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center}#ejl .cl .pg i{width:7px;height:7px;border-radius:50%;background:#333;cursor:pointer}#ejl .cl .pg i.on{background:var(--acc)}
 `;
   mk('style',null,document.head).textContent=css;
@@ -130,9 +131,10 @@ const CLU=(()=>{
       reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
       profiles:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="5" rx="1"/><rect x="3" y="11" width="18" height="5" rx="1"/><path d="M3 20h18"/></svg>',
       rec:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg>'};
-    const LAB={qr:'QR',reset:'RESET',profiles:'PROFILES',rec:'REC'};
+    const LAB={qr:'QR',reset:'RESET',profiles:'PROFILES',codes:'CODES',rec:'REC'}; ICON.codes='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 10h2l2-3h5l2 2h3v3h2v4h-2v2h-4l-2 2H8l-2-3H4z"/><path d="M11 11v3M11 16v.5"/></svg>';
     const dock=mk('div','dock'+(bool(G('dock.labels'),true)?'':' nolab')+(String(G('dock.side')||'right')==='left'?' left':''),cl);
-    String(G('dock.order')||'qr,reset,profiles,rec').split(',').map(x=>x.trim()).filter(x=>ICON[x]).forEach(k=>{ const b=mk('button',null,dock); b.dataset.dk=k; b.innerHTML=ICON[k]+`<span>${LAB[k]}</span>`; b.onclick=e=>{ e.stopPropagation(); ctx.onDock&&ctx.onDock(k); wake(); }; });
+    const DO=String(G('dock.order')||'qr,reset,profiles,codes,rec').split(',').map(x=>x.trim()).filter(x=>ICON[x]); if(ctx.dtc&&!DO.includes('codes')) DO.splice(Math.max(0,DO.indexOf('rec')>=0?DO.indexOf('rec'):DO.length),0,'codes');
+    DO.forEach(k=>{ const b=mk('button',null,dock); b.dataset.dk=k; b.innerHTML=ICON[k]+`<span>${LAB[k]}</span>`+(k==='codes'&&ctx.dtc?`<i class="dbd">${ctx.dtc}</i>`:''); b.onclick=e=>{ e.stopPropagation(); ctx.onDock&&ctx.onDock(k); wake(); }; });
     const wake=()=>{ if(!M) return; M.dockT=performance.now(); };
     if(!ctx.edit&&!ctx.noDock) cl.addEventListener('click',wake); if(ctx.noDock) dock.style.display='none';
     if(L.pages>1){ const d=mk('div','pg',cl); for(let k=0;k<L.pages;k++){ const i=mk('i',k===L.page?'on':'',d); i.onclick=()=>{ ctx.onPage&&ctx.onPage(k); }; } }

@@ -30,7 +30,7 @@ function setState(s, msg) { state = s; post({ t: 'status', state: s, msg: msg ||
 
 // ── definition ─────────────────────────────────────────────────────────────
 function loadDef() {
-  xml = null; def = null; mod = null;
+  xml = null; def = null; mod = null; dtcList = null;
   if (!cfg.defPath) { post({ t: 'error', text: 'No logger definition chosen (logger_METRIC_EN_v370.xml).' }); return false; }
   try { xml = fs.readFileSync(cfg.defPath, 'utf8'); } catch (e) { post({ t: 'error', text: 'Cannot read logger definition: ' + e.message }); return false; }
   try { def = D.load(xml, { protocol: 'SSM', ecuInit: init }); }
@@ -146,13 +146,39 @@ async function connect() {
   qm.run().then(() => { if (mock) { mock.stop(); mock = null; } setState('idle', 'Disconnected'); });
 }
 function onFrame(r) {
-  if (!firstFrame) { firstFrame = true; setState('logging', 'ECU ' + (init ? init.ecuId : '')); }
+  if (!firstFrame) { firstFrame = true; setState('logging', 'ECU ' + (init ? init.ecuId : '')); setTimeout(dtcScan, 1500); }
   if (fh && fh.isStarted()) recRows++;
   try { fh && fh.handleDataUpdate(r); } catch (e) { post({ t: 'error', text: 'CSV: ' + e.message }); stopRec(); }
   const v = {}, f = {};
   for (const [it, val] of r.values) { v[it.key] = val; try { f[it.key] = it.format(val); } catch (_) { f[it.key] = String(val); } }
   frames.push(r.timestamp); post({ t: 'frame', ts: r.timestamp, v, f }); stats(false);
 }
+// ── trouble codes: every dtcode in the definition has a current (tmpaddr) and a stored (memaddr) byte + bit ──
+let dtcList = null;
+function dtcodes() { if (dtcList || !xml) return dtcList || []; const out = [], re = /<dtcode\s+([^>]*?)\/?>/g; let m;
+  const ssm = xml.indexOf('<protocol id="SSM"'), end = ssm >= 0 ? xml.indexOf('</protocol>', ssm) : -1, src = ssm >= 0 ? xml.slice(ssm, end > 0 ? end : undefined) : xml;
+  while ((m = re.exec(src))) { const a = {}; m[1].replace(/(\w+)="([^"]*)"/g, (_, k, v) => { a[k] = v; }); if (a.tmpaddr && a.memaddr) out.push({ id: a.id, name: a.name || a.id, tmp: parseInt(a.tmpaddr, 16), mem: parseInt(a.memaddr, 16), bit: +a.bit || 0 }); }
+  return (dtcList = out); }
+async function readBytes(cm, addrs) { const out = new Map();
+  for (let i = 0; i < addrs.length; i += 40) { const chunk = addrs.slice(i, i + 40), q = [{ addrs: chunk }];
+    const req = SSM.readAddressRequest(mod, q, false), resp = await cm.sendOnce(req), data = SSM.extractData(mod, SSM.stripEcho(req, resp, 0));
+    chunk.forEach((a, k) => out.set(a, data[k])); }
+  return out; }
+async function dtcScan() { const list = dtcodes(); if (!list.length) return post({ t: 'dtc', ok: false, error: 'No trouble codes in the logger definition' });
+  if (!qm || !qm.isRunning()) return post({ t: 'dtc', ok: false, error: 'Connect to the ECU first' });
+  const t0 = Date.now(); post({ t: 'dtc', busy: true });
+  try { const addrs = [...new Set(list.flatMap(d => [d.tmp, d.mem]))].sort((a, b) => a - b), bytes = await qm.job(cm => readBytes(cm, addrs)), on = (a, b) => ((bytes.get(a) || 0) >> b) & 1;
+    const codes = []; for (const d of list) { const [code, ...rest] = d.name.split(' '); if (on(d.tmp, d.bit)) codes.push({ code, desc: rest.join(' '), state: 'current' }); if (on(d.mem, d.bit)) codes.push({ code, desc: rest.join(' '), state: 'stored' }); }
+    post({ t: 'dtc', ok: true, codes, ms: Date.now() - t0, at: Date.now(), checked: list.length, ecuId: init ? init.ecuId : '' }); }
+  catch (e) { post({ t: 'dtc', ok: false, error: e.message }); } }
+// ECU reset (RomRaider's Reset ECU): write 0x40 to 0x000060. Clears trouble codes and the ECU's learned values (IAM, trims, knock learning).
+// Raw bytes are logged so a failure can be traced to the cable or adapter.
+async function ecuReset() { if (!qm || !qm.isRunning()) return post({ t: 'reset', ok: false, error: 'Connect to the ECU first' });
+  try { const r = await qm.job(async cm => { const req = SSM.buildRequest(mod, SSM.CMD.WRITE_ADDRESS, false, false, [0x00, 0x00, 0x60], [0x40]); const resp = await cm.sendOnce(req);
+      log('ECU reset TX ' + req.toString('hex') + ' RX ' + resp.toString('hex')); const body = SSM.stripEcho(req, resp, 0); let ok = false; try { SSM.validate(mod, body); ok = body[4] === SSM.RSP.WRITE_ADDRESS; } catch (_) {}
+      return { ok, tx: req.toString('hex'), rx: resp.toString('hex') }; });
+    post(Object.assign({ t: 'reset' }, r, r.ok ? {} : { error: r.rx ? 'The ECU did not confirm the reset' : 'No reply to the reset' })); }
+  catch (e) { post({ t: 'reset', ok: false, error: e.message }); } }
 function disconnect() { stopRec('disconnected'); if (qm) qm.stop(); stopWb(); }
 function startWb() {
   stopWb(); if (!cfg.wbType || cfg.wbType === 'none' || !cfg.wbPort) { post({ t: 'wb', state: 'off' }); return; }
@@ -191,6 +217,8 @@ onMsg(async m => {
       case 'rec': m.on ? startRec() : stopRec(m.why || 'stopped by hand'); break;
       case 'split': if (fh && fh.isStarted()) { const old = fh.file; stopRec('profile switch'); try { const nf = old.replace(/\.csv$/i, '_split.csv'); fs.renameSync(old, nf); const om = metaPath(old); if (fs.existsSync(om)) { const j = JSON.parse(fs.readFileSync(om, 'utf8')); j.file = path.basename(nf); fs.writeFileSync(metaPath(nf), JSON.stringify(j, null, 1)); fs.unlinkSync(om); } } catch (e) { post({ t: 'error', text: 'Split rename: ' + e.message }); } startRec(); } break;
       case 'state': post({ t: 'status', state, msg: '' }); post({ t: 'rec', on: !!(fh && fh.isStarted()), file: fh && fh.file }); stats(true); break;
+      case 'dtcScan': dtcScan(); break;
+      case 'ecuReset': ecuReset(); break;
       case 'quit': disconnect(); setTimeout(() => process.exit(0), 400); break;
     }
   } catch (e) { post({ t: 'error', text: m.t + ': ' + (e && e.message || e) }); }

@@ -40,11 +40,15 @@ class ConnectionManager {
 // QueryManagerImpl
 class QueryManager {
   // o: {openPort, getPort:()=>name, props, module, fastPoll:()=>bool, onInit(ecuInit), onResponse(resp), onStatus(s), onMessage(m), onError(e), onStats(s)}
-  constructor(o) { this.o = o; this.queryMap = new Map(); this.addList = new Map(); this.removeList = []; this.ps = { current: 0, last: 0, newQuery: true, lastQuery: false, fastPoll: false }; this.stopFlag = true; this.counter = 1; this.start = Date.now(); }
+  constructor(o) { this.o = o; this.queryMap = new Map(); this.addList = new Map(); this.removeList = []; this.ps = { current: 0, last: 0, newQuery: true, lastQuery: false, fastPoll: false }; this.stopFlag = true; this.counter = 1; this.start = Date.now(); this.jobs = []; this.cmLive = null; }
   addQuery(callerId, item) { this.counter = 1; this.start = Date.now(); const id = callerId + '_' + item.name; this.addList.set(id, item); if (!item.external) { this.ps.lastQuery = false; this.ps.newQuery = true; } }
   removeQuery(callerId, item) { this.counter = 1; this.start = Date.now(); this.removeList.push(callerId + '_' + item.name); if (!item.external) this.ps.newQuery = true; }
   updateQueryList() { for (const [k, v] of this.addList) this.queryMap.set(k, v); this.addList.clear(); for (const k of this.removeList) this.queryMap.delete(k); this.removeList = []; }
-  stop() { this.stopFlag = true; }
+  stop() { this.stopFlag = true; for (const j of this.jobs.splice(0)) j.reject(new Error('Disconnected')); }
+  // one-off request between polls (trouble code scan, ECU reset): fn(cm) runs with the fast poll stopped, then logging resumes
+  job(fn) { return new Promise((resolve, reject) => { if (!this.isRunning() || !this.cmLive) return reject(new Error('Connect to the ECU first')); this.jobs.push({ fn, resolve, reject }); }); }
+  async runJobs(cm) { const ps = this.ps; if (ps.lastQuery) { await cm.clearLine(); } ps.current = 0; ps.last = 0; ps.lastQuery = false; ps.newQuery = true;
+    while (this.jobs.length) { const j = this.jobs.shift(); try { j.resolve(await j.fn(cm)); } catch (e) { j.reject(e); } } }
   isRunning() { return this.started && !this.stopFlag; }
   async run() {
     this.started = true; this.stopFlag = false; const o = this.o;
@@ -71,9 +75,10 @@ class QueryManager {
   async runLogger() {
     const o = this.o, ps = this.ps; let cm = null; this.start = Date.now(); this.counter = 1;
     try {
-      cm = new ConnectionManager(await o.openPort(o.getPort(), o.props), o.props); cm.onBadData = r => o.onLog && o.onLog('Serial Bad Data response: ' + r.toString('hex'));
+      cm = new ConnectionManager(await o.openPort(o.getPort(), o.props), o.props); this.cmLive = cm; cm.onBadData = r => o.onLog && o.onLog('Serial Bad Data response: ' + r.toString('hex'));
       let lastPollState = o.fastPoll();
       while (!this.stopFlag) {
+        if (this.jobs.length) await this.runJobs(cm);
         ps.fastPoll = o.fastPoll(); this.updateQueryList();
         if (this.queryMap.size === 0) {
           if (ps.lastQuery && ps.current === 0) { await cm.clearLine(); ps.lastQuery = false; ps.last = 0; }
@@ -105,7 +110,7 @@ class QueryManager {
         this.counter++; o.onStats && o.onStats({ fast: ps.fastPoll, perSec: this.counter / ((Date.now() - this.start) / 1000) });
       }
     } catch (e) { o.onError && o.onError(e); await sleep(500); }
-    finally { if (cm) { try { await cm.clearLine(); } catch (_) {} cm.close(); } ps.current = 0; ps.newQuery = true; }
+    finally { this.cmLive = null; for (const j of this.jobs.splice(0)) j.reject(new Error('Disconnected')); if (cm) { try { await cm.clearLine(); } catch (_) {} cm.close(); } ps.current = 0; ps.newQuery = true; }
   }
 }
 module.exports = { QueryManager, ConnectionManager };
