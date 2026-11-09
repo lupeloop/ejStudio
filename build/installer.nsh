@@ -27,3 +27,28 @@
 !macro customInstallMode
   StrCpy $isForceCurrentInstall "1"
 !macroend
+
+; Finish page: same as electron-builder's, plus a light "Run ejStudio" label (Windows themes ignore
+; text colours on checkboxes, so the theme is switched off for that one control).
+!macro customFinishPage
+  !ifndef HIDE_RUN_AFTER_FINISH
+    Function StartApp
+      ${if} ${isUpdated}
+        StrCpy $1 "--updated"
+      ${else}
+        StrCpy $1 ""
+      ${endif}
+      ${StdUtils.ExecShellAsUser} $0 "$launchLink" "open" "$1"
+    FunctionEnd
+    !define MUI_FINISHPAGE_RUN
+    !define MUI_FINISHPAGE_RUN_FUNCTION "StartApp"
+  !endif
+  !define MUI_PAGE_CUSTOMFUNCTION_SHOW ejFinishShow
+  !insertmacro MUI_PAGE_FINISH
+  Function ejFinishShow
+    !ifndef HIDE_RUN_AFTER_FINISH
+      System::Call 'uxtheme::SetWindowTheme(p $mui.FinishPage.Run, w " ", w " ")'
+      SetCtlColors $mui.FinishPage.Run 0xE8E8EA 0x0B0B0E
+    !endif
+  FunctionEnd
+!macroend
