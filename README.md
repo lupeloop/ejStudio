@@ -28,7 +28,7 @@ ejStudio is one app for the whole tuning loop. It loads logs alongside a Project
 
 | | Mode | What it's for |
 |:-:|---|---|
-| <img src="logos/ejstudio.svg" width="30"> | **ejStudio** | Tables, Graph, MAF Tools, Scatter Plots, Helpers and tune editing. Opens by default. |
+| <img src="logos/ejstudio.svg" width="30"> | **ejStudio** | Tables, Graph (lanes and scatter), MAF Tools, Helpers and tune editing. Opens by default. |
 | <img src="logos/ejlogger.svg" width="30"> | **ejLogger** | Live logging: Live cluster, Parameters, Designer, Logs and Config. |
 
 Hover the logo in the top-left corner to switch modes. ejLogger keeps logging in the background while you work in ejStudio, shown by a red dot on the logo.
@@ -52,13 +52,13 @@ Every table and setting card in the tune, with the log replayed live on top.
 
 - Right-click menu: set, add, multiply, change by %, interpolate, smooth, copy/paste, undo/redo, revert, copy from another revision.
 - Type to edit (`*1.02`, `+0.5`, `-0.35`), arrow keys, selection stats.
-- Undo history and a read-only compare against any revision.
+- **Revisions ▾**: the tuning tree, a read-only compare against any revision, and open or save any revision. Undo history alongside.
 - **Build** writes a new `revN.tune` and keeps an automatic backup.
 
 ## Helpers
 ![Helpers](docs/img/helpers.png)
 
-**Helpers · n** in the edit bar opens the Helpers rail beside the table. Each helper lists its evidence and its changes as groups; picking one jumps the table to where its changes land. Ticked changes are previewed on the table (new value over the old one), unticked ones are outlined, and pending cells carry an amber corner while the rail is closed. Apply writes the ticked changes as one undo step. Nothing reaches the file until you Build.
+**Helpers · n** in the edit bar (or **H**) opens the Helpers rail beside the table. Each helper lists its evidence and its changes as groups; picking one jumps the table to where its changes land. Ticked changes are previewed on the table (new value over the old one), unticked ones are outlined, and pending cells carry an amber corner while the rail is closed. Apply writes the ticked changes as one undo step. Nothing reaches the file until you Build.
 
 | Helper | Evidence | Changes |
 |---|---|---|
@@ -93,7 +93,10 @@ Several cars, each with its engine, parts, drivetrain (gear ratios, final drive,
 
 - Multi-lane graph with Full log view, event ticks and hover details; drag to scrub.
 - Searchable **Jump to event** menu: knock, boost, fuelling, AVCS, tip-in and more.
-- Scatter Plots with colour channel and trend lines, two-log compare (A/B), WOT pull splitter, diagnostics timeline and session report.
+- Scatter mode in the same tab, with colour channel and trend lines.
+- Two-log compare: log B draws over Graph, Tables and Scatter.
+- WOT pull splitter and diagnostics timeline; diagnostics switch on and off at the top of Jump to event.
+- MAF filters, pull detection and replay settings sit behind the gear in their own toolbar.
 
 ---
 
@@ -141,7 +144,7 @@ Four cluster themes and four Dock styles to mix and match, then fine-tune.
 ## Logs
 ![ejLogger Logs](docs/img/logger_logs.png)
 
-Every log is named by date, time and profile, like `ejlogger_2026-11-06_1755_Daily.csv`. Zip, export, archive or delete them by day or profile.
+Every log is named by date, time and profile, like `ejlogger_2026-11-06_1755_Daily.csv`. Zip, export, archive or delete them by day or profile; logs older than 30 days are zipped automatically.
 
 ## USB stick and trouble codes
 <table>
@@ -162,9 +165,9 @@ Every setting in one searchable place:
 | Section | What's there |
 |---|---|
 | **This PC** | Car mode |
-| **Connection** | ECU port, logger definition, wideband |
-| **Cluster** | Cluster files, screensaver, warm-up, warn limits, night dimming |
-| **Recording** | Auto-record, log folder, log storage, USB stick (any stick, or one label) |
+| **Connection** | ECU port, logger definition, wideband and its fuel-cut display |
+| **Cluster** | Cluster files, display (screensaver, night dimming), warm-up, warn limits (shared with ejStudio's analysis) |
+| **Recording** | Auto-record, logs (folder, storage, auto-zip), USB stick (any stick, or one label) |
 | **System** | Health, restart, config backup |
 | **Phone & network** | Phone panel, address and passcode |
 
