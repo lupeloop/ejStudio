@@ -179,13 +179,13 @@ Tap the top edge of the screen or press **Esc** for the full ejLogger.
 | | |
 |---|---|
 | **Protocol** | Subaru SSM over K-Line (4800 8N1). ECU init `80 10 F0 01 BF 40`, then continuous A8 fast poll. Rate = 480 / (6 + reply bytes) Hz. |
-| **Definitions** | `logger_METRIC_EN_v370.xml` logger definitions; only the parameters the ECU supports are shown. |
+| **Definitions** | The `logger_METRIC_EN_v370.xml` logger definitions are built in; only the parameters the ECU supports are shown. |
 | **CSV format** | CRLF, `Time (msec)` from 0, `Name (units)` headers and standard number formatting. |
 | **Widebands** | AEM UEGO (serial), Innovate LC-2 (MTS) and PLX on their own port. A missing wideband port is retried every second and logging carries on without it. |
 | **Hardware** | Serial ports only: Tactrix OpenPort in VCP mode, a KKL cable or Project Lambda Bluetooth. J2534 is not used. |
 | **Engine** | Runs as its own process, owning the serial ports, polling and CSV writer. Closing while recording asks first. |
 | **Desk testing** | The `MOCK` port is a simulated ECU, for trying ejLogger without the car. |
-| **Cluster files** | Plain `.properties` files (pages, themes, gauges, labels, trims, warn limits, display, warm-up, dimming, screensaver, record, profile settings) plus profile XML. Import an existing ClusterConfig folder from **Config → Cluster files**. |
+| **Cluster files** | Plain `.properties` files (pages, themes, gauges, labels, trims, warn limits, display, warm-up, dimming, screensaver, record, profile settings) plus profile XML. Import an existing ClusterConfig folder from **Config → Cluster files**: only the files ejLogger uses come across. |
 
 </details>
 
