@@ -172,7 +172,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
     root.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='ejlv-'+v)); if(v==='set'&&!S.ports.length) rescan(); S.dirty=true; paintAll(); }
 
   // ── engine link ──
-  function loadCluster(){ if(API&&API.cluster) API.cluster().then(r=>{ try{ S.clu=CLU.parse(r); S.qr=r.qr||{}; CLU.reset(); applyDefault(); }catch(e){ S.clu=null; toast('Cluster files: '+e.message); } S.dirty=true; paintAll(); }); }
+  function loadCluster(){ if(API&&API.cluster) API.cluster().then(r=>{ try{ S.clu=CLU.parse(r); S.qr=r.qr||{}; CLU.reset(); applyDefault(); try{ limShared(); }catch(_){} }catch(e){ S.clu=null; toast('Cluster files: '+e.message); } S.dirty=true; paintAll(); }); }
   function start(){ if(S.started||!API) return; S.started=true; loadCluster(); API.send({t:'state'}); API.send({t:'params'}); rescan();
     if(sel().length) API.send({t:'select',list:sel()}); if(S.cfg&&(CAR||S.cfg.autoConnect)&&S.state==='idle') setTimeout(connect,300); }
   function connect(){ const c=S.cfg||{}; if(!c.defPath){ openCpop(); return toast('Choose the logger definition file first'); }
@@ -265,6 +265,9 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
     onSelect:cid=>{ S.dsel=S.dsel===cid?null:cid; CLU.reset(); paintDside(); }, onMove:moveSlot, onPage:k=>{ S.dpage=k; CLU.reset(); }},dt); }
   // ── sidecar edits: applied in memory at once (cluster redraws), written to disk shortly after ──
   const pend={}; let pendT=0;
+  // warn limits shared with ejStudio's analysis (base warnlimits file; first three numbers = approach, warn, critical)
+  window.__ejlWarn=()=>{ const o={}, w=S.clu&&S.clu.P&&S.clu.P.warnlimits; if(!w) return null; for(const k of Object.keys(w)){ const a=String(w[k]).split(',').map(x=>parseFloat(x)); if(a.length>=3&&a.slice(0,3).every(Number.isFinite)) o[k]=a; } return o; };
+  window.__ejlWarnSet=(name,a)=>{ if(!S.clu) return false; const w=S.clu.P.warnlimits||{}, prev=w[name]!=null?String(w[name]).split(',').map(x=>x.trim()):[]; setProp('warnlimits',name,a?a.map(String).concat(prev.slice(3)).join(', '):null); return true; };
   function setProp(file,key,val){ if(!S.clu) return; const P=S.clu.P, o=P[file]||(P[file]=Object.defineProperty({},'_order',{value:[]})); if(val===null) delete o[key]; else { if(!(key in o)) o._order.push(key); o[key]=String(val); }
     S.cver++; CLU.reset(); (pend[file]=pend[file]||{})[key]=val; clearTimeout(pendT); pendT=setTimeout(flushProps,400); }
   function savedFlash(){ const e=$('ejl-saved'); if(!e) return; e.classList.add('on'); clearTimeout(savedFlash.t); savedFlash.t=setTimeout(()=>{ const e2=$('ejl-saved'); if(e2) e2.classList.remove('on'); },1800); }

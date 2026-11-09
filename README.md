@@ -76,7 +76,7 @@ Every table and setting card in the tune, with the log replayed live on top.
 ## Car profiles
 <img src="docs/img/car_profile.png" width="420" align="right" alt="Car profile">
 
-Several cars, each with its engine, parts, drivetrain (gear ratios, final drive, tire size for gear detection), wideband lag and fuel history (brand, octane and ethanol % from the pump label). Recent sessions are kept per car, and a tune picks the car it was last loaded with. Switch cars on the start screen or in the drawer; the first launch offers to create one.
+Several cars, each with its engine, parts, drivetrain (gear ratios, final drive, tire size for gear detection), wideband lag (measured from the car's logs unless locked) and fuel history (brand, octane and ethanol % from the pump label). Recent sessions are kept per car, and a tune picks the car it was last loaded with. Switch cars on the start screen or in the drawer; the first launch offers to create one.
 
 <br clear="right">
 

@@ -4,7 +4,7 @@ const {app,BrowserWindow,ipcMain,dialog,clipboard,shell,utilityProcess}=require(
 const fs=require('fs'), path=require('path');
 // ejLab → ejStudio: the settings folder moved with the new name; carry the old one over once (before anything touches userData)
 try{ const nu=app.getPath('userData'), old=path.join(app.getPath('appData'),'ejLab'); if(!fs.existsSync(nu)&&fs.existsSync(old)) fs.cpSync(old,nu,{recursive:true}); }catch(_){}
-const GH_REPO='lupeloop/ejStudio'; let GHT=''; try{ GHT=Buffer.from(require('./ghtoken.js'),'base64').toString('utf8').split('').reverse().join('').trim(); }catch(_){}
+const GH_REPO='lupeloop/ejStudio'; 
 const CFGF=()=>path.join(app.getPath('userData'),'desktop.json');
 let cfg={folder:null,auto:true}, win=null, watcher=null, seen=new Set(); const pending=new Map();
 const LOGD=()=>path.join(app.getPath('userData'),'logs');
@@ -12,7 +12,7 @@ function elog(t){ try{ fs.mkdirSync(LOGD(),{recursive:true}); fs.appendFileSync(
 function pruneLogs(){ try{ const cut=Date.now()-5*864e5; for(const f of fs.readdirSync(LOGD())){ const p=path.join(LOGD(),f); if(fs.statSync(p).mtimeMs<cut) fs.unlinkSync(p); } }catch(_){} }
 process.on('uncaughtException',e=>elog(new Date().toISOString()+' MAIN '+(e&&e.stack||e)));
 const saveCfg=()=>{ try{ fs.writeFileSync(CFGF(),JSON.stringify(cfg)); }catch(_){} };
-const argFiles=argv=>argv.slice(1).filter(a=>/\.(csv|tune|json|ejlab)$/i.test(a)&&fs.existsSync(a));
+const argFiles=argv=>argv.slice(1).filter(a=>/\.(csv|tune|json|ejstudio|ejlab)$/i.test(a)&&fs.existsSync(a));
 const readOut=p=>({name:path.basename(p),path:p,text:fs.readFileSync(p,'utf8')});
 const send=(ch,d)=>{ if(win&&!win.isDestroyed()) win.webContents.send(ch,d); if(ch==='ejl'&&typeof phoneBroadcast==='function') phoneBroadcast(d); };
 const csvs=dir=>{ try{ return fs.readdirSync(dir).filter(f=>/\.csv$/i.test(f)); }catch(_){ return []; } };
@@ -267,8 +267,6 @@ else {
     ipcMain.handle('backup',(e,car,file,txt)=>{ try{ const d=path.join(app.getPath('userData'),'revisions',String(car).replace(/[^\w.-]+/g,'_')); fs.mkdirSync(d,{recursive:true}); const p=path.join(d,new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)+'_'+path.basename(String(file))); fs.writeFileSync(p,String(txt)); return p; }catch(err){ elog('backup '+err); return null; } });
     ipcMain.handle('copy',(e,t)=>{ clipboard.writeText(String(t)); return true; });
     const REPD=()=>path.join(app.getPath('userData'),'reports');
-    ipcMain.handle('gh:ready',()=>!!GHT);
-    ipcMain.handle('gh:issue',async(e,title,body)=>{ if(!GHT) return {ok:false,status:'no token'}; try{ const r=await fetch('https://api.github.com/repos/'+GH_REPO+'/issues',{method:'POST',headers:{Authorization:'Bearer '+GHT,Accept:'application/vnd.github+json','Content-Type':'application/json','User-Agent':'ejStudio'},body:JSON.stringify({title:String(title).slice(0,200),body:String(body).slice(0,65000),labels:['bug']})}); const j=await r.json().catch(()=>({})); return {ok:r.ok,status:r.status,url:j.html_url}; }catch(err){ elog('gh:issue '+err); return {ok:false,status:String(err)}; } });
     ipcMain.handle('report:save',(e,name,b64)=>{ try{ const n=String(name).replace(/[^\w.-]+/g,'_'); fs.mkdirSync(REPD(),{recursive:true}); const p=path.join(REPD(),n); fs.writeFileSync(p+'.tmp',Buffer.from(String(b64),'base64')); fs.renameSync(p+'.tmp',p); return p; }catch(err){ elog('report:save '+err); return null; } });
     ipcMain.handle('report:open',(e,name)=>{ try{ fs.mkdirSync(REPD(),{recursive:true}); const p=name?path.join(REPD(),String(name).replace(/[^\w.-]+/g,'_')):''; if(p&&fs.existsSync(p)) shell.showItemInFolder(p); else shell.openPath(REPD()); }catch(_){} return true; });
     ejlIpc(); startWatch(); create(); });

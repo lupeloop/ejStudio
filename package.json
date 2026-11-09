@@ -18,7 +18,6 @@
       "preload.js",
       "ejstudio.html",
       "logos/ejstudio.ico",
-      "ghtoken.js",
       "ejLogger/engine/engine.js",
       "ejLogger/engine/src/**",
       "package.json",
@@ -61,7 +60,7 @@
     },
     "fileAssociations": [
       {
-        "ext": "ejlab",
+        "ext": ["ejstudio","ejlab"],
         "name": "ejStudio Session",
         "description": "ejStudio session"
       }

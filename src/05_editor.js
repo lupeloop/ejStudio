@@ -338,7 +338,10 @@ function hrEvidence(cat,D){ const fu=f=>f?`${esc(f.brand||'')} ${esc(String(f.oc
   if(cat==='Fuel timing'){ const F=HLP.fuel||{}; if(!F.car) return `<div class="hc"><button class="btn sm" data-h="car">Create car profile</button></div>`;
     return `<div class="hc"><div class="hk"><div><em>Now</em><b>${fu(F.cur)}</b></div><div><em>Before</em><b>${fu(F.prev)}</b></div><div><em>Stoich</em><b>${F.cur?stoich(F.cur.eth).toFixed(2):'—'}</b></div></div>${notes}<button class="btn sm" data-h="fuel">Change fuel…</button></div>`; }
   if(cat==='Boost control'){ const B=HLP.boost||{bins:[]}; return B.bins.length?`<div class="hc"><table class="ht"><tr><th>RPM</th><th>n</th><th>vs target</th><th>Peak</th><th>WGDC</th></tr>${B.bins.map(b=>`<tr title="${esc(b.verdict)}"><td>${b.r}</td><td>${b.n}</td><td class="${b.e<-7?'r':b.e>7?'a':''}">${b.e>0?'+':''}${b.e.toFixed(1)}</td><td>${b.peak>0?'+':''}${b.peak.toFixed(1)}</td><td>${Number.isFinite(b.w)?b.w.toFixed(0)+'%':'—'}</td></tr>`).join('')}</table>${notes}</div>`:`<div class="hc"><p class="hm">Needs WOT logs with manifold pressure and target boost.</p></div>`; }
-  if(cat==='Injectors'){ const I=HLP.inj||{bands:[]}; return I.bands.some(b=>b.n)?`<div class="hc"><table class="ht"><tr><th>Pulse width</th><th>n</th><th>CL trims</th></tr>${I.bands.map(b=>`<tr><td>${esc(b.l)}</td><td>${b.n}</td><td>${b.n?(b.t>0?'+':'')+b.t.toFixed(1)+'%':'—'}</td></tr>`).join('')}</table><p class="hv2">${esc(I.verdict)}</p>${notes}</div>`:`<div class="hc"><p class="hm">Needs closed-loop logs with injector pulse width and fuel trims.</p></div>`; }
+  if(cat==='Injectors'){ const I=HLP.inj||{bands:[]}; let pk=0, pr=0; for(const L of hLogs()){ const a=idcOf(L); if(a) for(let i=0;i<L.N;i++) if(a[i]>pk){ pk=a[i]; pr=L.c.rpm?L.c.rpm[i]:0; } }
+    const inp=(k,l,u)=>`<label class="hin"><span>${l}</span><input class="num" type="number" step="1" data-icfg="${k}" value="${CFG[k]}"><em>${u}</em></label>`;
+    const sat=`<div class="hc"><div class="hk"><div><em>Peak duty</em><b class="${pk>=CFG.idcCrit?'r':''}">${pk?pk.toFixed(1)+'%':'—'}</b></div><div><em>At</em><b>${pr?Math.round(pr)+' rpm':'—'}</b></div></div>${inp('idcWarn','Duty warning at','%')}${inp('idcCrit','Duty critical at','%')}${inp('fpDrop','Fuel pressure drop ≥','%')}</div>`;
+    return sat+(I.bands.some(b=>b.n)?`<div class="hc"><table class="ht"><tr><th>Pulse width</th><th>n</th><th>CL trims</th></tr>${I.bands.map(b=>`<tr><td>${esc(b.l)}</td><td>${b.n}</td><td>${b.n?(b.t>0?'+':'')+b.t.toFixed(1)+'%':'—'}</td></tr>`).join('')}</table><p class="hv2">${esc(I.verdict)}</p>${notes}</div>`:`<div class="hc"><p class="hm">Needs closed-loop logs with injector pulse width and fuel trims.</p></div>`); }
   return notes?`<div class="hc">${notes}</div>`:''; }
 function hrGroup(g,D,kn,nK){ const L=D.L, ON=D.ON, x0=L[g.items[0]], open=g.open, chip=(t,w)=>`<span class="sgc${w?' w':''}">${esc(t)}</span>`, sgn=v=>(v>0?'+':'')+v;
   const tName=t=>nm('g:'+t.group,t.gname)+(t.group==='timing'?' · '+vTiny(t):''); let title, meta, chips='';
@@ -356,6 +359,7 @@ function hrPaint(el){ const D=hrData(); if(!D){ el.innerHTML=''; el._k=''; retur
   h+=hrEvidence(cat,D); if(gs.length) h+=`<div class="sgcat"><span>${gs.length} group${gs.length>1?'s':''}</span><button class="btn sm ghost" data-ca>All</button><button class="btn sm ghost" data-cn>None</button></div>`+gs.map((g,i)=>hrGroup(g,D,i+1,nK)).join('');
   h+=`</div><div class="hrft"><span>${sel.length} change${sel.length!==1?'s':''} · ${tb} table${tb!==1?'s':''}</span><button class="btn sm acc" data-ok${sel.length?'':' disabled'}>Apply</button></div>`;
   el.innerHTML=h; const nb=el.querySelector('.hrbd'); if(nb) nb.scrollTop=top;
+  el.onchange=e=>{ const k=e.target.dataset.icfg; if(!k) return; const x=parseFloat(e.target.value); if(!Number.isFinite(x)) return; CFG[k]=x; UI.cfg[k]=x; save(); recompute(true); el._k=''; TV.edRefresh(); };
   el.onclick=e=>{ const t=e.target, D=HR.data; if(!D) return; const r=()=>TV.edRefresh();
     if(t.closest('[data-hx]')) return hrClose(); if(t.closest('[data-ok]')) return hrApply();
     const hc=t.closest('[data-hc]'); if(hc){ HR.cat=hc.dataset.hc; hrJump(); return r(); }
@@ -382,7 +386,7 @@ function carDialog(id,focus){ const cars=UI.cars||(UI.cars=[]), c=cars.find(x=>x
   d.innerHTML=`<div class="cd"><h3>${c?'Car profile':'Create car profile'}</h3><div class="cdg">
     ${fld('name','Name','2008 STI')}${fld('engine','Engine','EJ257')}<label class="ck"><input type="checkbox" data-k="avcs" ${c&&c.avcs?'checked':''}><span>Dual AVCS</span></label>
     ${fld('inj','Injectors','Optional')}${fld('maf','MAF housing','Optional')}${fld('turbo','Turbo','Optional')}</div>
-    <h4>Drivetrain</h4><div class="cdg">${fld('gears','Gear ratios','3.454 1.947 1.296 0.972 0.738')}${fld('fd','Final drive','3.900')}${fld('tire','Tire size','225/45R17')}${fld('wbLag','Wideband lag (ms)','0')}</div>
+    <h4>Drivetrain</h4><div class="cdg">${fld('gears','Gear ratios','3.454 1.947 1.296 0.972 0.738')}${fld('fd','Final drive','3.900')}${fld('tire','Tire size','225/45R17')}${fld('wbLag','Wideband lag (ms)','0')}<label class="ck"><input type="checkbox" data-k="wbLock" ${c&&c.wbLock?'checked':''}><span>Lock lag</span></label>${c&&c.wbAuto?`<div class="cdm">Measured ${c.wbAuto.ms} ms · ${c.wbAuto.n} edge${c.wbAuto.n!==1?'s':''}${c.wbAuto.xc!=null?' · correlation '+c.wbAuto.xc+' ms':''}${c.wbAuto.ok===false?' · methods disagree':''}</div>`:''}</div>
     <h4>Fuel</h4><div class="cdg">${fld('f.brand','Brand','Shell',f.brand||'')}${fld('f.octane','Octane','93',f.octane||'')}${fld('f.eth','Ethanol %','From the pump label',f.eth!=null?f.eth:'')}</div>
     <div class="cdft">${c?'<button class="btn sm" data-c="del">Delete</button>':(cars.length?'':'<button class="btn sm" data-c="skip">Skip</button>')}<span class="vfill"></span><button class="btn sm" data-c="x">Cancel</button><button class="btn sm acc" data-c="ok">Save</button></div></div>`;
   setTimeout(()=>{ const q=d.querySelector(focus==='fuel'?'[data-k="f.brand"]':'[data-k=name]'); if(q) q.focus(); },30);
@@ -390,7 +394,7 @@ function carDialog(id,focus){ const cars=UI.cars||(UI.cars=[]), c=cars.find(x=>x
     if(a==='x'){ d.remove(); return; } if(a==='skip'){ UI.carSkip=true; save(); d.remove(); return; }
     if(a==='del'){ if(!confirm('Delete the car profile '+c.name+'? Its sessions stay in the list.')) return; UI.cars=cars.filter(x=>x!==c); if(UI.car===c.id) UI.car=UI.cars[0]&&UI.cars[0].id||null; save(); d.remove(); carChanged(); return; }
     const g=k=>{ const i=d.querySelector(`[data-k="${k}"]`); return i?(i.type==='checkbox'?i.checked:i.value.trim()):''; }; const name=g('name'); if(!name){ d.querySelector('[data-k=name]').focus(); return; }
-    const o=c||{id:'car'+Date.now().toString(36),fuelHist:[]}; Object.assign(o,{name,engine:g('engine'),avcs:g('avcs'),inj:g('inj'),maf:g('maf'),turbo:g('turbo'),gears:g('gears'),fd:g('fd'),tire:g('tire'),wbLag:g('wbLag')===''?'':+g('wbLag')||0});
+    const o=c||{id:'car'+Date.now().toString(36),fuelHist:[]}; Object.assign(o,{name,engine:g('engine'),avcs:g('avcs'),inj:g('inj'),maf:g('maf'),turbo:g('turbo'),gears:g('gears'),fd:g('fd'),tire:g('tire'),wbLag:g('wbLag')===''?'':+g('wbLag')||0,wbLock:g('wbLock')});
     const nf={brand:g('f.brand'),octane:g('f.octane'),eth:g('f.eth')===''?'':+g('f.eth')}, last=o.fuelHist[o.fuelHist.length-1];
     if((nf.brand||nf.octane||nf.eth!=='')&&(!last||last.brand!==nf.brand||String(last.octane)!==String(nf.octane)||String(last.eth)!==String(nf.eth))) o.fuelHist.push(Object.assign({t:Date.now()},nf));
     if(!c) cars.push(o); UI.car=o.id; save(); d.remove(); carChanged(); toast('Saved '+name); }; }
@@ -400,3 +404,21 @@ function carChanged(){ try{ profApply(); recompute(true); }catch(_){} try{ if(ty
     row.innerHTML=`<span>Car</span>${cars.length?`<select>${cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join('')}</select><button class="btn sm" data-dc="edit">Edit</button>`:''}<button class="btn sm" data-dc="add">＋</button>`;
     row.querySelector('select')&&(row.querySelector('select').onchange=e=>{ UI.car=e.target.value; save(); carChanged(); });
     row.onclick=e=>{ const b=e.target.closest('[data-dc]'); if(!b) return; carDialog(b.dataset.dc==='add'?null:UI.car); }; }; }
+
+// ── wideband lag: measured from the car's logs and kept on the car unless locked ──
+// edges: injector cut → lean spike and tip-in → rich dip; correlation: expected AFR (MAF / fuel per rev) vs wideband over the whole log
+function wbEdges(L){ const C=L.c, T=L.t, W=L.wb, d=[]; if(!C.ipw||!W) return d;
+  for(let i=1;i<L.N;i++){ if(C.ipw[i]<0.3&&C.ipw[i-1]>=0.3) for(let j=i;j<L.N&&T[j]-T[i]<=1500;j++){ if(C.ipw[j]>=0.3) break; if(W[j]>1.15){ d.push(T[j]-T[i]); break; } }
+    if(C.thr&&C.thr[i]-C.thr[i-1]>=15&&W[i]>0.9){ const w0=W[i]; for(let j=i;j<L.N&&T[j]-T[i]<=1500;j++){ if(w0-W[j]>=0.08){ d.push(T[j]-T[i]); break; } } } }
+  return d.filter(x=>x>=20&&x<=1200); }
+function wbXcorr(L){ const C=L.c, T=L.t, W=L.wb; if(!C.ipw||!C.rpm||!C.maf||!W||L.N<200) return null; const dt=20, t0=T[0], t1=T[L.N-1], n=Math.floor((t1-t0)/dt); if(n<300) return null;
+  const x=new Float64Array(n), y=new Float64Array(n), ok=new Uint8Array(n); let j=0;
+  for(let k=0;k<n;k++){ const t=t0+k*dt; while(j<L.N-2&&T[j+1]<=t) j++; const ip=C.ipw[j], rp=C.rpm[j], mf=C.maf[j], w=W[j]; if(ip>0.5&&rp>900&&mf>2&&w>0.5&&w<1.6){ x[k]=Math.log(mf/(ip*rp)); y[k]=Math.log(w); ok[k]=1; } }
+  const dx=new Float64Array(n), dy=new Float64Array(n); for(let k=1;k<n;k++) if(ok[k]&&ok[k-1]){ dx[k]=x[k]-x[k-1]; dy[k]=y[k]-y[k-1]; }
+  let best=-1, bl=null; for(let l=0;l<=50;l++){ let sxy=0,sxx=0,syy=0; for(let k=1;k+l<n;k++){ const a=dx[k], b=dy[k+l]; sxy+=a*b; sxx+=a*a; syy+=b*b; } const r=sxx&&syy?sxy/Math.sqrt(sxx*syy):0; if(r>best){ best=r; bl=l*dt; } }
+  return best>=0.15?{ms:bl,r:best}:null; }
+function wbLagAuto(){ const car=carNow(); if(!car||car.wbLock||!ST.logs.length) return; const E=[], X=[];
+  for(const L of ST.logs){ if(L._wbm===undefined){ try{ L._wbm={e:wbEdges(L),x:wbXcorr(L)}; }catch(_){ L._wbm={e:[],x:null}; } } E.push(...L._wbm.e); if(L._wbm.x) X.push(L._wbm.x.ms); }
+  const em=E.length>=3?Math.round(median(E)):null, xm=X.length?Math.round(median(X)):null; if(em==null&&xm==null) return;
+  const ok=em!=null&&xm!=null?Math.abs(em-xm)<=80:null, ms=em!=null&&xm!=null?(ok?Math.round((em+xm)/2):em):(em??xm);
+  car.wbAuto={ms,n:E.length,xc:xm,edge:em,ok,at:Date.now()}; const was=+car.wbLag||0; if(Math.abs(was-ms)>=10){ car.wbLag=ms; save(); profApply(); recompute(true); toast(`Wideband lag ${ms} ms (${car.name})`); } else save(); }
