@@ -130,7 +130,7 @@ Every log is named by date, time and profile, like `ejlogger_2026-11-06_1755_mas
 ## Config
 ![ejLogger Config](docs/img/logger_config.png)
 
-Every setting in one searchable place, saved as it changes:
+Every setting in one searchable place:
 
 | Section | What's there |
 |---|---|

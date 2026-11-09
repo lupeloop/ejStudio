@@ -80,7 +80,7 @@ body.ejl-phone #ejl .dside{position:fixed;left:0;right:0;bottom:0;width:auto;max
 body.ejl-phone #ejl .lgr{grid-template-columns:auto minmax(0,1fr);row-gap:2px}body.ejl-phone #ejl .lgr .tg,body.ejl-phone #ejl .lgr .mt{grid-column:2}
 body.ejl-phone #ejl .pksheet{width:min(92vw,420px)}body.ejl-phone #ejl .qrw{flex-direction:column;gap:18px}body.ejl-phone #ejl .qrw .qc{width:min(60vw,36vh)}body.ejl-phone #ejl .qrw .ar{transform:rotate(90deg)}
 body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,body.ejl-pass #ejl .sub{display:none!important}
-#ejl .prow .pmb{display:flex;flex-direction:row;flex-wrap:wrap;gap:4px;justify-content:flex-end;margin-left:auto}#ejl .prow .pmb .xb{display:inline-flex;width:auto;margin:0}#ejl .prow select{width:auto}#ejlv-params.nonav{grid-template-columns:1fr}#ejlv-params.nonav .enav{display:none}#ejlv-params.nonav .ebody{grid-column:1/-1}
+#ejl .prow .pmb{display:flex;flex-direction:row;flex-wrap:wrap;gap:4px;justify-content:flex-end;margin-left:auto}#ejl .saved{font:700 11px var(--mono);letter-spacing:.1em;color:var(--green);opacity:0;transition:opacity .3s}#ejl .saved.on{opacity:1}#ejl .prow .pmb .xb{display:inline-flex;width:auto;margin:0}#ejl .prow select{width:auto}#ejlv-params.nonav{grid-template-columns:1fr}#ejlv-params.nonav .enav{display:none}#ejlv-params.nonav .ebody{grid-column:1/-1}
 #ejl .prow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:9px 0;border-top:1px solid var(--grid);font-size:12.5px}#ejl .prow:first-child{border-top:0}#ejl .prow.on .pn b{color:var(--acc)}#ejl .prow .pn{display:flex;flex-direction:column;min-width:120px;flex:1}#ejl .prow .pn small{font:11px var(--mono);color:var(--mut)}#ejl .prow label{display:inline-flex;gap:4px;align-items:center;color:var(--mut2)}#ejl .prow input{accent-color:var(--acc)}
 #ejl .hroles{display:flex;flex-wrap:wrap;gap:6px}#ejl .hr{font:11px var(--mono);padding:3px 8px;border-radius:10px;background:var(--red-d);color:var(--red);display:inline-flex;gap:5px;align-items:center}#ejl .hr i{width:6px;height:6px;border-radius:50%;background:currentColor}#ejl .hr.ok{background:var(--green-d);color:var(--green)}
 #ejl .pstrip,#ejl .pres{display:none}body.ejl-pass #ejl .pstrip{display:inline-flex;gap:10px;align-items:center;font:12px var(--mono)}body.ejl-pass #ejl .pres{display:inline-flex}#ejl .pstrip span{display:inline-flex;gap:5px;align-items:center}#ejl .pstrip i{width:7px;height:7px;border-radius:50%;background:currentColor}#ejl .pstrip .r{color:#32c85a}#ejl .pstrip .s{color:#eb2323}#ejl .pstrip .o{color:var(--mut)}
@@ -172,7 +172,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
     if(!c.ecuPort){ openCpop(); return toast('Choose the ECU port first'); }
     S.err=''; S.cur={}; S.mn={}; S.mx={}; API.send({t:'select',list:sel()}); API.send({t:'connect'}); }
   function rescan(){ if(API) API.send({t:'ports'}); }
-  function setCfg(p){ if(!API) return Promise.resolve(); return API.set(p,MYID).then(c=>{ S.cfg=c; S.dirty=true; paintAll(); }); }
+  function setCfg(p){ if(!API) return Promise.resolve(); return API.set(p,MYID).then(c=>{ S.cfg=c; S.dirty=true; paintAll(); savedFlash(); }); }
   if(API){
     API.cfg().then(c=>{ S.cfg=c; S.dirty=true; paintAll(); if(S.started&&S.state==='idle'&&(CAR||c.autoConnect)) setTimeout(connect,300); });
     API.state().then(s=>{ if(s&&s.running){ S.state=s.state; S.rec=s.rec; if(s.rec) S.recT0=Date.now()-(s.recMs||0); S.file=s.file; S.last=s.last; bg(); } });
@@ -233,7 +233,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
     else if(S.view==='logs') h=logsSub();
     else if(S.view==='cluster'){ const pg=S.clu?CLU.pageOf(S.clu,curProf()):{}, g=String(pg.grid||'auto').toLowerCase();
       h=`${profSel()}<span class="lbl">Grid</span><div class="seg" id="ejl-grid">${[['auto','Auto'],['2x2','2 × 2'],['3x2','3 × 2'],['3x3','3 × 3'],['4x3','4 × 3']].map(([k,l])=>`<button data-g="${k}" class="${g===k?'on':''}">${l}</button>`).join('')}</div><span class="fill"></span><span class="lbl">Click a tile to style it · drag to reorder · saved as you change them</span>`; }
-    else if(S.view==='set') h=`<span class="lbl">Config</span><input type="search" id="ejl-ss" placeholder="Search all settings…" value="${esc(S.q)}" style="width:240px"><span class="fill"></span><span class="lbl">Saved as you change them</span>`;
+    else if(S.view==='set') h=`<span class="lbl">Config</span><input type="search" id="ejl-ss" placeholder="Search all settings…" value="${esc(S.q)}" style="width:240px"><span class="fill"></span><span class="saved" id="ejl-saved">✓ Saved</span>`;
     const sub=$('ejl-sub'), foc=document.activeElement&&document.activeElement.id; sub.innerHTML=h; if(foc&&$(foc)&&sub.contains($(foc))){ const el=$(foc); el.focus(); if(el.setSelectionRange) el.setSelectionRange(el.value.length,el.value.length); } }
   $('ejl-sub').onclick=e=>{ const pv=e.target.dataset.pv; if(pv){ S.pview=pv; S.dirty=true; paintAll(); return; } const pf=e.target.dataset.pf2; if(pf){ S.pfilt=pf; S.dirty=true; paintAll(); return; } if(e.target.dataset.psv){ saveProfileAs(curProf()); return; } const la=e.target.closest('[data-la]'); if(la){ logsAct(la.dataset.la,la); return; } const gb=e.target.closest('[data-g]'); if(gb&&S.clu){ setProp('page-'+curProf(),'grid',gb.dataset.g==='auto'?null:gb.dataset.g); S.dpage=0; S.dirty=true; paintAll(); return; } const m=e.target.dataset.m; if(m){ S.live=m; S.dirty=true; paintAll(); }
     if(e.target.id==='ejl-og') openInGraph();
@@ -258,7 +258,8 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
   const pend={}; let pendT=0;
   function setProp(file,key,val){ if(!S.clu) return; const P=S.clu.P, o=P[file]||(P[file]=Object.defineProperty({},'_order',{value:[]})); if(val===null) delete o[key]; else { if(!(key in o)) o._order.push(key); o[key]=String(val); }
     S.cver++; CLU.reset(); (pend[file]=pend[file]||{})[key]=val; clearTimeout(pendT); pendT=setTimeout(flushProps,400); }
-  function flushProps(){ if(!API||!API.writeProp) return; const files=Object.keys(pend); let reparse=false; Promise.all(files.map(f=>{ const p=pend[f]; delete pend[f]; if(/^(warnlimits|gauges|labels)$/.test(f)) reparse=true; return API.writeProp(f,p,MYID); }))
+  function savedFlash(){ const e=$('ejl-saved'); if(!e) return; e.classList.add('on'); clearTimeout(savedFlash.t); savedFlash.t=setTimeout(()=>{ const e2=$('ejl-saved'); if(e2) e2.classList.remove('on'); },1800); }
+  function flushProps(){ if(!API||!API.writeProp) return; const files=Object.keys(pend); let reparse=false; Promise.all(files.map(f=>{ const p=pend[f]; delete pend[f]; if(/^(warnlimits|gauges|labels)$/.test(f)) reparse=true; return API.writeProp(f,p,MYID); })).then(r=>{ savedFlash(); return r; })
     .then(r=>{ if(r.some(x=>!x)) toast('Could not save a cluster setting'); if(reparse) loadCluster(); }); }
   function curSlots(){ const C=S.clu; return CLU.slotsFor(C,curProf())||sel().map(x=>C.alias[x.id]||x.id); }
   function saveSlots(list){ setProp('page-'+curProf(),'slots',list.join(', ')); }
