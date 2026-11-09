@@ -55,7 +55,7 @@ function ejlIpc(){
   reg('ejl:send',(e,m)=>{ if(m&&m.t==='select'){ ejlCfg().sel=m.list||[]; ejlSave(); send('ejl',{t:'cfg',cfg:ejlCfg(),origin:m.origin}); } ejlPost(m); return true; });
   reg('ejl:cfg',()=>ejlCfg());
   reg('ejl:set',(e,patch,origin)=>{ const c=ejlCfg(); Object.assign(c,patch||{}); ejlSave(); if(ejl.proc) ejl.proc.postMessage({t:'config',cfg:ejlEngineCfg(c)}); send('ejl',{t:'cfg',cfg:c,origin}); if(patch&&('phone' in patch||'role' in patch)) phoneServe(); return c; });
-  reg('ejl:pickDef',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose the RomRaider logger definition (logger_METRIC_EN_v370.xml)',properties:['openFile'],filters:[{name:'Logger definition',extensions:['xml']}]});
+  reg('ejl:pickDef',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose the logger definition (logger_METRIC_EN_v370.xml)',properties:['openFile'],filters:[{name:'Logger definition',extensions:['xml']}]});
     if(r.canceled||!r.filePaths[0]) return ejlCfg();
     try{ const d=path.join(app.getPath('userData'),'ejLogger'); fs.mkdirSync(d,{recursive:true}); const dst=path.join(d,path.basename(r.filePaths[0])); if(path.resolve(dst)!==path.resolve(r.filePaths[0])) fs.copyFileSync(r.filePaths[0],dst); ejlCfg().defPath=dst; }
     catch(err){ elog('pickDef '+err); ejlCfg().defPath=r.filePaths[0]; }
