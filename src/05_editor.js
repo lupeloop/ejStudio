@@ -221,16 +221,17 @@ function knockSugs(){ const out=[], notes=[], acc=new Map(), prot=new Map(), byT
       const bz=((baseOf(t)||t).z[r]||[])[c]??t.z[r][c], to=bz-p; if(t.z[r][c]<=to+1e-6) continue;   // already applied (or pulled further by hand)
       out.push({t,r,c,to,g:'Knock timing',grp:'k'+(ar?ar.ix:0),area:ar,pull:p,lbl:`${t.x[c].toFixed(2)} g/rev · ${Math.round(t.y[r])} rpm`,why:o?`blend ${Math.round(o.wt*100)}% · −${p.toFixed(2)}°`:`taper from neighbouring pull · −${p.toFixed(2)}°`}); } }
   return {out,notes}; }
-window.__sug=async(opt)=>{ if(!TUNE) return; if(!EDIT.T) EDITOR.on(true); const K=knockSugs(), L=mafSugs().concat(K.out);
+window.__sug=async(opt)=>{ if(!TUNE) return; if(!EDIT.T) EDITOR.on(true); const K=knockSugs(), F=fuelSugs(), Bo=boostSugs(), In=injSugs(), L=mafSugs().concat(K.out,F.out,Bo.out,In.out); K.notes.push(...F.notes,...Bo.notes,...In.notes);
   if(!L.length){ toast(K.notes[0]||'No suggestions. MAF needs pooled logs; timing needs repeated sustained knock logged on this revision.'); return; }
   const pre=x=>!opt||!opt.maf?true:x.g==='MAF scaling'&&x.t.x[x.c]>=opt.maf[0]-1e-9&&x.t.x[x.c]<opt.maf[1]-1e-9;
-  const ON=L.map(pre), G=new Map(); L.forEach((x,k)=>{ const g=G.get(x.grp)||{id:x.grp,cat:x.g,items:[]}; g.items.push(k); G.set(x.grp,g); });
+  const ON=L.map((x,k)=>x.off?false:pre(x)), G=new Map(); L.forEach((x,k)=>{ const g=G.get(x.grp)||{id:x.grp,cat:x.g,items:[]}; g.items.push(k); G.set(x.grp,g); });
   const groups=[...G.values()], nK=groups.filter(g=>g.cat==='Knock timing').length; let kn=0;
   const tName=t=>nm('g:'+t.group,t.gname)+(t.group==='timing'?' · '+vTiny(t):'');
   const chip=(t,w)=>`<span class="sgc${w?' w':''}">${esc(t)}</span>`, sgn=v=>(v>0?'+':'')+v;
   const gHtml=g=>{ const x0=L[g.items[0]], open=g.open; let title, meta, chips='';
     if(g.cat==='Knock timing'){ kn++; const A=x0.area; title=nK>1?'Knock area '+kn:'Knock area'; meta=`${esc(tName(x0.t))} · ${g.items.length} cell${g.items.length>1?'s':''}`;
       if(A){ const a=A.a; chips=chip(`${a.ev.length} sustained events`,1)+chip(`${A.logs.size} log${A.logs.size>1?'s':''}`)+chip(`FBKC ${a.w.toFixed(2)}°`,1)+(a.fl<0?chip(`FLKC ${a.fl.toFixed(2)}°`,1):''); } if(g.items.some(k=>L[k].pull>=2-1e-9)) chips+=chip('capped at 2°'); }
+    else if(x0.gtitle){ title=x0.gtitle; meta=`${esc(tName(x0.t))} · ${g.items.length} cell${g.items.length>1?'s':''}${x0.gmeta?' · '+esc(x0.gmeta):''}`; chips=''; }
     else { title='MAF · '+x0.zone+' zone'; meta=`${esc(tName(x0.t))} · ${g.items.length} bin${g.items.length>1?'s':''}`; let sw=0,sn=0; const lp=new Set(); g.items.forEach(k=>{ const q=L[k]; sw+=(q.to/q.t.z[0][q.c]-1)*100*q.bin.n; sn+=q.bin.n; if(q.bin.src) lp.add(q.bin.src); });
       chips=chip('avg '+sgn((sw/sn).toFixed(2))+'%')+chip('n '+Math.round(sn).toLocaleString())+(lp.size?chip([...lp].join(' + ')):''); }
     const rows=g.items.map((k,j)=>{ const x=L[k], d=edDisp(x.t), a=toD(d,x.t.z[x.r][x.c]), b=toD(d,x.to);
@@ -243,7 +244,7 @@ window.__sug=async(opt)=>{ if(!TUNE) return; if(!EDIT.T) EDITOR.on(true); const 
     return [sel.length,tb.size,big,bigC]; };
   const draw=()=>{ kn=0; const [n,tb,big,bigC]=stats(); let h=`<div class="sgcard"><div class="sghd"><b>${opt&&opt.maf?`Suggestions · ${opt.maf[0].toFixed(2)}–${Math.min(opt.maf[1],5).toFixed(2)} V`:'Suggestions'}</b><div class="sgst"><div><em>Changes</em><strong>${n}</strong></div><div><em>Tables</em><strong>${tb}</strong></div><div><em>Biggest</em><strong style="color:${bigC||'inherit'}">${big}</strong></div></div></div><div class="sgbd">`;
     h+=K.notes.map(x=>`<div class="sg-note">${esc(x)}</div>`).join('');
-    for(const cat of ['Knock timing','MAF scaling']){ const gs=groups.filter(g=>g.cat===cat); if(!gs.length) continue; h+=`<div class="sgcat"><span>${cat}</span><button class="btn sm ghost" data-ca="${cat}">Select all</button><button class="btn sm ghost" data-cn="${cat}">Unselect all</button></div>`+gs.map(gHtml).join(''); }
+    for(const cat of ['Knock timing','Fuel timing','Boost control','Injectors','MAF scaling']){ const gs=groups.filter(g=>g.cat===cat); if(!gs.length) continue; h+=`<div class="sgcat"><span>${cat}</span><button class="btn sm ghost" data-ca="${cat}">Select all</button><button class="btn sm ghost" data-cn="${cat}">Unselect all</button></div>`+gs.map(gHtml).join(''); }
     h+=`</div><div class="sgft"><span>${n} change${n!==1?'s':''} selected</span><button class="btn ghost" data-x>Cancel</button><button class="btn acc" data-ok${n?'':' disabled'}>Apply</button></div></div>`; const sc=d.querySelector('.sgbd'), top=sc?sc.scrollTop:0; d.innerHTML=h; const nb=d.querySelector('.sgbd'); if(nb) nb.scrollTop=top; };
   draw();
   return new Promise(res=>{ const done=ok=>{ document.removeEventListener('keydown',kd,true); d.remove(); res(); if(!ok) return;
@@ -290,3 +291,108 @@ function palette(){ if($('cmdk')) return; const items=[];
 function profBanner(){ const b=$('pban'); if(!b) return; const need=!!(TUNE&&ST.logs.length&&!RP.banHide&&!(UI.profiles||[]).some(p=>p.rom&&p.rom===TUNE.rom)); b.classList.toggle('hidden',!need); }
 function profSetup(){ if(!(UI.profiles||[]).some(p=>p.rom===TUNE.rom)){ const p={id:'p'+Date.now().toString(36),name:'New profile',engine:'',gears:'',fd:'',tire:'',inj:'',fuel:'',mafd:'',wbLag:0,rom:TUNE.rom}; (UI.profiles=UI.profiles||[]).push(p); UI.profSel=p.id; profChanged(); }
   UI.dtab='session'; UI.dq=''; UI.open.veh=true; drawer(true); setTimeout(()=>{ const v=document.querySelector('.dsec[data-id="veh"]'); if(v) v.scrollIntoView({block:'start'}); },60); }
+// ════════════════════════════════════════════════════════════════════════════
+//  Helpers: fuel / octane, boost control and injectors. Each one reads the logs on the current revision,
+//  feeds the Helpers view (diagnosis) and adds its own groups to Suggestions (changes).
+// ════════════════════════════════════════════════════════════════════════════
+const HLP={};
+const hMed=a=>{ const s=a.filter(Number.isFinite).sort((x,y)=>x-y); return s.length?s[Math.floor(s.length/2)]:NaN; };
+const hMean=a=>{ const s=a.filter(Number.isFinite); return s.length?s.reduce((x,y)=>x+y,0)/s.length:NaN; };
+const hLogs=()=>ST.logs.filter(L=>(UI.lrev[L.fp]||REV.cur)===REV.cur);
+const q35=v=>Math.round(v/0.35)*0.35;
+function carNow(){ return (UI.cars||[]).find(c=>c.id===UI.car)||null; }
+// stoichiometric AFR of a petrol/ethanol blend (ethanol % by volume, from the pump label)
+function stoich(eth){ const e=Math.max(0,Math.min(100,+eth||0))/100, me=e*0.789/(e*0.789+(1-e)*0.745); return 1/((1-me)/14.7+me/9.0); }
+// ── fuel / octane: compares the car's current fuel with the one before it ──
+function fuelHelper(){ const car=carNow(), H=car&&car.fuelHist||[], cur=H[H.length-1], prev=H[H.length-2]; const r={car,cur,prev,cells:null,notes:[]};
+  if(!cur) return r; if(!EDIT.T&&!TUNE) return r;
+  const T=EDIT.T||TUNE, tbl=pid=>T.tables.find(q=>q._ids&&q._ids.includes(pid)&&q.yin), cnt=new Map(), bad=new Map();
+  for(const L of hLogs()){ const C=L.c; if(!C.fbkc||!C.load||!C.rpm||!L.pick) continue;
+    for(let i=0;i<L.N;i++){ const pid=L.pick[i]; if(!pid) continue; const t=tbl(pid); if(!t) continue; const r0=Math.round(fi(t.y,C.rpm[i])), c0=Math.round(fi(t.x,C.load[i])), k=t.id+'|'+r0+'|'+c0;
+      const knock=C.fbkc[i]<-0.005||(C.flkc&&C.flkc[i]<-0.005); if(knock){ for(let a=-1;a<=1;a++) for(let b=-1;b<=1;b++) bad.set(t.id+'|'+(r0+a)+'|'+(c0+b),1); } else cnt.set(k,(cnt.get(k)||0)+1); } }
+  r.cells={cnt,bad,tbl}; const dOct=prev?(+cur.octane||0)-(+prev.octane||0):0, dEth=prev?(+cur.eth||0)-(+prev.eth||0):0; r.dOct=dOct; r.dEth=dEth;
+  if(prev&&Math.abs(dEth)>=1){ const s0=stoich(prev.eth), s1=stoich(cur.eth); r.notes.push(`Ethanol ${prev.eth||0}% → ${cur.eth||0}%: stoichiometric AFR ${s0.toFixed(2)} → ${s1.toFixed(2)}. Closed loop corrects this on its own; open-loop fuelling runs about ${Math.abs((1-s1/s0)*100).toFixed(1)}% ${s1<s0?'leaner':'richer'} until the MAF and fuel tables are corrected from new logs.`); }
+  if(prev&&dOct<0) r.notes.push(`Fuel octane dropped ${prev.octane} → ${cur.octane}: reset or re-learn IAM after the first tank.`);
+  return r; }
+function fuelSugs(){ const out=[], F=HLP.fuel=fuelHelper(); if(!F.cur||!F.prev||!F.cells||!EDIT.T) return {out,notes:F.notes||[]}; const {cnt,bad}=F.cells, name=`${F.prev.brand||''} ${F.prev.octane} → ${F.cur.brand||''} ${F.cur.octane}`.trim();
+  const used=new Set([...cnt.keys(),...bad.keys()].map(k=>k.split('|')[0]));
+  for(const t of EDIT.T.tables.filter(q=>q.group==='timing'&&q.yin&&used.has(q.id))){ const BZ=(baseOf(t)||t).z, ny=t.y.length, nx=t.x.length, ld=Math.max(...t.x);
+    for(let r=0;r<ny;r++) for(let c=0;c<nx;c++){ const k=t.id+'|'+r+'|'+c, n=cnt.get(k)||0, b=(BZ[r]||[])[c]??t.z[r][c];
+      if(F.dOct>0){ if(n<20||bad.has(k)) continue; const add=Math.min(1,q35(Math.min(1,0.35*2))); const to=b+add; if(t.z[r][c]>=to-1e-6) continue;
+        out.push({t,r,c,to,g:'Fuel timing',grp:'fadd',off:true,gtitle:'Better fuel · add timing',gmeta:name,lbl:`${t.x[c].toFixed(2)} g/rev · ${Math.round(t.y[r])} rpm`,why:`${n} clean samples · +${add.toFixed(2)}°`}); }
+      else if(F.dOct<0){ if(t.x[c]<ld*0.55||t.y[r]<2500) continue; const pull=Math.min(2,q35(0.7*-F.dOct)); if(!(pull>0)) continue; const to=b-pull; if(t.z[r][c]<=to+1e-6) continue;
+        out.push({t,r,c,to,g:'Fuel timing',grp:'fpull',gtitle:'Lower octane · pull timing',gmeta:name,pull,lbl:`${t.x[c].toFixed(2)} g/rev · ${Math.round(t.y[r])} rpm`,why:`high load · −${pull.toFixed(2)}°`}); } } }
+  return {out,notes:F.notes}; }
+// ── boost control: target vs actual by RPM at wide-open throttle ──
+function boostHelper(){ const bins=[]; for(let r=2000;r<=7500;r+=500) bins.push({r,n:0,err:[],ovr:0,wg:[],atMax:0}); let used=0;
+  const wmax=TUNE&&TUNE.byId&&TUNE.byId.wg_max;
+  for(const L of hLogs()){ const C=L.c; if(!C.map||!C.tboost||!C.rpm) continue;
+    for(let i=0;i<L.N;i++){ if(C.thr&&!(C.thr[i]>=80)) continue; const tg=C.tboost[i], mp=C.map[i]; if(!Number.isFinite(tg)||!Number.isFinite(mp)||tg<ATM+20) continue;
+      const b=bins.find(x=>Math.abs(C.rpm[i]-x.r)<=250); if(!b) continue; used++; b.n++; b.err.push(mp-tg); if(mp-tg>10) b.ovr++; if(C.wgdc){ b.wg.push(C.wgdc[i]); } } }
+  for(const b of bins){ b.e=hMean(b.err); b.peak=b.err.length?Math.max(...b.err):NaN; b.w=hMean(b.wg); b.verdict=!b.n?'':b.e<-7?'short of target':b.peak>12?'overshoots':Math.abs(b.e)<=7?'on target':''; }
+  return {bins:bins.filter(b=>b.n),used,wmax}; }
+function boostSugs(){ const out=[], B=HLP.boost=boostHelper(); if(!EDIT.T||!B.bins.length) return {out,notes:[]};
+  const wm=EDIT.T.tables.find(q=>q.id==='wg_max'), wb=EDIT.T.tables.find(q=>q.id==='wg_base');
+  for(const b of B.bins){ if(b.n<15) continue;
+    if(b.verdict==='short of target'&&wm){ const r=Math.round(fi(wm.y,b.r)); if(Number.isFinite(b.w)&&b.w<((wm.z[r]||[]).reduce((m,v)=>Math.max(m,v),0))-2) continue; // duty never reached the max: not a max problem
+      (wm.z[r]||[]).forEach((v,c)=>{ const base=((baseOf(wm)||wm).z[r]||[])[c]??v, to=Math.min(100,base+3); if(v<to-1e-6) out.push({t:wm,r,c,to,g:'Boost control',grp:'bmax',off:true,gtitle:'Boost short of target · raise wastegate max',gmeta:`${B.bins.filter(x=>x.verdict==='short of target').length} RPM range(s)`,lbl:`${Math.round(wm.y[r])} rpm · ${wm.x[c]}`,why:`boost ${b.e.toFixed(1)} kPa under target · +3%`}); }); }
+    if(b.verdict==='overshoots'&&wb){ const r=Math.round(fi(wb.y,b.r)); (wb.z[r]||[]).forEach((v,c)=>{ const base=((baseOf(wb)||wb).z[r]||[])[c]??v, to=Math.max(0,base-3); if(v>to+1e-6) out.push({t:wb,r,c,to,g:'Boost control',grp:'bbase',off:true,gtitle:'Boost overshoots · lower wastegate base',gmeta:`peak +${b.peak.toFixed(1)} kPa`,lbl:`${Math.round(wb.y[r])} rpm · ${wb.x[c]}`,why:`overshoot ${b.peak.toFixed(1)} kPa · −3%`}); }); } }
+  return {out,notes:[]}; }
+// ── injectors: closed-loop trims by pulse width ──
+function injHelper(){ const bands=[[0,2.5,'Short (< 2.5 ms)'],[2.5,5,'Mid (2.5–5 ms)'],[5,99,'Long (> 5 ms)']].map(([a,b,l])=>({a,b,l,tr:[],ipw:[],bat:[]}));
+  for(const L of hLogs()){ const C=L.c, an=L.an; if(!C.ipw||!C.afl||!an||!an.loop) continue;
+    for(let i=0;i<L.N;i++){ if(an.loop[i]!==1) continue; const t=(C.afl[i]||0)+(C.afc&&Number.isFinite(C.afc[i])?C.afc[i]:0), w=C.ipw[i]; if(!Number.isFinite(t)||!Number.isFinite(w)) continue; const B=bands.find(x=>w>=x.a&&w<x.b); if(!B) continue; B.tr.push(t); B.ipw.push(w); if(C.batt) B.bat.push(C.batt[i]); } }
+  bands.forEach(B=>{ B.n=B.tr.length; B.t=hMed(B.tr); B.w=hMed(B.ipw); });
+  const S=bands[0], M=bands[1], Lg=bands[2], r={bands,scale:null,lat:null,verdict:'Not enough closed-loop data yet'};
+  if(M.n>=200){ const ref=Lg.n>=100?(M.t+Lg.t)/2:M.t; if(Math.abs(ref)>=2) r.scale=-ref; if(S.n>=100&&Math.abs(S.t-M.t)>=3) r.lat=(S.t-M.t)/100*S.w;
+    r.verdict=r.lat!=null&&r.scale!=null?'Latency and scaling both look off':r.lat!=null?'Short pulses trim differently: latency looks off':r.scale!=null?'Trims are offset at every pulse width: scaling looks off':'Injector scaling and latency look right'; }
+  return r; }
+function injSugs(){ const out=[], notes=[], I=HLP.inj=injHelper(); if(!EDIT.T) return {out,notes};
+  const lt=EDIT.T.tables.find(q=>q.id==='inj_latency');
+  if(I.lat!=null&&lt){ const Z=lt.z, B=(baseOf(lt)||lt).z; (Z[0]||[]).forEach((v,c)=>{ const base=(B[0]||[])[c]??v, to=+(base+I.lat).toFixed(4); if(Math.abs(v-to)>1e-6) out.push({t:lt,r:0,c,to,g:'Injectors',grp:'ilat',off:true,gtitle:'Injector latency',gmeta:`${I.lat>0?'+':''}${I.lat.toFixed(3)} ms`,lbl:`${lt.x[c]} V`,why:`short-pulse trims ${I.bands[0].t.toFixed(1)}% vs mid ${I.bands[1].t.toFixed(1)}%`}); }); }
+  if(I.scale!=null&&TUNE&&TUNE.injFlow) notes.push(`Injectors: closed-loop trims sit at ${(-I.scale).toFixed(1)}% across pulse widths. Injector flow scaling ${TUNE.injFlow} → about ${Math.round(TUNE.injFlow*(1+I.scale/100))} (${I.scale>0?'+':''}${I.scale.toFixed(1)}%) would bring them near zero; change it in the injector setting card.`);
+  return {out,notes}; }
+// ── Helpers view: fuel / octane, boost control, injectors ──
+function HelpersView(){ const root=mk('div','view hv'), bar=mk('div','vbar',root); let shown=false;
+  mk('span','vlab',bar).textContent='Helpers'; mk('span','vfill',bar); const carSel=mk('select','sel sm',bar); carSel.title='Car';
+  const ed=mk('button','btn sm',bar); ed.textContent='Car & fuel…'; ed.onclick=()=>carDialog(UI.car); const sg=mk('button','btn sm acc',bar); sg.textContent='Suggestions'; sg.onclick=()=>window.__sug&&window.__sug();
+  carSel.onchange=()=>{ UI.car=carSel.value; save(); render(); if(typeof landRefresh==='function') landRefresh(); };
+  const body=mk('div','hvb',root);
+  function render(){ if(!shown) return; const cars=UI.cars||[]; carSel.innerHTML=cars.length?cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join(''):'<option>No car yet</option>'; carSel.disabled=!cars.length;
+    let F={}, B={bins:[]}, I={bands:[]}; try{ F=fuelHelper(); }catch(_){} try{ B=boostHelper(); }catch(_){} try{ I=injHelper(); }catch(_){}
+    const fu=f=>f?`${esc(f.brand||'')} ${esc(String(f.octane||''))}${f.eth?' · E'+esc(String(f.eth)):''}`.trim():'—';
+    let clean=0, add=0, knock=0; if(F.cells){ for(const [k,n] of F.cells.cnt) if(n>=20){ clean++; if(!F.cells.bad.has(k)) add++; } knock=new Set([...F.cells.bad.keys()]).size; }
+    const fuelCard=`<div class="hc"><h3>Fuel &amp; octane</h3>${!F.car?`<p class="hm">Create a car profile to track fuel changes.</p><button class="btn sm" data-h="car">Create car profile</button>`:`
+      <div class="hk"><div><em>Now</em><b>${fu(F.cur)}</b></div><div><em>Before</em><b>${fu(F.prev)}</b></div><div><em>Stoich</em><b>${F.cur?stoich(F.cur.eth).toFixed(2):'—'}</b></div></div>
+      <div class="hk"><div><em>Cells with 20+ clean samples</em><b>${clean}</b></div><div><em>Cells near knock</em><b class="${knock?'r':''}">${knock}</b></div><div><em>${F.dOct>0?'Could take timing':F.dOct<0?'Pull suggested':'Change'}</em><b>${F.dOct>0?add:F.dOct<0?'yes':'—'}</b></div></div>
+      ${(F.notes||[]).map(n=>`<p class="hm">${esc(n)}</p>`).join('')}<button class="btn sm" data-h="fuel">Change fuel…</button>`}</div>`;
+    const boostCard=`<div class="hc"><h3>Boost control</h3>${B.bins.length?`<table class="ht"><tr><th>RPM</th><th>Frames</th><th>vs target</th><th>Peak</th><th>WGDC</th><th></th></tr>${B.bins.map(b=>`<tr><td>${b.r}</td><td>${b.n}</td><td class="${b.e<-7?'r':b.e>7?'a':''}">${b.e>0?'+':''}${b.e.toFixed(1)} kPa</td><td>${b.peak>0?'+':''}${b.peak.toFixed(1)}</td><td>${Number.isFinite(b.w)?b.w.toFixed(0)+'%':'—'}</td><td>${esc(b.verdict)}</td></tr>`).join('')}</table>`:'<p class="hm">Needs WOT logs with manifold pressure and target boost (the Boost preset logs both).</p>'}</div>`;
+    const injCard=`<div class="hc"><h3>Injectors</h3>${I.bands.some(b=>b.n)?`<table class="ht"><tr><th>Pulse width</th><th>Frames</th><th>CL trims</th></tr>${I.bands.map(b=>`<tr><td>${esc(b.l)}</td><td>${b.n}</td><td>${b.n?(b.t>0?'+':'')+b.t.toFixed(1)+'%':'—'}</td></tr>`).join('')}</table><p class="hv2">${esc(I.verdict)}</p>${I.scale!=null?`<p class="hm">Scaling ${I.scale>0?'+':''}${I.scale.toFixed(1)}%${TUNE&&TUNE.injFlow?` · ${TUNE.injFlow} → ${Math.round(TUNE.injFlow*(1+I.scale/100))}`:''}</p>`:''}${I.lat!=null?`<p class="hm">Latency ${I.lat>0?'+':''}${I.lat.toFixed(3)} ms</p>`:''}`:'<p class="hm">Needs closed-loop logs with injector pulse width and fuel trims.</p>'}</div>`;
+    body.innerHTML=fuelCard+boostCard+injCard; }
+  body.onclick=e=>{ const b=e.target.closest('[data-h]'); if(!b) return; if(b.dataset.h==='car') carDialog(null); if(b.dataset.h==='fuel') carDialog(UI.car,'fuel'); };
+  window.__hvRender=render;
+  return { el:root, show(on){ shown=on; if(on) render(); }, resize(){}, draw(){} }; }
+// ── car profiles: several cars, each with its fuel history; sessions are kept per car ──
+function carDialog(id,focus){ const cars=UI.cars||(UI.cars=[]), c=cars.find(x=>x.id===id)||null, f=(c&&c.fuelHist&&c.fuelHist[c.fuelHist.length-1])||{};
+  const d=mk('div','cardlg',document.body), v=(k,def)=>esc(c&&c[k]!=null?c[k]:def||'');
+  const fld=(k,l,ph,val)=>`<label><span>${l}</span><input data-k="${k}" value="${val!=null?esc(val):v(k)}" placeholder="${esc(ph||'')}"></label>`;
+  d.innerHTML=`<div class="cd"><h3>${c?'Car profile':'Create car profile'}</h3><div class="cdg">
+    ${fld('name','Name','2008 STI')}${fld('engine','Engine','EJ257')}<label class="ck"><input type="checkbox" data-k="avcs" ${c&&c.avcs?'checked':''}><span>Dual AVCS</span></label>
+    ${fld('inj','Injectors','Optional')}${fld('maf','MAF housing','Optional')}${fld('turbo','Turbo','Optional')}</div>
+    <h4>Fuel</h4><div class="cdg">${fld('f.brand','Brand','Shell',f.brand||'')}${fld('f.octane','Octane','93',f.octane||'')}${fld('f.eth','Ethanol %','From the pump label',f.eth!=null?f.eth:'')}</div>
+    <div class="cdft">${c?'<button class="btn sm" data-c="del">Delete</button>':(cars.length?'':'<button class="btn sm" data-c="skip">Skip</button>')}<span class="vfill"></span><button class="btn sm" data-c="x">Cancel</button><button class="btn sm acc" data-c="ok">Save</button></div></div>`;
+  setTimeout(()=>{ const q=d.querySelector(focus==='fuel'?'[data-k="f.brand"]':'[data-k=name]'); if(q) q.focus(); },30);
+  d.onclick=e=>{ const b=e.target.closest('[data-c]'); if(!b) return; const a=b.dataset.c;
+    if(a==='x'){ d.remove(); return; } if(a==='skip'){ UI.carSkip=true; save(); d.remove(); return; }
+    if(a==='del'){ if(!confirm('Delete the car profile '+c.name+'? Its sessions stay in the list.')) return; UI.cars=cars.filter(x=>x!==c); if(UI.car===c.id) UI.car=UI.cars[0]&&UI.cars[0].id||null; save(); d.remove(); carChanged(); return; }
+    const g=k=>{ const i=d.querySelector(`[data-k="${k}"]`); return i?(i.type==='checkbox'?i.checked:i.value.trim()):''; }; const name=g('name'); if(!name){ d.querySelector('[data-k=name]').focus(); return; }
+    const o=c||{id:'car'+Date.now().toString(36),fuelHist:[]}; Object.assign(o,{name,engine:g('engine'),avcs:g('avcs'),inj:g('inj'),maf:g('maf'),turbo:g('turbo')});
+    const nf={brand:g('f.brand'),octane:g('f.octane'),eth:g('f.eth')===''?'':+g('f.eth')}, last=o.fuelHist[o.fuelHist.length-1];
+    if((nf.brand||nf.octane||nf.eth!=='')&&(!last||last.brand!==nf.brand||String(last.octane)!==String(nf.octane)||String(last.eth)!==String(nf.eth))) o.fuelHist.push(Object.assign({t:Date.now()},nf));
+    if(!c) cars.push(o); UI.car=o.id; save(); d.remove(); carChanged(); toast('Saved '+name); }; }
+function carChanged(){ try{ if(typeof landRefresh==='function') landRefresh(); }catch(_){} try{ window.__hvRender&&window.__hvRender(); }catch(_){} try{ drawerRefresh(); }catch(_){} }
+// drawer: car switcher at the top
+{ const _dr=drawerRefresh; drawerRefresh=function(){ _dr.apply(this,arguments); const d=$('drawer-bd'); if(!d) return; const cars=UI.cars||[]; let row=d.querySelector('.dcar'); if(!row){ row=document.createElement('div'); row.className='dcar'; d.prepend(row); }
+    row.innerHTML=`<span>Car</span>${cars.length?`<select>${cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join('')}</select><button class="btn sm" data-dc="edit">Edit</button>`:''}<button class="btn sm" data-dc="add">＋</button>`;
+    row.querySelector('select')&&(row.querySelector('select').onchange=e=>{ UI.car=e.target.value; save(); carChanged(); });
+    row.onclick=e=>{ const b=e.target.closest('[data-dc]'); if(!b) return; carDialog(b.dataset.dc==='add'?null:UI.car); }; }; }

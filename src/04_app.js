@@ -23,7 +23,7 @@ let TLIM={}; function mergeLimits(){ TLIM=tuneLimits(typeof RP!=='undefined'?RP.
   LIMITS=out; }
 LIMITS=JSON.parse(JSON.stringify(ULIM));
 let saveT=0; function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ UI.limits=ULIM; try{ localStorage.setItem('rrlab_ui_v1',JSON.stringify(UI)); }catch(_){} },300); }
-const VIEW_NAMES={maf_both:'MAF Tools · Both',graph:'Graph',table:'Tables',maf_table:'MAF Tools · Scaling',maf_curve:'MAF Tools · Curve',scatter:'Scatter Plot',graph_b:'Graph · B',table_b:'Tables · B'}, VIEW_ORDER=['table','graph','maf_table','maf_curve','maf_both','scatter','graph_b','table_b'], TAB_ORDER=['table','graph','maf','scatter','graph_b','table_b'];
+const VIEW_NAMES={maf_both:'MAF Tools · Both',graph:'Graph',table:'Tables',maf_table:'MAF Tools · Scaling',maf_curve:'MAF Tools · Curve',scatter:'Scatter Plot',helpers:'Helpers',graph_b:'Graph · B',table_b:'Tables · B'}, VIEW_ORDER=['table','graph','maf_table','maf_curve','maf_both','scatter','helpers','graph_b','table_b'], TAB_ORDER=['table','graph','maf','scatter','graph_b','table_b'];
 const ST={logs:[],bins:null,row:null,ipw:null,fixes:new Set(),queue:[],anKey:0};
 const RP={L:null,i:0,playT:0,playing:false,lastTs:0,raf:0,dirty:true,a:null,b:null,kClear:-1,gOff:0,hoverT:null,flashes:[]};
 let toastT=0;
@@ -44,7 +44,7 @@ const IDB={db:null,
 
 // ── views ───────────────────────────────────────────────────────────────────
 let GV,TV,MT,MV,SV,GVb,TVb,VIEWS;
-function makeViews(){ GV=GraphView(); TV=TableView(); MT=MafTableView(); MV=MafCurveView(); SV=ScatterView(); GVb=GraphView('b'); TVb=TableView('b'); VIEWS={graph:GV,table:TV,maf_table:MT,maf_curve:MV,scatter:SV,graph_b:GVb,table_b:TVb}; MB=MafBothView(); VIEWS.maf_both=MB; }
+function makeViews(){ GV=GraphView(); TV=TableView(); MT=MafTableView(); MV=MafCurveView(); SV=ScatterView(); GVb=GraphView('b'); TVb=TableView('b'); VIEWS={graph:GV,table:TV,maf_table:MT,maf_curve:MV,scatter:SV,helpers:HelpersView(),graph_b:GVb,table_b:TVb}; MB=MafBothView(); VIEWS.maf_both=MB; }
 // MAF Tools: one tab; each pane picks Scaling, Curve or Both. Both borrows the two views and merges their toolbars.
 const MAFV=['maf_table','maf_curve','maf_both'], mafClash=(a,b)=>a===b||(a==='maf_both'&&(b==='maf_table'||b==='maf_curve'))||(b==='maf_both'&&(a==='maf_table'||a==='maf_curve'));
 let MB=null, MBAR=null;
@@ -218,7 +218,7 @@ async function loadTuneText(text,name){
 function busy(on,t,s){ const b=$('land-busy'); if(on){ $('busy-t').textContent=t||'Processing'; $('busy-s').textContent=s||''; b.classList.remove('hidden','out'); } else { b.classList.add('out'); setTimeout(()=>{ if(b.classList.contains('out')){ b.classList.add('hidden'); BGFX.set(false); } },450); } }
 
 // ── landing ─────────────────────────────────────────────────────────────────
-function showLanding(){ $('app').classList.add('hidden'); $('land').classList.remove('hidden'); landRefresh(); landLoadEjl(); BGFX.set(false); }
+function showLanding(){ $('app').classList.add('hidden'); $('land').classList.remove('hidden'); landRefresh(); landLoadEjl(); BGFX.set(false); if(!(UI.cars&&UI.cars.length)&&!UI.carSkip&&!document.querySelector('.cardlg')) setTimeout(()=>carDialog(null),400); }
 function enterApp(){ if(!ST.logs.length&&!TUNE) return; if(ST.logs.length&&UI.seenVer!==APP_VER){ UI.seenVer=APP_VER; save(); setTimeout(whatsNew,700); } setTimeout(profBanner,0); $('land').classList.add('hidden'); $('app').classList.remove('hidden'); BGFX.set(false); buildStage(); if(!RP.raf) RP.raf=requestAnimationFrame(loop); }
 // landing: tune card, logs from ejLogger plus anything dropped or browsed, recent sessions
 const LAND={q:[],ejl:null,sel:new Set(),init:false,tuneP:null};
@@ -237,7 +237,7 @@ async function landGo(){ if(!TUNE) return; const {files,names}=landPicked(); if(
 function landRecord(){ if(!TUNE||!ST.logs.length) return; const tp=LAND.tuneP||UI.tuneP; if(LAND.tuneP&&LAND.tuneP.path) UI.tuneP=LAND.tuneP; const P=ST.paths||{}, logs=ST.logs.map(L=>({name:L.name,path:P[L.fp]||''}));
   let mn=0, at=null, kn=false; for(const L of ST.logs){ const a=L.c&&L.c.fbkc, r=L.c&&L.c.rpm; if(!a) continue; kn=true; for(let i=0;i<a.length;i++) if(a[i]<mn){ mn=a[i]; at=r?r[i]:null; } }
   const rows=ST.logs.reduce((s,L)=>s+(L.N||0),0), res=mn<-0.05?`FBKC ${mn.toFixed(1)}°${at!=null?' at '+(Math.round(at/100)*100).toLocaleString()+' rpm':''}`:kn?'no knock':rows.toLocaleString()+' frames';
-  const key=TUNE.name+'|'+logs.map(l=>l.name).sort().join(','); UI.sessions=[{key,t:Date.now(),tune:{name:TUNE.name,path:tp&&tp.name===TUNE.name?tp.path:'',cal:TUNE.cal},logs,res},...(UI.sessions||[]).filter(x=>x.key!==key)].slice(0,6); save(); }
+  const key=(UI.car||'')+'|'+TUNE.name+'|'+logs.map(l=>l.name).sort().join(','); UI.sessions=[{key,car:UI.car||null,t:Date.now(),tune:{name:TUNE.name,path:tp&&tp.name===TUNE.name?tp.path:'',cal:TUNE.cal},logs,res},...(UI.sessions||[]).filter(x=>x.key!==key)].slice(0,6); save(); }
 async function landReopen(i){ const s=(UI.sessions||[])[i], D=window.rrlab; if(!s) return; if(!D||!D.readFiles) return toast('Reopening needs the desktop app');
   const got=await D.readFiles([s.tune.path,...s.logs.map(l=>l.path)].filter(Boolean))||[], by={}; got.forEach(o=>by[o.path]=o);
   if(ST.logs.length){ RP.B=null; RP.L=null; ST.logs.splice(0); }
@@ -258,7 +258,9 @@ function landRefresh(){ if(!$('land-tune')) return; $('land-ver').textContent=AP
   $('ln-logs').classList.toggle('ok',n>0); $('land-count').textContent=TUNE?`1 tune · ${n} log${n===1?'':'s'}`:'Load a tune first';
   const go=$('land-go'); go.disabled=!TUNE; go.textContent=n?'Open session  →':'Open in editor  →';
   $('land-back').classList.toggle('hidden',!ST.logs.length);
-  const S=(UI.sessions||[]).slice(0,3); $('land-last').innerHTML=S.length?`<div class="lbl">Pick up where you left off</div>`+S.map((s,i)=>`<button class="lses ${i?'':'top'}" data-ses="${i}" title="${esc(s.logs.map(l=>l.name).join('\n'))}"><b>${esc(s.tune.name)} <em>+ ${s.logs.length} log${s.logs.length===1?'':'s'}</em></b><small>${esc(whenTxt(s.t))} · ${esc(s.res||'')}</small>${i?'':'<span class="btn">Reopen</span>'}</button>`).join(''):'';
+  const SS=(UI.sessions||[]).map((s,i)=>Object.assign({i},s)).filter(s=>!UI.car||!s.car||s.car===UI.car), S=SS.slice(0,3); const cars=UI.cars||[];
+  $('land-car').innerHTML=cars.length?`<select id="land-carsel">${cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join('')}</select><button class="lchip" data-l="caredit">Edit</button><button class="lchip" data-l="caradd">＋ Car</button>`:`<button class="lchip" data-l="caradd">＋ Create car profile</button>`;
+  $('land-last').innerHTML=S.length?`<div class="lbl">Pick up where you left off</div>`+S.map((s,i)=>`<button class="lses ${i?'':'top'}" data-ses="${s.i}" title="${esc(s.logs.map(l=>l.name).join('\n'))}"><b>${esc(s.tune.name)} <em>+ ${s.logs.length} log${s.logs.length===1?'':'s'}</em></b><small>${esc(whenTxt(s.t))} · ${esc(s.res||'')}</small>${i?'':'<span class="btn">Reopen</span>'}</button>`).join(''):'';
   let EJS=null; try{ EJS=EJL.S; }catch(_){} if(window.rrlab&&window.rrlab.desktop&&EJS){ const st=EJS, f0=LAND.ejl&&LAND.ejl.files&&LAND.ejl.files[0], ic=$('land-ejl').dataset.ic||'';
     const s=st.rec?['rec','Recording']:st.state==='logging'?['on','Logging']:st.state==='connecting'?['on','Connecting']:['','Not connected'];
     $('land-ejl').innerHTML=`<div>${ic?`<img src="${ic}" alt="">`:'<span></span>'}<div><b>ejLogger</b><small><i class="${s[0]}"></i>${s[1]}${f0?' · last log '+esc(whenTxt(f0.mtime)):''}</small></div><button class="btn" data-l="ejl">Open</button></div>`; } else $('land-ejl').innerHTML='';

@@ -27,7 +27,8 @@ function wire(){
   const dz=$('st-logs'); dz.onclick=()=>$('f-logs').click(); dz.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('f-logs').click(); } };
   $('land').addEventListener('click',e=>{ const r=e.target.closest('.lrow'); if(r){ const k=r.dataset.k; LAND.sel.has(k)?LAND.sel.delete(k):LAND.sel.add(k); landRefresh(); return; }
     const ses=e.target.closest('[data-ses]'); if(ses) return landReopen(+ses.dataset.ses); const rv=e.target.closest('[data-rev]'); if(rv) return revOpen(rv.dataset.rev);
-    const l=e.target.closest('[data-l]'); if(!l) return; const a=l.dataset.l; if(a==='tune') $('f-tune').click(); else if(a==='edit') openEditorOnly(); else if(a==='ejl'){ try{ EJL.setMode('logger'); }catch(_){} } });
+    const l=e.target.closest('[data-l]'); if(!l) return; const a=l.dataset.l; if(a==='tune') $('f-tune').click(); else if(a==='edit') openEditorOnly(); else if(a==='ejl'){ try{ EJL.setMode('logger'); }catch(_){} } else if(a==='caradd') carDialog(null); else if(a==='caredit') carDialog(UI.car); });
+  $('land').addEventListener('change',e=>{ if(e.target.id==='land-carsel'){ UI.car=e.target.value; save(); carChanged(); } });
   setInterval(()=>{ if(!$('land').classList.contains('hidden')) landLoadEjl(); },15000);
   ['dragover','drop'].forEach(ev=>window.addEventListener(ev,e=>e.preventDefault()));
   window.addEventListener('dragenter',()=>document.body.classList.add('dragging')); window.addEventListener('dragleave',e=>{ if(!e.relatedTarget) document.body.classList.remove('dragging'); });

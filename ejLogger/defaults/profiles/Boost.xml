@@ -9,6 +9,7 @@
         <parameter id="P11" dash="selected" units="C"/>
     </parameters>
     <ecuparams>
+        <ecuparam id="E51" dash="selected" units="kPa absolute"/>
         <ecuparam id="E113" dash="selected" units="kPa relative"/>
         <ecuparam id="E120" dash="selected" units="kPa relative"/>
         <ecuparam id="E77" dash="selected" units="%"/>
