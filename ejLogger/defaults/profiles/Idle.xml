@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<profile protocol="SSM">
+    <parameters>
+        <parameter id="P8" dash="selected" units="rpm"/>
+        <parameter id="P167" dash="selected" units="rpm"/>
+        <parameter id="P41" dash="selected" units="%"/>
+        <parameter id="P2" dash="selected" units="C"/>
+        <parameter id="P11" dash="selected" units="C"/>
+        <parameter id="P18" dash="selected" units="V"/>
+        <parameter id="P13" dash="selected" units="%"/>
+        <parameter id="P30" dash="selected" units="%"/>
+        <parameter id="P17" dash="selected" units="V"/>
+        <parameter id="P9" dash="selected" units="km/h"/>
+    </parameters>
+    <ecuparams>
+        <ecuparam id="E81" dash="selected" units="%"/>
+        <ecuparam id="E48" dash="selected" units="%"/>
+        <ecuparam id="E54" dash="selected" units="%"/>
+        <ecuparam id="E55" dash="selected" units="raw ecu value"/>
+        <ecuparam id="E33" dash="selected" units="status"/>
+    </ecuparams>
+    <switches>
+        <switch id="S4" dash="selected"/>
+    </switches>
+    <externals>
+    </externals>
+</profile>

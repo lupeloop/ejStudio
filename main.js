@@ -68,7 +68,21 @@ function ejlIpc(){
   // cluster sidecars: <userData>/ejLogger/cluster/{customize,profiles}, seeded once from the app's defaults
   const CLD=()=>ejlCfg().clusterDir||path.join(app.getPath('userData'),'ejLogger','cluster');
   const copyDir=(src,dst,re)=>{ try{ fs.mkdirSync(dst,{recursive:true}); for(const f of fs.readdirSync(src)) if(re.test(f)&&fs.statSync(path.join(src,f)).isFile()) fs.copyFileSync(path.join(src,f),path.join(dst,f)); return true; }catch(e){ elog('cluster copy '+e); return false; } };
-  function seedCluster(){ const d=CLD(); if(fs.existsSync(path.join(d,'customize'))) return; const def=path.join(__dirname,'ejLogger','defaults'); copyDir(path.join(def,'customize'),path.join(d,'customize'),/\.properties$/i); copyDir(path.join(def,'profiles'),path.join(d,'profiles'),/\.xml$/i); }
+  function seedCluster(){ const d=CLD(), def=path.join(__dirname,'ejLogger','defaults'), cz=path.join(d,'customize');
+    if(!fs.existsSync(cz)){ copyDir(path.join(def,'customize'),cz,/\.properties$/i); copyDir(path.join(def,'profiles'),path.join(d,'profiles'),/\.xml$/i); return; }
+    // existing cluster folder: add the preset profiles once (3.1.0), never overwriting the user's own files
+    const mark=path.join(cz,'.presets-310'); if(fs.existsSync(mark)) return;
+    try{ const added=[]; fs.mkdirSync(path.join(d,'profiles'),{recursive:true});
+      for(const f of fs.readdirSync(path.join(def,'profiles'))){ const n=f.replace(/\.xml$/i,''), k=n.replace(/[^A-Za-z0-9_-]/g,'_'); if(fs.existsSync(path.join(d,'profiles',f))) continue;
+        fs.copyFileSync(path.join(def,'profiles',f),path.join(d,'profiles',f)); added.push(n);
+        for(const pf of ['page-'+k,'theme-'+k]){ const src=path.join(def,'customize',pf+'.properties'), dst=path.join(cz,pf+'.properties'); if(fs.existsSync(src)&&!fs.existsSync(dst)) fs.copyFileSync(src,dst); } }
+      const gd=path.join(cz,'gauges.properties'), have=fs.existsSync(gd)?fs.readFileSync(gd,'utf8'):'', keys=new Set(have.split(/\r?\n/).map(l=>l.split('=')[0].trim()));
+      const extra=fs.readFileSync(path.join(def,'customize','gauges.properties'),'utf8').split(/\r?\n/).filter(l=>/^gauge\./.test(l)&&!keys.has(l.split('=')[0].trim()));
+      if(extra.length) fs.appendFileSync(gd,(have&&!have.endsWith('\n')?'\n':'')+'# preset gauges (3.1.0)\n'+extra.join('\n')+'\n');
+      if(added.length){ const mf=path.join(cz,'profile-meta.properties'); let m=fs.existsSync(mf)?fs.readFileSync(mf,'utf8'):''; const om=m.match(/^\s*order\s*=\s*(.*)$/m);
+        if(om) m=m.replace(om[0],'order = '+[...om[1].split(',').map(x=>x.trim()).filter(Boolean),...added].join(',')); const gl=fs.readFileSync(path.join(def,'customize','profile-meta.properties'),'utf8').split(/\r?\n/).filter(l=>/^glyph\./.test(l)&&!m.includes(l.split('=')[0].trim()));
+        fs.writeFileSync(mf,m+(m&&!m.endsWith('\n')?'\n':'')+gl.join('\n')+(gl.length?'\n':'')); }
+      fs.writeFileSync(mark,'presets added '+new Date().toISOString()+': '+added.join(', ')); }catch(e){ elog('presets '+e); } }
   const readAll=(dir,re)=>{ const o={}; try{ for(const f of fs.readdirSync(dir)) if(re.test(f)) o[f]=fs.readFileSync(path.join(dir,f),'utf8'); }catch(_){} return o; };
   reg('ejl:cluster',()=>{ seedCluster(); const d=CLD(), cz=path.join(d,'customize'), qr={}; try{ for(const f of fs.readdirSync(cz)){ if(!/\.png$/i.test(f)) continue; const k=/wifi/i.test(f)?'wifi':/open|hub|url/i.test(f)?'open':null; if(k&&!qr[k]) qr[k]='data:image/png;base64,'+fs.readFileSync(path.join(cz,f)).toString('base64'); } }catch(_){}
     return {dir:d,files:readAll(cz,/\.properties$/i),profiles:readAll(path.join(d,'profiles'),/\.xml$/i),qr}; });
@@ -84,7 +98,7 @@ function ejlIpc(){
     send('ejl',{t:'cluster',origin:'main'}); return true; });
   // move anything ejLogger doesn't read out of the cluster folder (into _unused, nothing is deleted)
   reg('ejl:tidyCluster',()=>{ const d=CLD(), un=path.join(d,'_unused'), moved=[]; const mv=(dir,f)=>{ fs.mkdirSync(un,{recursive:true}); try{ fs.renameSync(path.join(dir,f),path.join(un,f)); moved.push(f); }catch(_){} };
-    try{ for(const f of fs.readdirSync(path.join(d,'customize'))) if(!CLUSTER_FILE.test(f)) mv(path.join(d,'customize'),f); }catch(_){}
+    try{ for(const f of fs.readdirSync(path.join(d,'customize'))) if(!f.startsWith('.')&&!CLUSTER_FILE.test(f)) mv(path.join(d,'customize'),f); }catch(_){}
     try{ for(const f of fs.readdirSync(path.join(d,'profiles'))){ const p=path.join(d,'profiles',f); let ok=false; try{ ok=/\.xml$/i.test(f)&&/<profile[\s>]/i.test(fs.readFileSync(p,'utf8').slice(0,4000)); }catch(_){} if(!ok) mv(path.join(d,'profiles'),f); } }catch(_){}
     if(moved.length) send('ejl',{t:'cluster',origin:'main'}); return {moved}; });
   // sidecar writes: only the keys given change; comments, order and other keys stay; atomic (tmp + rename)

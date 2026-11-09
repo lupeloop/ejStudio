@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<profile protocol="SSM">
+    <parameters>
+        <parameter id="P8" dash="selected" units="rpm"/>
+        <parameter id="P10" dash="selected" units="degrees"/>
+        <parameter id="P25" dash="selected" units="kPa"/>
+        <parameter id="P11" dash="selected" units="C"/>
+        <parameter id="P2" dash="selected" units="C"/>
+        <parameter id="P13" dash="selected" units="%"/>
+    </parameters>
+    <ecuparams>
+        <ecuparam id="E32" dash="selected" units="g/rev"/>
+        <ecuparam id="E53" dash="selected" units="degrees"/>
+        <ecuparam id="E43" dash="selected" units="degrees"/>
+        <ecuparam id="E39" dash="selected" units="degrees"/>
+        <ecuparam id="E41" dash="selected" units="degrees"/>
+        <ecuparam id="E31" dash="selected" units="multiplier"/>
+    </ecuparams>
+    <switches>
+        <switch id="S35" dash="selected"/>
+    </switches>
+    <externals>
+        <external id="X_AEM_UEGO_Wideband_[9600_baud]" dash="selected" units="AFR Gasoline"/>
+    </externals>
+</profile>

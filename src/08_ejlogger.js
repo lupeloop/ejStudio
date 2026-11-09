@@ -165,7 +165,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
     root.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='ejlv-'+v)); if(v==='set'&&!S.ports.length) rescan(); S.dirty=true; paintAll(); }
 
   // ── engine link ──
-  function loadCluster(){ if(API&&API.cluster) API.cluster().then(r=>{ try{ S.clu=CLU.parse(r); S.qr=r.qr||{}; CLU.reset(); if(CAR&&!S.defDone){ S.defDone=1; const d=PM().default; if(d&&allProfiles()[d]&&d!==curProf()) setTimeout(()=>applyProfile(d),200); } }catch(e){ S.clu=null; toast('Cluster files: '+e.message); } S.dirty=true; paintAll(); }); }
+  function loadCluster(){ if(API&&API.cluster) API.cluster().then(r=>{ try{ S.clu=CLU.parse(r); S.qr=r.qr||{}; CLU.reset(); applyDefault(); }catch(e){ S.clu=null; toast('Cluster files: '+e.message); } S.dirty=true; paintAll(); }); }
   function start(){ if(S.started||!API) return; S.started=true; loadCluster(); API.send({t:'state'}); API.send({t:'params'}); rescan();
     if(sel().length) API.send({t:'select',list:sel()}); if(S.cfg&&(CAR||S.cfg.autoConnect)&&S.state==='idle') setTimeout(connect,300); }
   function connect(){ const c=S.cfg||{}; if(!c.defPath){ openCpop(); return toast('Choose the logger definition file first'); }
@@ -185,7 +185,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
         case 'net': S.net=m; break;
         case 'error': S.errs.push(new Date().toLocaleTimeString()+'  '+m.text); if(S.errs.length>40) S.errs.shift(); S.err=m.text; if(S.mode==='logger'&&!/^engine:/.test(m.text)) toast(m.text); break;
         case 'ports': S.ports=m.list||[]; break;
-        case 'params': S.params=m.list||[]; S.byId={}; S.params.forEach(p=>S.byId[p.id]=p); S.verified=m.verified; if(m.ecuId) S.ecuId=m.ecuId; break;
+        case 'params': S.params=m.list||[]; S.byId={}; S.params.forEach(p=>S.byId[p.id]=p); S.verified=m.verified; if(m.ecuId) S.ecuId=m.ecuId; applyDefault(); break;
         case 'init': S.ecuId=m.ecuId; break;
         case 'stats': S.stats=m; if(S.mode==='logger'){ if(S.view==='params'&&$('ejl-pstat')) $('ejl-pstat').innerHTML=pstat(); else if(S.view==='live') S.dirty=true; } return;
         case 'usb': if(m.on){ S.drives=(S.drives||[]).filter(d=>d.letter!==m.drive.letter).concat(m.drive); const want=S.cfg&&S.cfg.usbLabel!=null?S.cfg.usbLabel:'tedd'; if(CAR&&(!want||String(m.drive.label).toLowerCase()===want.toLowerCase())) usbPrompt(m.drive); } else S.drives=(S.drives||[]).filter(d=>d.letter!==m.drive.letter); if(S.mode==='logger'&&S.view==='logs'){ S.dirty=true; paintAll(); } return;
@@ -461,6 +461,8 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
   // ════ Dock actions, profile picker (side sheet) and QR overlay (numbered steps) ════
   const glyphs={none:'',street:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 21l3-18M19 21l-3-18M12 4v3M12 11v3M12 18v3"/></svg>',track:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h4v4h4v4h4v4h4"/><path d="M4 6v12"/></svg>',diag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>',rain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15a4 4 0 1 1 1-7.9A6 6 0 0 1 19 9a3 3 0 0 1-1 6H7z"/><path d="M8 19l-1 2M12 19l-1 2M16 19l-1 2"/></svg>',night:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 15A8 8 0 1 1 9 4a7 7 0 0 0 11 11z"/></svg>',cruise:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="14" r="8"/><path d="M12 14l4-4"/></svg>'};
   const pkey=n=>String(n).replace(/[^A-Za-z0-9_-]/g,'_');
+  // car boot: switch to the default profile once both the cluster files and the ECU's parameter list are in (an earlier switch would drop every parameter)
+  function applyDefault(){ if(!CAR||S.defDone||!S.clu||!S.params.length) return; S.defDone=1; const d=PM().default; if(d&&allProfiles()[d]&&d!==curProf()) setTimeout(()=>applyProfile(d),100); }
   function applyProfile(n){ const l=allProfiles()[n]; if(!l) return; S.cfg.profile=n; S.page=0; CLU.reset(); setSel(l.slice()); const w=l.find(x=>String(x.id).startsWith('wb:')), p={profile:n,sel:S.cfg.sel};
     if(w&&S.cfg.wbType!==w.id.slice(3)){ p.wbType=w.id.slice(3); p.wbUnits=w.units||S.cfg.wbUnits; }
     setCfg(p).then(()=>{ if(S.rec&&API) API.send({t:'split'}); }); if(S.clu) setProp('profile-meta','lastused.'+pkey(n),String(Date.now())); toast('Profile: '+n); }
