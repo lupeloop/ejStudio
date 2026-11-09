@@ -89,34 +89,39 @@ const CLU=(()=>{
   function mount(el,ctx){ const C=ctx.C, P=C.P, disp=P.display||{}, trim=P.trim||{}, th=themeOf(C,ctx.profile), base=P['theme-base']||{};
     const L=layout(ctx), list=L.list, n=list.length;
     const afc=C.roles.AFC_SOURCE, afl=C.roles.AFL_SOURCE, merge=bool(trim.enabled,true)&&L.slots.includes(afc)&&L.slots.includes(afl);
-    const cols=L.fixed?L.fixed[0]:n<=3?Math.max(n,1):n===4?2:n<=9?3:4, rows=L.fixed?L.fixed[1]:Math.max(1,Math.ceil(n/cols)), s=cols>=4?0.8:cols<=2?1.25:1;
+    const cols=L.fixed?L.fixed[0]:n<=3?Math.max(n,1):n===4?2:n<=9?3:4, s=cols>=4?0.8:cols<=2?1.25:1;
     const tget=(cid,k)=>th['tile.'+cid+'.'+k];
     el.innerHTML=''; const outl=num(th['tile.outline']!=null?th['tile.outline']:base['tile.outline'],0), rad=num(th['tile.radius']!=null?th['tile.radius']:base['tile.radius'],0);
-    const cl=mk('div','cl'+(bool(disp['warn.glow'],true)?' glow':'')+(outl>0?' ol':'')+(ctx.edit?' ed':''),el); cl.style.gridTemplateColumns=`repeat(${cols},1fr)`; cl.style.gridTemplateRows=`repeat(${rows},1fr)`; cl.style.setProperty('--rad',rad+'px');
+    const cl=mk('div','cl'+(bool(disp['warn.glow'],true)?' glow':'')+(outl>0?' ol':'')+(ctx.edit?' ed':''),el); cl.style.gridTemplateColumns=`repeat(${cols},1fr)`; cl.style.setProperty('--rad',rad+'px');
     const G=k=>th[k]!=null&&th[k]!==''?th[k]:base[k]; const GV={digits:'--vc',titles:'--tc',units:'--uc',minmax:'--mc',divider:'--dvc',outline:'--olc','warn.amber':'--wa','warn.red':'--wr',background:'--bg0'};
     for(const [k,v] of Object.entries(GV)){ const c=G(k); if(/^#[0-9a-f]{6}$/i.test(String(c||'').trim())) cl.style.setProperty(v,String(c).trim()); }
     const dvw=num(G('divider.px'),NaN); if(Number.isFinite(dvw)) cl.style.setProperty('--dvw',dvw+'px'); if(outl>0) cl.style.setProperty('--olw',outl+'px');
     const clc=G('clol.cl'), olc=G('clol.ol');
     const tiles=[]; const used=new Set();
+    // placement: slots fill the grid in order; a tile can span cells (tile.<id>.span = 2x1, 1x2, 2x2, 3x1 …); the merged TRIMS tile is 1x2
+    const occ2=new Set(); let maxR=0; const spanOf=cid=>{ const m=String(tget(cid,'span')||'').match(/^(\d)x(\d)$/); return m?[Math.min(+m[1],cols),Math.min(+m[2],4)]:null; };
+    const place=(w,h)=>{ for(let r=0;r<16;r++) for(let c=0;c<=cols-w;c++){ let ok=true; for(let a=0;a<h&&ok;a++) for(let b=0;b<w;b++) if(occ2.has((r+a)+','+(c+b))){ ok=false; break; }
+      if(ok){ for(let a=0;a<h;a++) for(let b=0;b<w;b++) occ2.add((r+a)+','+(c+b)); maxR=Math.max(maxR,r+h); return [r,c]; } } return [0,0]; };
+    const put=(d,cid,def)=>{ const [w,h]=spanOf(cid)||def||[1,1], [r,c]=place(w,h); d.style.gridRow=`${r+1} / span ${h}`; d.style.gridColumn=`${c+1} / span ${w}`; d._p={r,c,w,h}; const hero=w>=2&&h>=2?1.9:w>=2?1.35:h>=2?1.25:1; if(hero>1) d.classList.add('hero'); return hero; };
     const style=(d,cid)=>{ for(const k of ['tc','vc','mc','uc']){ const v=tget(cid,k); if(v) d.style.setProperty('--'+k,v); } for(const k of ['ts','vs','ms','us']){ const v=num(tget(cid,k),NaN); if(Number.isFinite(v)) d.style.setProperty('--'+k,v); } };
     const editable=(d,cid)=>{ if(!ctx.edit) return; d.dataset.cid=cid; d.draggable=true; if(cid===ctx.selected) d.classList.add('sel');
       d.onclick=()=>ctx.onSelect&&ctx.onSelect(cid); d.ondragstart=e=>{ e.dataTransfer.setData('text/plain',cid); };
       d.ondragover=e=>{ e.preventDefault(); d.classList.add('dragover'); }; d.ondragleave=()=>d.classList.remove('dragover');
       d.ondrop=e=>{ e.preventDefault(); d.classList.remove('dragover'); const from=e.dataTransfer.getData('text/plain'); if(from&&from!==cid&&ctx.onMove) ctx.onMove(from,cid); }; };
-    list.forEach((cid,i)=>{ if(used.has(i)) return; const r=Math.floor(i/cols), c=i%cols, it=find(ctx,cid), p=(it&&ctx.byId[it.id])||{name:(C.gauge[cid]||{}).name||cid};
-      const d=mk('div','g'+(it?'':' nl'),cl); d.style.gridRow=(r+1); d.style.gridColumn=(c+1); d.style.setProperty('--s',s); style(d,cid);
-      if(merge&&(cid===afc||cid===afl)){ const other=cid===afc?afl:afc, j=list.indexOf(other);
-        if(j>=0&&j%cols===c&&Math.abs(Math.floor(j/cols)-r)===1){ used.add(j); d.style.gridRow=`${Math.min(r,Math.floor(j/cols))+1} / span 2`; }
-        else if(j>=0) used.add(j);
+    list.forEach((cid,i)=>{ if(used.has(i)) return; const it=find(ctx,cid), p=(it&&ctx.byId[it.id])||{name:(C.gauge[cid]||{}).name||cid};
+      const d=mk('div','g'+(it?'':' nl'),cl); style(d,cid);
+      if(merge&&(cid===afc||cid===afl)){ const other=cid===afc?afl:afc, j=list.indexOf(other); if(j>=0) used.add(j); const hz=put(d,afc,[1,j>=0?2:1]); d.style.setProperty('--s',s*(hz>1.3?1.2:1));
         d.classList.add('tr'); d.style.setProperty('--trs',s*Math.min(1.6,num(trim['component.scale'],1.6))/1.6*num(tget(afc,'vs'),1));
         d.innerHTML=`<div class="t">${esc(trim.title||'TRIMS')}</div><div class="row"><b>AFC</b><span data-r="afc">--</span></div><div class="tot" data-r="tot">--</div><div class="row"><b>AFL</b><span data-r="afl">--</span></div>${bool(trim['clol.label'],true)?`<span class="clol" style="left:${num(trim['clol.x'],86)}%;top:${num(trim['clol.y'],7)}%"></span>`:''}`;
         editable(d,afc); tiles.push({kind:'trim',el:d}); return; }
+      { const hz=put(d,cid); d.style.setProperty('--s',s*hz); }
       const fl=((C.gauge[cid]||{}).flags||'').split(',').map(x=>x.trim()).filter(Boolean), bot=tget(cid,'bottom');
       d.innerHTML=`<div class="t">${esc(tget(cid,'title')||titleOf(C,cid,p.name))}</div><div class="vr"><span class="v">--</span><span class="u">${esc(it?unitOf(C,cid,it.units):'')}</span></div><div class="mm"></div>${fl.includes('recDot')?'<div class="rd"><i></i><span></span></div>':''}`;
       editable(d,cid); if(!ctx.edit&&it&&ctx.onTile){ d.style.cursor='pointer'; d.onclick=e=>{ e.stopPropagation(); ctx.onTile(keyOf(it),tget(cid,'title')||titleOf(C,cid,p.name),unitOf(C,cid,it.units),p.name); }; }
       tiles.push({kind:'g',el:d,cid,it,name:p.name,fl,bot,v:d.querySelector('.v'),mm:d.querySelector('.mm'),rd:d.querySelector('.rd'),disp:null,dp:null,last:''}); });
     // column walls: on a tile's right edge, one per row, only when a tile sits to its right in that row (original rrOS look)
-    { const occ={}; for(const T of tiles){ const el=T.el, gr=String(el.style.gridRow), r0=parseInt(gr)-1, span=/span\s*(\d+)/.test(gr)?+gr.match(/span\s*(\d+)/)[1]:1, c=parseInt(el.style.gridColumn)-1; for(let k=0;k<span;k++) occ[(r0+k)+','+c]=el; }
+    const rows=Math.max(L.fixed?L.fixed[1]:1,maxR,1); cl.style.gridTemplateRows=`repeat(${rows},1fr)`;
+    { const occ={}; for(const T of tiles){ const q=T.el._p; if(!q) continue; for(let a=0;a<q.h;a++) for(let b=0;b<q.w;b++) occ[(q.r+a)+','+(q.c+b)]=T.el; }
       const wl=mk('div','walls',cl), on=bool(G('wall.on'),true), len=Math.max(.1,Math.min(1,num(G('wall.len'),0.72))), px=num(G('divider.px'),2), ron=bool(G('rowdiv.on'),false), rlen=Math.max(.1,Math.min(1,num(G('rowdiv.len'),0.8))), rpx=num(G('rowdiv.px'),1), rc=G('rowdiv');
       for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){ const a=occ[r+','+c];
         if(on&&a&&c+1<cols&&occ[r+','+(c+1)]&&occ[r+','+(c+1)]!==a){ const w=mk('i',null,wl); w.style.left=`calc(${(c+1)/cols*100}% - ${px/2}px)`; w.style.width=px+'px'; w.style.top=((r+(1-len)/2)/rows*100)+'%'; w.style.height=(len/rows*100)+'%'; }

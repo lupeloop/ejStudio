@@ -292,7 +292,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
         <div class="card"><span class="lbl">Size</span>${sz('ts','Title')}${sz('vs','Digits')}${trims?'':sz('ms','Min / Max')+sz('us','Unit')}</div>`;
       if(trims) h+=`<div class="card"><span class="lbl">Total Trim</span>${tg2('trim','enabled','Enabled',true)}<div class="dk"><label>Title</label><input type="text" data-pf="trim" data-pk="title" value="${esc(T.title||'TRIMS')}"><span></span></div>
         ${rng2('trim','clol.closed','CL/OL closed value',0,255,1,8)}${tg2('trim','grey.when.open','Grey when open loop',false)}${tg2('trim','clol.label','CL / OL tag',true)}${rng2('trim','clol.x','Tag across (%)',0,100,1,86)}${rng2('trim','clol.y','Tag down (%)',0,100,1,7)}</div>`;
-      else h+=`<div class="card"><span class="lbl">Bottom row</span><div class="seg" id="ejl-dbot" style="flex-wrap:wrap">${[['','Default'],['minmax','Min+Max'],['min','Min'],['max','Max'],['poll','Poll rate'],['off','Off']].map(([k,l])=>`<button data-b="${k}" class="${bot===k?'on':''}">${l}</button>`).join('')}</div></div>`; }
+      else h+=`<div class="card"><span class="lbl">Size</span><div class="seg" id="ejl-dspan" style="flex-wrap:wrap">${[['','1 × 1'],['2x1','Wide'],['1x2','Tall'],['2x2','Hero'],['3x1','Banner']].map(([k,l])=>`<button data-sp="${k}" class="${(tg('span')||'')===k?'on':''}">${l}</button>`).join('')}</div></div>`+`<div class="card"><span class="lbl">Bottom row</span><div class="seg" id="ejl-dbot" style="flex-wrap:wrap">${[['','Default'],['minmax','Min+Max'],['min','Min'],['max','Max'],['poll','Poll rate'],['off','Off']].map(([k,l])=>`<button data-b="${k}" class="${bot===k?'on':''}">${l}</button>`).join('')}</div></div>`; }
     else h+=`<div class="card"><span class="lbl">Tile</span><span class="lbl" style="text-transform:none;letter-spacing:0">Click a tile on the cluster to style it.</span></div>`+themeCards();
     const ae=document.activeElement; if(ae&&el.contains(ae)&&(ae.type==='range'||ae.type==='color'||ae.type==='text')) return; el.innerHTML=h; }
   const tg2=(f,k,l,d)=>{ const P=(S.clu&&S.clu.P[f])||{}, v=P[k]==null||P[k]===''?d:String(P[k]).toLowerCase()==='true'; return `<div class="dk"><label>${l}</label><span></span><input type="checkbox" data-pf="${f}" data-pk="${k}" ${v?'checked':''} style="justify-self:end;accent-color:var(--acc)"></div>`; };
@@ -306,8 +306,9 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
   $('ejl-dside').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const d=b.dataset;
     if(d.d==='add'){ const v=$('ejl-dadd').value; if(v){ saveSlots(curSlots().concat(v)); paintDside(); } }
     if(d.d==='rm'&&S.dsel){ const C=S.clu, rm=[S.dsel]; if(S.dsel===C.roles.AFC_SOURCE) rm.push(C.roles.AFL_SOURCE); saveSlots(curSlots().filter(x=>!rm.includes(x))); S.dsel=null; paintDside(); }
-    if(d.d==='reset'&&S.dsel){ for(const k of ['tc','vc','mc','uc','ts','vs','ms','us','title','bottom']) tileSet(k,null); paintDside(); }
-    if(d.b!=null&&S.dsel){ tileSet('bottom',d.b||null); paintDside(); } });
+    if(d.d==='reset'&&S.dsel){ for(const k of ['tc','vc','mc','uc','ts','vs','ms','us','title','bottom','span']) tileSet(k,null); paintDside(); }
+    if(d.b!=null&&S.dsel){ tileSet('bottom',d.b||null); paintDside(); }
+    if(d.sp!=null&&S.dsel){ tileSet('span',d.sp||null); paintDside(); } });
   // generic sidecar inputs: data-pf (file) + data-pk (key); ranges live, toggles and text on change
   function propInput(e){ const t=e.target, d=t.dataset; if(!d.pf||!d.pk) return;
     if(t.type==='checkbox'){ if(e.type==='change') setProp(d.pf,d.pk,t.checked?'true':'false'); return; }
