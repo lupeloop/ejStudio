@@ -90,8 +90,8 @@ Several cars, each with its engine, parts, drivetrain (gear ratios, final drive,
 ## MAF Tools
 ![MAF Tools](docs/img/maf.png)
 
-- Scaling, Curve, or Both in one tab.
-- Zoned scaling list (Idle, Cruise, Load, Boost) with zone averages, an overview strip and a pinned side panel for the selected bin.
+- Scaling, Curve, or Both side by side in one tab.
+- Scaling list by zone (Idle, Cruise, Load, Boost): volts, current and new g/s, multiplier, change, samples and CL/OL source, with an overview strip and a pinned side panel for the selected bin.
 - Closed-loop, open-loop and mixed corrections with slope-kink, monotonic and CL/OL agreement checks.
 - Corrected vs current curve with the live position.
 
@@ -100,7 +100,7 @@ Several cars, each with its engine, parts, drivetrain (gear ratios, final drive,
 
 ![Scatter](docs/img/scatter.png)
 
-- Multi-lane graph with Full log view, event ticks and hover details; drag to scrub.
+- Multi-lane graph with Full log view, event ticks and hover details; drag to scrub. Wideband lanes switch between smoothed and raw.
 - Searchable **Jump to event** menu: knock, boost, fuelling, AVCS, tip-in and more.
 - Scatter mode in the same tab, with colour channel and trend lines.
 - Two-log compare: log B draws over Graph, Tables and Scatter.
@@ -146,6 +146,8 @@ Lay out the cluster for each profile: click a tile to style it and size it (Wide
 - **Parameters** grouped by category, with the expected logging rate for the selection. Only what the ECU supports is shown.
 - **Profiles** saved as standard profile XML, with their own order, glyph, screensaver and warn limits.
 - **Labels** set the title and unit each parameter shows on the cluster.
+- **Links** show which 1-, 2- or 4-byte variant has taken over a tile, with unlink.
+- **Warn limits** per profile: approach, warn and critical for each gauge on the profile's page, or one set for all profiles.
 
 ## Logs
 ![ejLogger Logs](docs/img/logger_logs.png)

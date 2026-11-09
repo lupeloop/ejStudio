@@ -240,7 +240,7 @@ function poolL(cur){ const P=ST.logs.filter(L=>pooled(L)&&(UI.lrev[L.fp]||REV.cu
 function showView(v){ if(!UI.panes.slice(0,paneCount()).includes(v)&&!POP[v]) setPaneView(UI.focus,v); }
 function tstat(){ const eb=$('ed-top'), db=$('drawer-btn'); const n=typeof edCount==='function'&&EDIT.T?edCount():0;
   if(eb){ const t=(EDIT.on?'Editing':'Edit tune')+(n?' · '+n:''), sp=eb.querySelector('span'); if(sp.textContent!==t) sp.textContent=t; eb.title=n?`${n} unbuilt change${n>1?'s':''}`:'Edit this tune in Tables'; }
-  if(db) db.classList.toggle('err',ERRS.length>0); }
+}
 const SCALES=[0.9,1,1.15,1.3];
 function uiScale(f){ UI.scale=f; save(); try{ if(window.rrlab&&window.rrlab.zoom) window.rrlab.zoom(f); else document.body.style.zoom=f; }catch(_){} RP.dirty=true; if(typeof drawerRefresh==='function') drawerRefresh(); toast('UI scale '+Math.round(f*100)+'%'); }
 function uiStep(d){ const i=SCALES.indexOf(UI.scale||1); uiScale(SCALES[Math.max(0,Math.min(SCALES.length-1,(i<0?1:i)+d))]); }
@@ -326,7 +326,11 @@ function hrApply(){ const D=HR.data; if(!D) return; const by=new Map(); D.L.forE
   const items=[]; for(const [t,z] of by) if(edGuard(t,z)) items.push({t,k:'z',after:z}); if(items.length){ edCommit(items,'apply helpers'); toast(`Applied to ${items.length} table${items.length!==1?'s':''}`); } TV.edRefresh(); }
 function hrEvidence(cat,D){ const fu=f=>f?`${esc(f.brand||'')} ${esc(String(f.octane||''))}${f.eth?' · E'+esc(String(f.eth)):''}`.trim():'—', notes=(D.notes[cat]||[]).map(n=>`<p class="hm">${esc(n)}</p>`).join('');
   if(cat==='Fuel timing'){ const F=HLP.fuel||{}; if(!F.car) return `<div class="hc"><button class="btn sm" data-h="car">Create car profile</button></div>`;
-    return `<div class="hc"><div class="hk"><div><em>Now</em><b>${fu(F.cur)}</b></div><div><em>Before</em><b>${fu(F.prev)}</b></div><div><em>Stoich</em><b>${F.cur?stoich(F.cur.eth).toFixed(2):'—'}</b></div></div>${notes}<button class="btn sm" data-h="fuel">Change fuel…</button></div>`; }
+    const logs=hLogs(), has=k=>logs.some(L=>L.c[k]), need=[['FBKC',has('fbkc')],['FLKC',has('flkc')],['RPM · load',has('rpm')&&has('load')],['Timing table in use',logs.some(L=>L.pick)]], ready=F.cells?[...F.cells.cnt].filter(([k,c])=>c>=20&&!F.cells.bad.has(k)).length:0;
+    const row=(l,v,c)=>`<div class="hnd"><span>${l}</span><b class="${c||''}">${v}</b></div>`;
+    return `<div class="hc"><div class="hk"><div><em>Now</em><b>${fu(F.cur)}</b></div><div><em>Before</em><b>${fu(F.prev)}</b></div><div><em>Stoich</em><b>${F.cur?stoich(F.cur.eth).toFixed(2):'—'}</b></div></div>
+      <div class="hns">${need.map(([l,ok])=>row(l,ok?'✓ logged':'✗ not logged',ok?'y':'x')).join('')}${row('Logs on this revision',logs.length,logs.length?'':'x')}${row('Clean cells (20+ samples)',ready)}</div>
+      <div class="hns">${row('Pull after lower octane',!F.prev?'needs a previous fuel':F.dOct<0?'on':'off',F.dOct<0?'y':'')}${row('Added timing',!F.prev?'needs a previous fuel':F.dOct>0?(ready?ready+' cells ready':'needs clean samples'):'off',F.dOct>0&&ready?'y':'')}</div>${notes}<button class="btn sm" data-h="fuel">Change fuel…</button></div>`; }
   if(cat==='Boost control'){ const B=HLP.boost||{bins:[]}; return B.bins.length?`<div class="hc"><table class="ht"><tr><th>RPM</th><th>n</th><th>vs target</th><th>Peak</th><th>WGDC</th></tr>${B.bins.map(b=>`<tr title="${esc(b.verdict)}"><td>${b.r}</td><td>${b.n}</td><td class="${b.e<-7?'r':b.e>7?'a':''}">${b.e>0?'+':''}${b.e.toFixed(1)}</td><td>${b.peak>0?'+':''}${b.peak.toFixed(1)}</td><td>${Number.isFinite(b.w)?b.w.toFixed(0)+'%':'—'}</td></tr>`).join('')}</table>${notes}</div>`:`<div class="hc"><p class="hm">Needs WOT logs with manifold pressure and target boost.</p></div>`; }
   if(cat==='Injectors'){ const I=HLP.inj||{bands:[]}; let pk=0, pr=0; for(const L of hLogs()){ const a=idcOf(L); if(a) for(let i=0;i<L.N;i++) if(a[i]>pk){ pk=a[i]; pr=L.c.rpm?L.c.rpm[i]:0; } }
     const inp=(k,l,u)=>`<label class="hin"><span>${l}</span><input class="num" type="number" step="1" data-icfg="${k}" value="${CFG[k]}"><em>${u}</em></label>`;

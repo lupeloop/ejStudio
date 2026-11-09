@@ -61,7 +61,7 @@ function load(xml, opt = {}) {
     for (const m of kids(tr, 'module')) modules.push({ transport: tr.attrs.id, id: m.attrs.id, address: hexBytes(m.attrs.address), tester: hexBytes(m.attrs.tester), desc: m.attrs.desc, fastpoll: String(m.attrs.fastpoll).toLowerCase() === 'true' });
   const byId = {}, params = [], ecuparams = [], switches = [], verified = !!init;
   const base = el => ({ id: el.attrs.id, name: el.attrs.name, desc: el.attrs.desc, group: el.attrs.group, subgroup: el.attrs.subgroup, groupsize: el.attrs.groupsize, target: el.attrs.target });
-  for (const el of kids(kid(P, 'parameters') || { kids: [] }, 'parameter')) {
+  for (const el of kids(kid(P, 'parameters') || { kids: [] }, 'parameter')) { if (/merpmod/i.test(el.attrs.name || '')) continue;
     const dep = kid(el, 'depends');
     if (dep) { // derived: resolved after all direct parameters exist (RomRaider resolves refs already in its map)
       params.push({ ...base(el), kind: 'derived', depends: kids(dep, 'ref').map(r => r.attrs.parameter), convs: conversionsOf(el, true), ecubyteindex: el.attrs.ecubyteindex, ecubit: el.attrs.ecubit }); continue; }
@@ -73,14 +73,14 @@ function load(xml, opt = {}) {
   // derived parameters: kept only if every dependency is a known parameter (as RomRaider's ecuDataMap lookup)
   for (let k = params.length - 1; k >= 0; k--) { const p = params[k]; if (p.kind !== 'derived') continue;
     if (p.depends.every(d => byId[d])) byId[p.id] = p; else params.splice(k, 1); }
-  for (const el of kids(kid(P, 'ecuparams') || { kids: [] }, 'ecuparam')) {
+  for (const el of kids(kid(P, 'ecuparams') || { kids: [] }, 'ecuparam')) { if (/merpmod/i.test(el.attrs.name || '')) continue;
     let hit = null; for (const e of kids(el, 'ecu')) { if (ecuId == null || String(e.attrs.id).split(',').map(s => s.trim()).includes(ecuId)) { hit = e; break; } }
     if (!hit) continue;
     const ad = kids(hit, 'address'), len = ad.length && ad[0].attrs.length ? +ad[0].attrs.length : 1, bit = ad.length && ad[0].attrs.bit != null ? +ad[0].attrs.bit : -1;
     const p = { ...base(el), kind: 'ecuparam', address: makeAddress(ad.map(x => x.text), len, bit), convs: conversionsOf(el) };
     ecuparams.push(p); byId[p.id] = p;
   }
-  for (const el of kids(kid(P, 'switches') || { kids: [] }, 'switch')) {
+  for (const el of kids(kid(P, 'switches') || { kids: [] }, 'switch')) { if (/merpmod/i.test(el.attrs.name || '')) continue;
     if (!supported(init, el.attrs.ecubyteindex, el.attrs.bit)) continue;
     const s = { ...base(el), kind: 'switch', address: makeAddress([el.attrs.byte], 1, +el.attrs.bit), convs: [{ units: el.attrs.units || 'On/Off', expr: 'x', format: '0', storagetype: el.attrs.storagetype || null, endian: 'big', replace: {}, gauge: {}, switchBit: +el.attrs.bit }] };
     switches.push(s); byId[s.id] = s;

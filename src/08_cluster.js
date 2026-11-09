@@ -22,8 +22,8 @@ const CLU=(()=>{
       else if((m=k.match(/^role\.(.+)$/))) roles[m[1]]=g[k];
       else if((m=k.match(/^gauge\.(.+)\.(name|title|unit|flags|lunit)$/))){ (gauge[m[1]]=gauge[m[1]]||{})[m[2]]=g[k]; } }
     const lab=P.labels||{}, titles=[], units=[]; for(const k of lab._order||[]){ if(k.startsWith('title.')) titles.push([k.slice(6).toLowerCase(),lab[k]]); else if(k.startsWith('unit.')) units.push([k.slice(5).toLowerCase(),lab[k]]); }
-    const wlist=wl=>{ const w=[]; for(const k of wl._order||[]){ if(k.includes('.')&&!/[A-Z ]/.test(k)) continue; const n=String(wl[k]).split(',').map(s=>parseFloat(s)); if(n.length>=3&&n.slice(0,3).every(Number.isFinite)) w.push([k.toLowerCase(),n]); } return w; };
-    const wl=P.warnlimits||{}, warn=wlist(wl), warnBy={}; for(const f of Object.keys(P)) if(f.startsWith('warnlimits-')){ const own=wlist(P[f]); warnBy[f.slice(11)]=own.concat(warn.filter(([k])=>!own.some(([k2])=>k2===k))); }
+    const wlist=wl=>{ const w=[]; for(const k of wl._order||[]){ if(k.includes('.')&&!/[A-Z ]/.test(k)) continue; if(String(wl[k]).trim().toLowerCase()==='off'){ w.push([k.toLowerCase(),null]); continue; } const n=String(wl[k]).split(',').map(s=>parseFloat(s)); if(n.length>=3&&n.slice(0,3).every(Number.isFinite)) w.push([k.toLowerCase(),n]); } return w; };
+    const wl=P.warnlimits||{}, warn=wlist(wl).filter(([,n])=>n), warnBy={}; for(const f of Object.keys(P)) if(f.startsWith('warnlimits-')){ const own=wlist(P[f]); warnBy[f.slice(11)]=own.concat(warn.filter(([k])=>!own.some(([k2])=>k2===k))).filter(([,n])=>n); }
     return {dir:res.dir,P,profiles,alias,roles,gauge,titles,units,warn,warnBy,hyst:num(wl['hysteresis.frac'],0.05)}; }
   const slotsFor=(C,name)=>{ const p=(C.P['page-'+name]||C.P.page||{}).slots; return p?p.split(',').map(s=>s.trim()).filter(Boolean):null; };
 

@@ -65,13 +65,14 @@ function GraphView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   function fill(){ const L=CX.L; const fams=[]; if(L) L.fam.forEach((f,j)=>{ if(f!=='Time'&&j!==L.wbj&&!WB_COL.test(L.headers[j])&&!fams.includes(f)) fams.push(f); });
     if(L&&!G.auto&&G.lanes.every(x=>!x)){ G.auto=1; const f=re=>fams.find(x=>re.test(x))||''; G.lanes=[f(/engine speed|\brpm\b/i),vOK(L,'v:wbffb')?'v:wbffb':'',f(/manifold relative|boost/i)||f(/manifold (absolute )?pressure/i),f(/feedback knock|\bfbkc\b/i),f(/^intake air temp|^IAT\b/i)].filter(Boolean); while(G.lanes.length<5) G.lanes.push(''); save(); }
     lanes.forEach(o=>{ const cur=G.lanes[o.k]||'';
-      let h='<option value="">— choose a PID —</option><optgroup label="Derived">'+V.filter(([v])=>vOK(L,v)).map(([v,t])=>`<option value="${v}">${t}</option>`).join('')+'</optgroup><optgroup label="Logged">'+fams.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join('')+'</optgroup>';
+      let h='<option value="">— choose a PID —</option><optgroup label="Derived">'+V.filter(([v])=>v!=='v:wb'&&vOK(L,v)).map(([v,t])=>`<option value="${v}">${t}</option>`).join('')+'</optgroup><optgroup label="Logged">'+(vOK(L,'v:wb')?'<option value="v:wb">Wideband</option>':'')+fams.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join('')+'</optgroup>';
       if(cur&&!cur.startsWith('v:')&&!fams.includes(cur)) h+=`<option value="${esc(cur)}" disabled>${esc(cur)} (not in this log)</option>`;
       o.sel.innerHTML=h; o.sel.value=cur; fillY(o); }); }
   // Y range per PID family: Auto · Fixed (own min/max) · Tune (matching tune axis)
   function fillY(o){ const id=G.lanes[o.k]||''; o.ym.innerHTML=''; if(!id) return; const mode=G.ymode[id]||'auto', tk=TUNE_RANGE_KEY[id];
     const opts=[['auto','A','Auto range'],['fixed','F','Fixed min/max']]; if(tk&&TUNE&&TUNE.ranges[tk]) opts.push(['tune','T','Tune axis range']);
     seg(o.ym,opts,mode,v=>{ G.ymode[id]=v; save(); fillY(o); dirty(); });
+    if(id==='v:wb'||id==='v:wbffb'){ const sp=mk('span','',o.ym); sp.style.marginLeft='6px'; seg(sp,[['s','Smoothed','Wideband smoothing '+(UI.tauLast||UI.tau||400)+' ms'],['r','Raw']],UI.tau>0?'s':'r',v=>{ if(v==='r'){ if(UI.tau>0) UI.tauLast=UI.tau; UI.tau=0; } else UI.tau=UI.tauLast||400; save(); RP.dirty=true; lanes.forEach(fillY); dirty(); }); }
     if(mode==='fixed'){ const f=G.yfix[id]||(G.yfix[id]={lo:null,hi:null});
       for(const k of ['lo','hi']){ const inp=mk('input','num',o.ym); inp.type='number'; inp.step='any'; inp.placeholder=k==='lo'?'min':'max'; inp.value=f[k]??''; inp.onchange=()=>{ const x=parseFloat(inp.value); f[k]=Number.isFinite(x)?x:null; save(); dirty(); }; } } }
   function peaks(id){ const s=series(id), L=CX.L; if(!s||!L) return null; const key='pk|'+id+'|'+UI.wbDisp+'|'+UI.pu; if(L.ser[key]) return L.ser[key];
@@ -459,14 +460,17 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     c.fillStyle=red; c.beginPath(); c.arc(x,y,5,0,7); c.fill();
     if(T.opt.val){ const tx=fmtVal(t,v); c.font='800 15px system-ui,sans-serif'; c.textAlign='left'; const w=c.measureText(tx).width+10, h=24; let bx=x+10, by=y-h-8; if(bx+w>g.GW) bx=x-10-w; if(by<T0) by=y+8;
       c.fillStyle='rgba(0,0,0,.82)'; c.fillRect(bx,by,w,h); c.strokeStyle=red; c.lineWidth=1.5; c.strokeRect(bx,by,w,h); c.fillStyle='#fff'; c.fillText(tx,bx+5,by+h/2+0.5); } }
+  // one-axis tables listed down the side: the graph beside them reads like EcuFlash (axis across, value up)
   function drawV(t,g){ const c=chart.getContext('2d'); c.setTransform(g.dpr,0,0,g.dpr,0,0); c.clearRect(0,0,g.chW,g.GH); const d=uDisp(t); let lo=t.lo, hi=t.hi; if(hi-lo<1e-9){ lo-=1; hi+=1; } const pad=(hi-lo)*0.06; lo-=pad; hi+=pad;
-    const L0=8, R0=g.chW-10, X=v=>L0+(R0-L0)*(v-lo)/(hi-lo), Y=r=>g.hh+(r+0.5)*g.ch; c.strokeStyle=COL.grid; c.lineWidth=1; c.fillStyle=COL.lab; c.font='11px '+FONT_MONO; c.textAlign='center'; c.textBaseline='middle';
-    for(let k=0;k<=4;k++){ const v=lo+(hi-lo)*k/4, x=X(v); c.beginPath(); c.moveTo(x,g.hh); c.lineTo(x,g.GH); c.stroke(); const vv=v*d.k+(d.o||0); c.fillText(Math.abs((hi-lo)*d.k)<10?vv.toFixed(2):vv.toFixed(0),x,g.hh/2); }
-    for(let r=0;r<t.z.length;r++){ c.strokeStyle='#121216'; c.beginPath(); c.moveTo(L0,g.hh+r*g.ch); c.lineTo(R0,g.hh+r*g.ch); c.stroke(); }
-    const b=baseOf(t); if(ED()&&b){ c.strokeStyle='#5c5c66'; c.setLineDash([4,4]); c.lineWidth=1.4; c.beginPath(); b.z.forEach((q,r)=>{ if(r) c.lineTo(X(q[0]),Y(r)); else c.moveTo(X(q[0]),Y(r)); }); c.stroke(); c.setLineDash([]); }
-    c.strokeStyle=COL.acc; c.lineWidth=2; c.beginPath(); t.z.forEach((q,r)=>{ if(r) c.lineTo(X(q[0]),Y(r)); else c.moveTo(X(q[0]),Y(r)); }); c.stroke();
-    c.fillStyle=COL.acc; t.z.forEach((q,r)=>{ c.beginPath(); c.arc(X(q[0]),Y(r),2.4,0,7); c.fill(); });
-    if(S.py==null||S.tx==null) return; const v=bil(t,0,S.py), x=X(v), y=g.hh+(S.py+0.5)*g.ch; c.strokeStyle=COL.red; c.lineWidth=2; c.shadowColor='rgba(255,0,0,.8)'; c.shadowBlur=6; c.beginPath(); c.moveTo(L0,y); c.lineTo(R0,y); c.moveTo(x,g.hh); c.lineTo(x,g.GH); c.stroke(); c.shadowBlur=0; c.fillStyle=COL.red; c.beginPath(); c.arc(x,y,5,0,7); c.fill(); }
+    const n=t.z.length, ax=(t.y||[]).map(Number), a0=ax.length?ax[0]:0, a1=ax.length?ax[n-1]:n-1, VH=Math.min(g.GH,(chart.parentElement&&chart.parentElement.clientHeight)||g.GH), L0=46, R0=g.chW-12, T0=g.hh+10, B0=VH-26;
+    const X=r=>{ const v=ax.length?(r<=0?ax[0]:r>=n-1?ax[n-1]:ax[Math.floor(r)]+(ax[Math.ceil(r)]-ax[Math.floor(r)])*(r-Math.floor(r))):r; return L0+(R0-L0)*((v-a0)/((a1-a0)||1)); }, Y=v=>B0-(B0-T0)*(v-lo)/(hi-lo);
+    c.strokeStyle=COL.grid; c.lineWidth=1; c.fillStyle=COL.lab; c.font='11px '+FONT_MONO; c.textBaseline='middle';
+    for(let k=0;k<=4;k++){ const v=lo+(hi-lo)*k/4, y=Y(v); c.beginPath(); c.moveTo(L0,y); c.lineTo(R0,y); c.stroke(); const vv=v*d.k+(d.o||0); c.textAlign='right'; c.fillText(Math.abs((hi-lo)*d.k)<10?vv.toFixed(2):vv.toFixed(0),L0-6,y); }
+    c.textAlign='center'; for(let k=0;k<=4;k++){ const r=(n-1)*k/4, x=X(r), av=ax.length?(ax[Math.round(r)]):r; c.beginPath(); c.moveTo(x,T0); c.lineTo(x,B0); c.stroke(); c.fillText(Number.isFinite(av)?(Math.abs(a1-a0)<10?av.toFixed(2):av.toFixed(0)):'',x,B0+14); }
+    const b=baseOf(t); if(ED()&&b){ c.strokeStyle='#5c5c66'; c.setLineDash([4,4]); c.lineWidth=1.4; c.beginPath(); b.z.forEach((q,r)=>{ if(r) c.lineTo(X(r),Y(q[0])); else c.moveTo(X(r),Y(q[0])); }); c.stroke(); c.setLineDash([]); }
+    c.strokeStyle=COL.acc; c.lineWidth=2; c.beginPath(); t.z.forEach((q,r)=>{ if(r) c.lineTo(X(r),Y(q[0])); else c.moveTo(X(r),Y(q[0])); }); c.stroke();
+    c.fillStyle=COL.acc; t.z.forEach((q,r)=>{ c.beginPath(); c.arc(X(r),Y(q[0]),2.4,0,7); c.fill(); });
+    if(S.py==null||S.tx==null) return; const v=bil(t,0,S.py), x=X(S.py), y=Y(v); c.strokeStyle=COL.red; c.lineWidth=2; c.shadowColor='rgba(255,0,0,.8)'; c.shadowBlur=6; c.beginPath(); c.moveTo(L0,y); c.lineTo(R0,y); c.moveTo(x,T0); c.lineTo(x,B0); c.stroke(); c.shadowBlur=0; c.fillStyle=COL.red; c.beginPath(); c.arc(x,y,5,0,7); c.fill(); }
   function draw(){ const g=S.geo, t=built; if(!g||!t||!S.shown) return; const oneD=!t.yin; if(oneD) drawChart(t,g); if(t.vert) drawV(t,g);
     const c=cv.getContext('2d'); c.setTransform(g.dpr,0,0,g.dpr,0,0); c.clearRect(0,0,g.GW,g.GH);
     const W=S.win, X=f=>g.hw+(f-W.c0+0.5)*g.cw, Y=f=>g.hh+(f-W.r0+0.5)*g.ch, red=COL.red, L=CX.L;
@@ -553,10 +557,11 @@ function MafTableView(){
       h+=`<div class="ml-z" data-z="${zi}"><span class="zt">${shut?'▸':'▾'} ${ZN[zi]} <span class="dim">· ${B[ids[0]].v.toFixed(2)}–${B[ids[ids.length-1]].v.toFixed(2)} V</span></span><span class="za ${cls}">${avg==null?'no data':'avg '+(avg>0?'+':'')+avg.toFixed(2)+'%'}</span></div>`;
       if(shut) return;
       for(const i of ids){ const b=B[i], f=R&&b.n?R.f[i]:null, d=dOf(i), w=d==null?0:Math.min(50,Math.abs(d)/mx*50), kk=R&&R.kink[i]!=null, mo=R&&R.mono[i], ck=mo?'#ff5a5a':(kk||b.lean>0||b.rich||(b.agree!=null&&Math.abs(b.agree)>0.05))?'#f0a050':'';
+        const sc=TUNE&&TUNE.mafScale, g0=sc&&sc[i]!=null?sc[i]:null, g1=R&&b.n&&R.nv?R.nv[i]:null, sr=String(b.src||'');
         h+=`<div class="ml-r${i===SELB?' pick':''}${b.n?'':' emp'}" data-bin="${i}"><span class="lp" style="background:${lpC(b.src)}" title="${b.src||'no data'}"></span><span class="vv">${b.v.toFixed(3)}</span>`
-          +`<span class="db">${d==null?'':`<i style="background:${mc(f)};${d<0?`right:50%;width:${w}%`:`left:50%;width:${w}%`}"></i>`}</span><span class="mm" style="color:${f!=null?mc(f):''}">${f!=null?'×'+f.toFixed(4):'—'}</span>`
-          +`<span class="nn ${b.trust==='solid'?'n-ok':b.n?'n-prov':''}">${b.n?b.n.toFixed(0):''}</span><span class="cd" style="background:${ck||'transparent'}"></span></div>`; } });
-    list.innerHTML=h; panel(); liveBin=-1; mark(); }
+          +`<span class="gs">${g0!=null?g0.toFixed(2):''}</span><span class="gs nw">${g1!=null?g1.toFixed(2):''}</span><span class="mm" style="color:${f!=null?mc(f):''}">${f!=null?'×'+f.toFixed(4):'—'}</span><span class="pc" style="color:${f!=null?mc(f):''}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}</span>`
+          +`<span class="nn ${b.trust==='solid'?'n-ok':b.n?'n-prov':''}">${b.n?b.n.toFixed(0):''}</span><span class="src">${/CL|MIX/.test(sr)?'<em class="c">CL</em>':''}${/OL|MIX/.test(sr)?'<em class="o">OL</em>':''}</span><span class="cd" style="background:${ck||'transparent'}"></span></div>`; } });
+    list.innerHTML='<div class="ml-h"><span></span><span style="text-align:left">Volts</span><span>Now g/s</span><span>New g/s</span><span>Multiplier</span><span>Change</span><span>n</span><span style="text-align:left">Source</span><span></span></div>'+h; panel(); liveBin=-1; mark(); }
   function panel(){ const B=ST.bins, R=ST.row, b=B&&B[SELB]; if(!b){ side.innerHTML=''; return; } const i=SELB, f=R&&b.n?R.f[i]:null, d=dOf(i), sc=TUNE&&TUNE.mafScale;
     const pts=B.map((x,j)=>[x,dOf(j)]).filter(p=>p[1]!=null), v0=BP[0], v1=BP[BP.length-1], sx=v=>4+(v-v0)/(v1-v0)*272; let my=5; pts.forEach(p=>my=Math.max(my,Math.abs(p[1]))); const sy=q=>36-q/my*30;
     const wbD=b.wb!=null?b.wb*lamK(UI.wbDisp):null, ffD=b.ff!=null?b.ff*lamK(UI.ffbDisp):null, kk=R&&R.kink[i]!=null, on=ST.fixes.has(i), chk=[];
@@ -667,11 +672,11 @@ function MafCurveView(){
 //  SCATTER — any X vs Y over unmasked frames, optional colour channel, overlay log, trendline
 // ════════════════════════════════════════════════════════════════════════════
 function ScatterView(){ const S=UI.sc; let shown=false; const cache={key:''}; const root=mk('div','view sv'), bar=mk('div','vbar',root);
-  { const gm=mk('div','seg',bar); gm.innerHTML='<button>Lanes</button><button class="on">Scatter</button>'; gm.firstChild.onclick=()=>grMode('graph'); }
+  mk('span','vlab',bar).textContent='Trend'; seg(bar,[['lin','Linear'],['poly','Poly','2nd-order curve'],['none','Off']],S.fit,v=>{ S.fit=v; save(); cache.key=''; RP.dirty=true; });
   const mkSel=(lab,key,tip)=>{ mk('span','vlab',bar).textContent=lab; const el=mk('select','sel sm',bar); el.title=tip; el.onchange=()=>{ S[key]=el.value; save(); cache.key=''; RP.dirty=true; }; return el; };
   const sx=mkSel('X','x','X axis channel'), sy=mkSel('Y','y','Y axis channel'), sc=mkSel('Colour by','c','Colour points by a third channel (blue = low, red = high)'), so=mkSel('Overlay','ov','Second log, drawn in cyan');
-  mk('span','vlab',bar).textContent='Trend'; seg(bar,[['lin','Linear'],['poly','Poly','2nd-order curve'],['none','Off']],S.fit,v=>{ S.fit=v; save(); cache.key=''; RP.dirty=true; });
-  const fitLab=mk('span','mv-read',bar), cv=mk('canvas','mv-main',root);
+  const fitLab=mk('span','mv-read',bar), cv=mk('canvas','mv-main',root); mk('span','vfill',bar);
+  { const gm=mk('div','seg',bar); gm.innerHTML='<button>Lanes</button><button class="on">Scatter</button>'; gm.firstChild.onclick=()=>grMode('graph'); { const sp=mk('span','',bar); sp.style.width='34px'; } }
   function chans(L){ const out=[]; if(!L) return out; if(L.c.wb) out.push(['v:wb','Wideband '+uLbl(UI.wbDisp)]); if(idcOf(L)) out.push(['v:idc','Injector duty (IDC)']); if(dThr(L)) out.push(['v:dthr','Throttle rate (%/s)']); if(afrErr(L)) out.push(['v:aerr','AFR error vs target']);
     L.fam.forEach((f,j)=>{ if(f!=='Time'&&j!==L.wbj&&!WB_COL.test(L.headers[j])&&!out.some(o=>o[0]===f)) out.push([f,f]); }); return out; }
   function getCh(L,id){ if(!L||!id) return null; if(id==='v:idc') return idcOf(L); if(id==='v:dthr') return dThr(L); if(id==='v:aerr') return afrErr(L);
