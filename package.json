@@ -1,7 +1,7 @@
 {
   "name": "ejstudio",
   "productName": "ejStudio",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "ejStudio - log analyzer, tuning tool and live logger (ejLogger)",
   "author": "Teddy",
   "main": "main.js",
