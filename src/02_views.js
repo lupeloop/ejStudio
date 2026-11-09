@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  rrLab views — Graph · Tables (knock layer) · MAF Scaling · MAF Curve
+//  ejStudio views — Graph · Tables (knock layer) · MAF Scaling · MAF Curve
 // ════════════════════════════════════════════════════════════════════════════
 const $=id=>document.getElementById(id);
 const mk=(t,c,p)=>{ const e=document.createElement(t); if(c) e.className=c; if(p) p.appendChild(e); return e; };

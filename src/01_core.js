@@ -1,7 +1,7 @@
 
 "use strict";
 // ════════════════════════════════════════════════════════════════════════════
-//  rrLab core — parsing, real frames, filters, MAF math, knock, tune.  No DOM.
+//  ejStudio core — parsing, real frames, filters, MAF math, knock, tune.  No DOM.
 // ════════════════════════════════════════════════════════════════════════════
 //  MAF math (per real frame):
 //    CL (status 8) : m = 1 + (AFL + AFC)/100            — ECU trims only; WB not used

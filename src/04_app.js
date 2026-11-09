@@ -9,7 +9,7 @@ const UI_DEF={layout:'1',sizes:{h:0.5,v:0.5,l:0.62,r:0.5},panes:['table','graph'
   sync:{graph:true,table:true,maf_curve:true,maf_table:true},speed:1,wbDisp:'lambda',ffbDisp:'lambda',pu:'psi',tau:500,drawerPin:false,tu:'C',
   g:{n:3,win:30000,mode:'right',lanes:['','','','',''],ymode:{},yfix:{}},
   tt:{grp:'timing',sel:{},opt:{mark:'glow',val:1,name:1,kmL:1,kmH:0,vvt:'off',km:60,fol:0,kch:'fbkc',ks:1,kw:1},rail:1,rc:{}},
-  m:{src:'all',mode:'curve',scatter:false},trims:{},flags:{},keys:{},sc:{x:'',y:'',c:'',fit:'lin',ov:''},sevCol:{},profiles:[],profSel:null,diagOn:{},meta:{},home:null,logCol:{},link:false,pool:{},lrev:{},rails:{},dtab:'session',dq:'',seenVer:null,upd:null,cfg:{},limits:{},axis:null,fp:null,playT:0,open:{}};
+  m:{src:'all',mode:'curve',scatter:false},trims:{},flags:{},keys:{},sc:{x:'',y:'',c:'',fit:'lin',ov:''},sevCol:{},diagOn:{},meta:{},home:null,logCol:{},link:false,pool:{},lrev:{},rails:{},dtab:'session',dq:'',seenVer:null,upd:null,cfg:{},limits:{},axis:null,fp:null,playT:0,open:{}};
 const UI=(()=>{ const d=JSON.parse(JSON.stringify(UI_DEF)); try{ const s=JSON.parse(localStorage.getItem('rrlab_ui_v1')||'null');
   if(s) for(const k in d){ if(s[k]==null) continue; if(typeof d[k]==='object'&&!Array.isArray(d[k])&&d[k]) d[k]=Object.assign(d[k],s[k]); else d[k]=s[k]; } }catch(_){ try{ localStorage.setItem('rrlab_ui_bad',localStorage.getItem('rrlab_ui_v1')||''); localStorage.removeItem('rrlab_ui_v1'); window.__quar=1; }catch(e){} }
   if(d.tt.opt) d.tt.opt=Object.assign({},UI_DEF.tt.opt,d.tt.opt); if(d.g) d.g=Object.assign({},UI_DEF.g,d.g); return d; })();
@@ -215,11 +215,11 @@ async function loadTuneText(text,name){
     for(const L of ST.logs) computePicks(L); const q=ST.queue.splice(0), errs=[]; if(q.length){ busy(true,'Processing',q.length+' queued log'+(q.length>1?'s':'')); await sleep(60); } for(const o of q) await ingest(o,true,errs); if(q.length) busy(false); if(errs.length) toast(errs.join(' · '));
     mergeLimits(); if(ST.logs.length){ recompute(true); if(q.length||!RP.L) afterLogs(); else { TV.setTune(); } } toast('Tune loaded · '+T.cal); landRefresh(); drawerRefresh(); }
   catch(e){ toast('Tune: '+(e&&e.message?e.message:e)); } }
-function busy(on,t,s){ const b=$('land-busy'); if(on){ $('busy-t').textContent=t||'Processing'; $('busy-s').textContent=s||''; b.classList.remove('hidden','out'); } else { b.classList.add('out'); setTimeout(()=>{ if(b.classList.contains('out')){ b.classList.add('hidden'); BGFX.set(false); } },450); } }
+function busy(on,t,s){ const b=$('land-busy'); if(on){ $('busy-t').textContent=t||'Processing'; $('busy-s').textContent=s||''; b.classList.remove('hidden','out'); } else { b.classList.add('out'); setTimeout(()=>{ if(b.classList.contains('out')){ b.classList.add('hidden'); } },450); } }
 
 // ── landing ─────────────────────────────────────────────────────────────────
-function showLanding(){ $('app').classList.add('hidden'); $('land').classList.remove('hidden'); landRefresh(); landLoadEjl(); BGFX.set(false); if(!(UI.cars&&UI.cars.length)&&!UI.carSkip&&!document.querySelector('.cardlg')) setTimeout(()=>carDialog(null),400); }
-function enterApp(){ if(!ST.logs.length&&!TUNE) return; if(ST.logs.length&&UI.seenVer!==APP_VER){ UI.seenVer=APP_VER; save(); setTimeout(whatsNew,700); } setTimeout(profBanner,0); $('land').classList.add('hidden'); $('app').classList.remove('hidden'); BGFX.set(false); buildStage(); if(!RP.raf) RP.raf=requestAnimationFrame(loop); }
+function showLanding(){ $('app').classList.add('hidden'); $('land').classList.remove('hidden'); landRefresh(); landLoadEjl(); if(!(UI.cars&&UI.cars.length)&&!UI.carSkip&&!document.querySelector('.cardlg')) setTimeout(()=>carDialog(null),400); }
+function enterApp(){ if(!ST.logs.length&&!TUNE) return; if(ST.logs.length&&UI.seenVer!==APP_VER){ UI.seenVer=APP_VER; save(); setTimeout(whatsNew,700); } $('land').classList.add('hidden'); $('app').classList.remove('hidden'); buildStage(); if(!RP.raf) RP.raf=requestAnimationFrame(loop); }
 // landing: tune card, logs from ejLogger plus anything dropped or browsed, recent sessions
 const LAND={q:[],ejl:null,sel:new Set(),init:false,tuneP:null};
 const pathFor=f=>{ try{ return f.path||(window.rrlab&&window.rrlab.pathFor&&typeof File!=='undefined'&&f instanceof File?window.rrlab.pathFor(f):'')||''; }catch(_){ return ''; } };
@@ -294,7 +294,7 @@ function drawerRefresh(){ const d=$('drawer-bd'); if(!d) return; const L=RP.L, T
   const fltB=thr('cutMafv','Closed-throttle MAF V',CFG.cutMafv,0.01,'V')+thr('transVs','Transient limit',CFG.transVs,0.1,'V/s')+thr('recoverS','Cut recovery',CFG.recoverS,0.1,'s')
     +thr('railLo','WB rail low',(CFG.railLo*k).toFixed(dp),'any',wu)+thr('railHi','WB rail high',(CFG.railHi*k).toFixed(dp),'any',wu)+thr('olEnr','OL counts at FFB ≤',CFG.olEnr.toFixed(3),'any','λ')+thr('leanLam','Lean outlier above',(CFG.leanLam*k).toFixed(dp),'any',wu)
     +thr('richFloor','Rich floor warning',(CFG.richFloor*k).toFixed(dp),'any',wu)+thr('solidN','Solid bin at n ≥',CFG.solidN,1,'')+thr('kinkTol','Kink tolerance',(CFG.kinkTol*100).toFixed(1),0.5,'%')+`<button class="btn sm ghost" data-act="cfgreset">Defaults</button>`;
-  const colsB=L?`<div class="kv"><span>Mapped</span><b>${Object.keys(L.map||{}).length} of ${L.headers.length-1}</b><span>Format</span><b>${L.fmt==='lambda'?'Project Lambda':'RomRaider / CSV'}</b>${L.wiped?`<span>Wiped</span><b>${L.wiped} lead rows</b>`:''}</div><div class="drow"><button class="btn sm" data-act="mapedit">Edit mapping</button>${MAPS[L.sig]?'<button class="btn sm ghost" data-act="mapforget">Forget saved</button>':''}</div>`:'';
+  const colsB=L?`<div class="kv"><span>Mapped</span><b>${Object.keys(L.map||{}).length} of ${L.headers.length-1}</b><span>Format</span><b>${L.fmt==='lambda'?'Project Lambda':'SSM CSV'}</b>${L.wiped?`<span>Wiped</span><b>${L.wiped} lead rows</b>`:''}</div><div class="drow"><button class="btn sm" data-act="mapedit">Edit mapping</button>${MAPS[L.sig]?'<button class="btn sm ghost" data-act="mapforget">Forget saved</button>':''}</div>`:'';
   const unitsB=row('Wideband',sg('wbDisp',[['lambda','λ'],['afr','AFR']]))+row('FFB target',sg('ffbDisp',[['lambda','λ'],['afr','AFR']]))+row('Temperature',sg('tu',[['C','°C'],['F','°F']]))+row('Pressure',sg('pu',[['psi','psi'],['kPa','kPa'],['bar','bar']]));
   const colB=row('Flag severity',['info','warn','crit'].map(c=>`<input type="color" data-sev="${c}" value="${sevC(c)}" title="${{info:'Info',warn:'Warning',crit:'Critical'}[c]}">`).join(''))+row('Log A / B',['a','b'].map(c=>`<input type="color" data-lc="${c}" value="${logC(c)}" title="Log ${c.toUpperCase()}">`).join(''));
   const homeB=`<label class="drow" title="Used to fetch weather for each log"><span>Home location</span><input class="num" style="width:160px;text-align:left" data-home="1" value="${esc(UI.home?UI.home.name:'')}" placeholder="City"></label>`;
@@ -304,8 +304,7 @@ function drawerRefresh(){ const d=$('drawer-bd'); if(!d) return; const L=RP.L, T
    +S('session','tune','Tune',tuneB)+(typeof treeHtml==='function'?S('session','tree','Tuning tree',treeHtml()):'')
    +S('session','logs','Logs',logsB,`<em>${agg.kept.toLocaleString()} / ${agg.total.toLocaleString()} frames</em>`)
    +(DESK?S('session','watch','Log folder',DESK.section(),DESK.st.folder?`<em>${DESK.st.auto?'watching':'manual'}</em>`:''):'')
-   +S('session','veh','Vehicle',profHtml(),profNow()?`<em>${esc(profNow().name||'')}</em>`:'')
-   +(L?S('session','meta','Session notes',metaHtml(L)):'')+(L?S('session','pf','Pulls · flags · trim',pfHtml(L),`<em>${(L.pulls||[]).length} pulls</em>`):'')
+      +(L?S('session','meta','Session notes',metaHtml(L)):'')+(L?S('session','pf','Pulls · flags · trim',pfHtml(L),`<em>${(L.pulls||[]).length} pulls</em>`):'')
    +S('session','cov','Coverage',covB,`<em>${nb} / ${BP.length} bins</em>`)
    +S('analysis','diag','Diagnostics',diagB)+S('analysis','flt','MAF filters',fltB)
    +S('analysis','pull','Pull detection',thr('pullThr','Throttle ≥',CFG.pullThr,1,'%')+thr('pullDur','Min length',CFG.pullDur,0.1,'s')+thr('pullSpan','Min RPM sweep',CFG.pullSpan,50,'rpm'))
@@ -336,10 +335,6 @@ function drawerBind(){ const d=$('drawer-bd');
     const a=b.dataset.act; if(a&&a[0]==='w'&&DESK){ DESK.act(a); return; } if(a==='mapedit'){ remap(RP.L); return; } if(a==='mapforget'){ delete MAPS[RP.L.sig]; saveMaps(); drawerRefresh(); toast('Saved mapping cleared'); return; } if(a==='tune') $('f-tune').click(); else if(a==='logs') $('f-logs').click();
     else if(a==='sess') saveSession(); else if(a==='rep') saveReport(); else if(/^sc\d+$/.test(a)){ uiScale(+a.slice(2)/100); drawerRefresh(); } else if(a==='news') whatsNew(); else if(a==='bug') bugReport(); else if(a==='updchk') checkUpdates(true); else if(a==='reps'){ if(window.rrlab&&window.rrlab.openReports) window.rrlab.openReports(''); }
     else if(a==='odata'){ if(window.rrlab&&window.rrlab.openData) window.rrlab.openData(); } else if(a==='updopen'){ if(UI.upd&&UI.upd.url&&window.rrlab&&window.rrlab.openUrl) window.rrlab.openUrl(UI.upd.url); } else if(a==='csvx') exportCSV(); else if(a==='wx') fetchWeather(RP.L,false); else if(a==='cfadd'){ const m=metaOf(RP.L); (m.custom=m.custom||[]).push({k:'',v:''}); save(); drawerRefresh(); }
-    else if(a==='pnew'){ const p={id:'p'+Date.now().toString(36),name:'New profile',engine:'',gears:'',fd:'',tire:'',inj:'',fuel:'',mafd:'',wbLag:0,rom:''}; (UI.profiles=UI.profiles||[]).push(p); UI.profSel=p.id; profChanged(); drawerRefresh(); }
-    else if(a==='pdel'){ const p=profNow(); if(p&&confirm('Delete profile "'+(p.name||'')+'"?')){ UI.profiles=UI.profiles.filter(x=>x!==p); UI.profSel=null; profChanged(); drawerRefresh(); } }
-    else if(a==='plag'){ const v=wbLagEst(RP.L), p=profNow(); if(v==null) toast('Not enough fuel-cut events with IPW and wideband in this log'); else { p.wbLag=v; profChanged(); drawerRefresh(); toast('Wideband lag ≈ '+v+' ms'); } }
-    else if(a==='prom'){ const p=profNow(); UI.profiles.forEach(x=>{ if(x.rom===TUNE.rom) x.rom=''; }); p.rom=TUNE.rom; save(); drawerRefresh(); profBanner(); }
     else if(a==='keyreset'){ UI.keys={}; save(); drawerRefresh(); } else if(a==='trima') trimSet('a'); else if(a==='trimb') trimSet('b'); else if(a==='trimx') trimSet('clear');
     else if(a==='cfgreset'){ const ol=CFG.olAfl; Object.assign(CFG,CFG_DEF); CFG.olAfl=ol; UI.cfg={olAfl:ol}; save(); recompute(true); }
     else if(a==='axis'){ const v=d.querySelector('.axis').value.trim().split(/[\s,]+/).filter(Boolean).map(Number); if(v.length<2||v.some(x=>!Number.isFinite(x))||v.some((x,i)=>i&&x<=v[i-1])){ toast('Axis must be ≥ 2 strictly increasing numbers'); return; }
@@ -358,8 +353,6 @@ function drawerBind(){ const d=$('drawer-bd');
     else if(t.dataset.rail){ UI.rails=UI.rails||{}; const x=parseFloat(t.value); if(Number.isFinite(x)) UI.rails[t.dataset.rail]=x; else delete UI.rails[t.dataset.rail]; save(); }
     else if(t.dataset.lc){ UI.logCol[t.dataset.lc]=t.value; save(); RP.tlbK=null; cmpUI(); RP.dirty=true; }
     else if(t.dataset.home){ geoHome(t.value); }
-    else if(t.dataset.prof==='sel'){ UI.profSel=t.value||null; profChanged(); drawerRefresh(); }
-    else if(t.dataset.pf){ const p=profNow(); if(p){ const k=t.dataset.pf; p[k]=t.type==='number'?(t.value===''?'':+t.value):t.value; profChanged(); if(k==='name') drawerRefresh(); } }
     else if(t.dataset.sev){ UI.sevCol[t.dataset.sev]=t.value; save(); RP.tlcSk=RP.tlcBk=null; RP.dirty=true; }
     else if(t.dataset.ui==='tau'){ UI.tau=Math.max(0,Math.min(3000,+t.value||0)); save(); RP.dirty=true; } else if(t.dataset.ui==='tlop'){ UI.tlop=Math.max(30,Math.min(100,+t.value||70)); save(); $('tlpop').style.setProperty('--tlop',UI.tlop/100); } }); }
 // ── user flags · trim · actions · keymap ────────────────────────────────────
@@ -422,17 +415,17 @@ function sevC(k){ return (UI.sevCol&&UI.sevCol[k])||SEV_DEF[k]||SEV_DEF.info; }
 function sevOf(e){ switch(e.kind){ case 'Over boost': return 'crit'; case 'Under boost': case 'Knock': case 'Lean outlier': return 'warn'; case 'Warning': return e.tier>=3?'crit':'warn'; default: return 'info'; } }
 const DG={Knock:'knock',IAM:'knock','Over boost':'boost','Under boost':'boost',Boost:'boost','Tip-in':'tip',AVCS:'avcs','CL/OL':'clol',Fuel:'fuel'};
 function diagShown(e){ const g=DG[e.kind]; return !g||UI.diagOn[g]!==false; }
-const PROF_FIELDS=[['name','Name','text'],['engine','Engine','text'],['gears','Gear ratios','text','3.454 1.947 1.296 0.972 0.738'],['fd','Final drive','number'],['tire','Tire size','text','225/45R17'],
-  ['inj','Injector size (cc/min)','number'],['fuel','Fuel','text','91'],['mafd','MAF housing (mm)','number'],['wbLag','Wideband lag (ms)','number']];
-function profNow(){ return (UI.profiles||[]).find(p=>p.id===UI.profSel)||null; }
+const PROF_FIELDS=[['name','Name'],['engine','Engine'],['inj','Injectors'],['maf','MAF housing'],['turbo','Turbo'],['gears','Gear ratios'],['fd','Final drive'],['tire','Tire size'],['wbLag','Wideband lag (ms)']];
+function profNow(){ return typeof carNow==='function'?carNow():null; }
 function profApply(){ PROF=profNow(); }
-function profAuto(T){ const m=(UI.profiles||[]).find(p=>p.rom&&T&&p.rom===T.rom); if(m){ UI.profSel=m.id; profApply(); } }
-function profChanged(){ profApply(); save(); recompute(true); profBanner(); }
-function profHtml(){ const ps=UI.profiles||[], p=profNow();
-  let h=`<div class="drow"><select class="sel sm" data-prof="sel" style="flex:1"><option value="">— none —</option>${ps.map(x=>`<option value="${x.id}"${p&&x.id===p.id?' selected':''}>${esc(x.name||'Unnamed')}</option>`).join('')}</select><button class="btn sm" data-act="pnew">New</button>${p?'<button class="btn sm ghost" data-act="pdel">Delete</button>':''}</div>`;
-  if(!p) return h;
-  h+=PROF_FIELDS.map(([k,l,t,ph])=>`<label class="drow"><span>${l}</span><input class="num" style="width:150px;text-align:left" type="${t}" step="any" data-pf="${k}" value="${esc(p[k]??'')}"${ph?` placeholder="${ph}"`:''}></label>`).join('');
-  return h+`<div class="drow"><button class="btn sm" data-act="plag" title="Measure from fuel-cut events in the current log (needs IPW + wideband)">Estimate lag</button>${TUNE?`<button class="btn sm${p.rom===TUNE.rom?' acc':''}" data-act="prom" title="Pick this profile automatically whenever a tune with ROM ${esc(TUNE.rom)} loads">${p.rom===TUNE.rom?'Linked to this ROM':'Link to this ROM'}</button>`:''}</div>`; }
+// a tune remembers the car it was loaded with; loading it again picks that car
+function profAuto(T){ if(!T) return; const cars=UI.cars||[], m=cars.find(c=>c.rom&&c.rom===T.rom); if(m) UI.car=m.id; else { const c=profNow(); if(c&&!c.rom) c.rom=T.rom; } profApply(); }
+function profChanged(){ profApply(); save(); recompute(true); }
+// 3.1.0: the old Vehicle profiles become car profiles
+function profMigrate(){ const ps=UI.profiles; if(!Array.isArray(ps)||!ps.length){ delete UI.profiles; delete UI.profSel; return; } const cars=UI.cars||(UI.cars=[]);
+  for(const p of ps){ let c=cars.find(x=>x.name&&x.name===p.name); if(!c){ c={id:'car'+p.id,name:p.name||'Car',engine:p.engine||'',avcs:false,inj:p.inj?String(p.inj)+' cc':'',maf:p.mafd?p.mafd+' mm':'',turbo:'',fuelHist:p.fuel?[{t:Date.now(),brand:'',octane:String(p.fuel),eth:''}]:[]}; cars.push(c); }
+    for(const k of ['gears','fd','tire','wbLag','rom']) if(c[k]==null||c[k]==='') c[k]=p[k]??''; if(p.id===UI.profSel) UI.car=c.id; }
+  if(!UI.car&&cars[0]) UI.car=cars[0].id; delete UI.profiles; delete UI.profSel; save(); }
 function wbLagEst(L){ if(!L||!L.c.ipw||!L.c.wb) return null; const C=L.c, T=L.t, d=[];
   for(let i=1;i<L.N;i++) if(C.ipw[i]<0.3&&C.ipw[i-1]>=0.3) for(let j=i;j<L.N&&T[j]-T[i]<=1500;j++){ if(C.ipw[j]>=0.3) break; if(L.wb[j]>1.15){ d.push(T[j]-T[i]); break; } }
   return d.length>=3?Math.round(median(d)):null; }
@@ -452,13 +445,8 @@ async function saveSession(){ if(!ST.logs.length){ toast('Nothing to save'); ret
 async function loadSession(text,name){ let o; try{ const w=JSON.parse(text); o=w.gz?JSON.parse(await unGzB64(w.gz)):w; if(o.app!=='ejStudio'&&o.app!=='ejLab') throw 0; }catch(_){ toast(name+': not an ejStudio session'); return; } await openSession(o,name); }
 async function openSession(o,name){
   if((o.v||1)>=2){ if(o.tnotes) UI.tnotes=Object.assign(UI.tnotes||{},o.tnotes); if(o.names) for(const c in o.names) (UI.names=UI.names||{})[c]=Object.assign((UI.names||{})[c]||{},o.names[c]); }
-  if(o.profile){ const ps=UI.profiles||(UI.profiles=[]), same=ps.find(p=>p.id===o.profile.id||p.name===o.profile.name);
-    if(!same){ ps.push(Object.assign({},o.profile)); UI.profSel=o.profile.id; }
-    else if(JSON.stringify(same)!==JSON.stringify(o.profile)){
-      if(confirm(`Vehicle profile "${o.profile.name}" in this session differs from yours.\n\nOK = keep yours\nCancel = more options`)) UI.profSel=same.id;
-      else if(confirm(`OK = use the session's "${o.profile.name}" (replaces yours)\nCancel = save it as a copy`)){ Object.assign(same,o.profile,{id:same.id}); UI.profSel=same.id; }
-      else { const c=Object.assign({},o.profile,{id:'p'+Date.now().toString(36),name:o.profile.name+' (copy)'}); ps.push(c); UI.profSel=c.id; } }
-    else UI.profSel=same.id; profApply(); }
+  if(o.profile&&o.profile.fuelHist){ const cars=UI.cars||(UI.cars=[]), same=cars.find(c=>c.id===o.profile.id||c.name===o.profile.name); if(!same) cars.push(Object.assign({},o.profile)); UI.car=same?same.id:o.profile.id; profApply(); }
+  else if(o.profile){ UI.profiles=[Object.assign({},o.profile)]; UI.profSel=o.profile.id; profMigrate(); profApply(); }
   for(const k of ['trims','flags','meta','lrev']) Object.assign(UI[k],o[k]||{});
   if(o.ui) for(const k in o.ui){ const v=o.ui[k]; if(v&&typeof v==='object'&&!Array.isArray(v)&&UI[k]&&typeof UI[k]==='object') Object.assign(UI[k],v); else UI[k]=v; }
   ST.logs.length=0; ST.queue.length=0; RP.L=null;

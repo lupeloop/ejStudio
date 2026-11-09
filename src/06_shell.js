@@ -7,7 +7,7 @@ function wire(){
   $('tabs').onclick=e=>{ const b=e.target.closest('button'); if(b&&!b.classList.contains('na')) setPaneView(UI.focus,b.dataset.v); };
   $('layouts').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; UI.layout=b.dataset.l; save(); buildStage(); };
   $('presets').onclick=e=>{ const b=e.target.closest('button'); if(b) preset(+b.dataset.k,e.shiftKey); };
-  $('ed-top').onclick=()=>EDITOR.on(!EDIT.on); $('pban-go').onclick=profSetup; $('pban-x').onclick=()=>{ RP.banHide=1; profBanner(); };
+  $('ed-top').onclick=()=>EDITOR.on(!EDIT.on);
   $('drawer-btn').onclick=()=>drawer(); $('drawer-x').onclick=()=>drawer(false);
   $('drawer-pin').onclick=()=>{ UI.drawerPin=!UI.drawerPin; $('drawer-pin').classList.toggle('on',UI.drawerPin); document.body.classList.toggle('dpin',UI.drawerPin&&$('drawer').classList.contains('open')); save(); RP.dirty=true; };
   $('drawer-pin').classList.toggle('on',UI.drawerPin); drawerBind();
@@ -47,8 +47,9 @@ function wire(){
 (async function boot(){
   if(!UI.mig210){ UI.sync.maf_table=true; UI.mig210=1; save(); } if(!UI.mig218){ UI.sync.table=true; UI.mig218=1; save(); }
   if(window.rrlab&&window.rrlab.desktop) document.body.classList.add('desk'); if(UI.scale&&UI.scale!==1) uiScale(UI.scale); setInterval(tstat,700);
-  { const bad=[]; for(const [k,f] of [['tt',x=>x&&x.opt],['g',x=>x&&Array.isArray(x.lanes)],['panes',Array.isArray],['profiles',Array.isArray]]) if(!f(UI[k])){ bad.push(k); UI[k]=JSON.parse(JSON.stringify(UI_DEF[k])); }
+  { const bad=[]; for(const [k,f] of [['tt',x=>x&&x.opt],['g',x=>x&&Array.isArray(x.lanes)],['panes',Array.isArray]]) if(!f(UI[k])){ bad.push(k); UI[k]=JSON.parse(JSON.stringify(UI_DEF[k])); }
     if(bad.length||window.__quar){ elog('self-check reset: '+(bad.join(',')||'settings unreadable')); save(); setTimeout(()=>toast('Some saved settings were unreadable and were reset'),1500); } } profApply(); makeViews(); wire(); if(window.rrlab&&window.rrlab.info) window.rrlab.info().then(i=>{ INFO=i; drawerRefresh(); }).catch(()=>{}); setTimeout(()=>checkUpdates(false),5000); { const j=UI.panes.indexOf('table'); if(j>0) UI.panes[j]=UI.panes[0]; UI.panes[0]='table'; UI.focus=0; }
+  try{ profMigrate(); profApply(); }catch(_){}
   try{ const s=JSON.parse(localStorage.getItem('rrlab_tune_v1')||'null'); if(s&&s.text){ TUNE=parseTune(s.text,s.name); applyTuneAxis(); profAuto(TUNE); revBoot(s.text,s.name); } }catch(_){ try{ localStorage.removeItem('rrlab_tune_v1'); }catch(e){} }
   if(UI.axis){ BP=UI.axis.slice(); AXIS_SRC='custom'; }
   landRefresh(); IDB.clear(); const stored=[], errs=[];   // logs are never kept between sessions; only the tune is

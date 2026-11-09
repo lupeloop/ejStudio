@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  Desktop integration — only active inside the rrLab app (window.rrlab)
+//  Desktop integration — only active inside the ejStudio app (window.rrlab)
 // ════════════════════════════════════════════════════════════════════════════
 DESK=(()=>{ const D=window.rrlab; if(!D||!D.desktop) return null;
   const asFile=o=>({name:o.name,path:o.path||'',text:async()=>o.text}), st={folder:null,auto:true};

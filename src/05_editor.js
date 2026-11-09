@@ -254,9 +254,6 @@ function palette(){ if($('cmdk')) return; const items=[];
   const done=()=>d.remove(), go=i=>{ const h=hit[i]; done(); if(h) h[2](); };
   inp.oninput=()=>{ sel=0; draw(); }; inp.onkeydown=e=>{ if(e.key==='Escape'){ e.stopPropagation(); done(); } else if(e.key==='ArrowDown'){ e.preventDefault(); sel=Math.min(hit.length-1,sel+1); draw(); } else if(e.key==='ArrowUp'){ e.preventDefault(); sel=Math.max(0,sel-1); draw(); } else if(e.key==='Enter'){ e.preventDefault(); go(sel); } };
   d.onclick=e=>{ const b=e.target.closest('[data-i]'); if(b) go(+b.dataset.i); else if(e.target===d) done(); }; draw(); inp.focus(); }
-function profBanner(){ const b=$('pban'); if(!b) return; const need=!!(TUNE&&ST.logs.length&&!RP.banHide&&!(UI.profiles||[]).some(p=>p.rom&&p.rom===TUNE.rom)); b.classList.toggle('hidden',!need); }
-function profSetup(){ if(!(UI.profiles||[]).some(p=>p.rom===TUNE.rom)){ const p={id:'p'+Date.now().toString(36),name:'New profile',engine:'',gears:'',fd:'',tire:'',inj:'',fuel:'',mafd:'',wbLag:0,rom:TUNE.rom}; (UI.profiles=UI.profiles||[]).push(p); UI.profSel=p.id; profChanged(); }
-  UI.dtab='session'; UI.dq=''; UI.open.veh=true; drawer(true); setTimeout(()=>{ const v=document.querySelector('.dsec[data-id="veh"]'); if(v) v.scrollIntoView({block:'start'}); },60); }
 // ════════════════════════════════════════════════════════════════════════════
 //  Helpers: fuel / octane, boost control and injectors. Each one reads the logs on the current revision,
 //  feeds the Helpers rail in Tables edit mode.
@@ -385,6 +382,7 @@ function carDialog(id,focus){ const cars=UI.cars||(UI.cars=[]), c=cars.find(x=>x
   d.innerHTML=`<div class="cd"><h3>${c?'Car profile':'Create car profile'}</h3><div class="cdg">
     ${fld('name','Name','2008 STI')}${fld('engine','Engine','EJ257')}<label class="ck"><input type="checkbox" data-k="avcs" ${c&&c.avcs?'checked':''}><span>Dual AVCS</span></label>
     ${fld('inj','Injectors','Optional')}${fld('maf','MAF housing','Optional')}${fld('turbo','Turbo','Optional')}</div>
+    <h4>Drivetrain</h4><div class="cdg">${fld('gears','Gear ratios','3.454 1.947 1.296 0.972 0.738')}${fld('fd','Final drive','3.900')}${fld('tire','Tire size','225/45R17')}${fld('wbLag','Wideband lag (ms)','0')}</div>
     <h4>Fuel</h4><div class="cdg">${fld('f.brand','Brand','Shell',f.brand||'')}${fld('f.octane','Octane','93',f.octane||'')}${fld('f.eth','Ethanol %','From the pump label',f.eth!=null?f.eth:'')}</div>
     <div class="cdft">${c?'<button class="btn sm" data-c="del">Delete</button>':(cars.length?'':'<button class="btn sm" data-c="skip">Skip</button>')}<span class="vfill"></span><button class="btn sm" data-c="x">Cancel</button><button class="btn sm acc" data-c="ok">Save</button></div></div>`;
   setTimeout(()=>{ const q=d.querySelector(focus==='fuel'?'[data-k="f.brand"]':'[data-k=name]'); if(q) q.focus(); },30);
@@ -392,11 +390,11 @@ function carDialog(id,focus){ const cars=UI.cars||(UI.cars=[]), c=cars.find(x=>x
     if(a==='x'){ d.remove(); return; } if(a==='skip'){ UI.carSkip=true; save(); d.remove(); return; }
     if(a==='del'){ if(!confirm('Delete the car profile '+c.name+'? Its sessions stay in the list.')) return; UI.cars=cars.filter(x=>x!==c); if(UI.car===c.id) UI.car=UI.cars[0]&&UI.cars[0].id||null; save(); d.remove(); carChanged(); return; }
     const g=k=>{ const i=d.querySelector(`[data-k="${k}"]`); return i?(i.type==='checkbox'?i.checked:i.value.trim()):''; }; const name=g('name'); if(!name){ d.querySelector('[data-k=name]').focus(); return; }
-    const o=c||{id:'car'+Date.now().toString(36),fuelHist:[]}; Object.assign(o,{name,engine:g('engine'),avcs:g('avcs'),inj:g('inj'),maf:g('maf'),turbo:g('turbo')});
+    const o=c||{id:'car'+Date.now().toString(36),fuelHist:[]}; Object.assign(o,{name,engine:g('engine'),avcs:g('avcs'),inj:g('inj'),maf:g('maf'),turbo:g('turbo'),gears:g('gears'),fd:g('fd'),tire:g('tire'),wbLag:g('wbLag')===''?'':+g('wbLag')||0});
     const nf={brand:g('f.brand'),octane:g('f.octane'),eth:g('f.eth')===''?'':+g('f.eth')}, last=o.fuelHist[o.fuelHist.length-1];
     if((nf.brand||nf.octane||nf.eth!=='')&&(!last||last.brand!==nf.brand||String(last.octane)!==String(nf.octane)||String(last.eth)!==String(nf.eth))) o.fuelHist.push(Object.assign({t:Date.now()},nf));
     if(!c) cars.push(o); UI.car=o.id; save(); d.remove(); carChanged(); toast('Saved '+name); }; }
-function carChanged(){ try{ if(typeof landRefresh==='function') landRefresh(); }catch(_){} try{ if(EDIT.on) TV.edRefresh(); }catch(_){} try{ drawerRefresh(); }catch(_){} }
+function carChanged(){ try{ profApply(); recompute(true); }catch(_){} try{ if(typeof landRefresh==='function') landRefresh(); }catch(_){} try{ if(EDIT.on) TV.edRefresh(); }catch(_){} try{ drawerRefresh(); }catch(_){} }
 // drawer: car switcher at the top
 { const _dr=drawerRefresh; drawerRefresh=function(){ _dr.apply(this,arguments); const d=$('drawer-bd'); if(!d) return; const cars=UI.cars||[]; let row=d.querySelector('.dcar'); if(!row){ row=document.createElement('div'); row.className='dcar'; d.prepend(row); }
     row.innerHTML=`<span>Car</span>${cars.length?`<select>${cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join('')}</select><button class="btn sm" data-dc="edit">Edit</button>`:''}<button class="btn sm" data-dc="add">＋</button>`;

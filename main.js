@@ -1,10 +1,10 @@
 // ejStudio desktop shell (Electron). Runs ejstudio.html (ejStudio + ejLogger); adds native file open, a watched
-// RomRaider log folder, clipboard and app-data storage.
+// log folder, clipboard and app-data storage.
 const {app,BrowserWindow,ipcMain,dialog,clipboard,shell,utilityProcess}=require('electron');
 const fs=require('fs'), path=require('path');
 // ejLab → ejStudio: the settings folder moved with the new name; carry the old one over once (before anything touches userData)
 try{ const nu=app.getPath('userData'), old=path.join(app.getPath('appData'),'ejLab'); if(!fs.existsSync(nu)&&fs.existsSync(old)) fs.cpSync(old,nu,{recursive:true}); }catch(_){}
-const GH_REPO='lupeloop/ejLab'; let GHT=''; try{ GHT=Buffer.from(require('./ghtoken.js'),'base64').toString('utf8').split('').reverse().join('').trim(); }catch(_){}
+const GH_REPO='lupeloop/ejStudio'; let GHT=''; try{ GHT=Buffer.from(require('./ghtoken.js'),'base64').toString('utf8').split('').reverse().join('').trim(); }catch(_){}
 const CFGF=()=>path.join(app.getPath('userData'),'desktop.json');
 let cfg={folder:null,auto:true}, win=null, watcher=null, seen=new Set(); const pending=new Map();
 const LOGD=()=>path.join(app.getPath('userData'),'logs');
@@ -244,8 +244,10 @@ else if(!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance',(e,argv)=>{ if(win){ if(win.isMinimized()) win.restore(); if(!win.isVisible()) win.show(); win.focus(); const f=argFiles(argv); if(f.length) send('open-files',f.map(readOut)); } });
   app.whenReady().then(()=>{ try{ cfg=Object.assign(cfg,JSON.parse(fs.readFileSync(CFGF(),'utf8'))); }catch(_){}
+    // 3.1.0: with no log folder chosen, follow the folder ejLogger records into (not on a car PC)
+    if(!cfg.folder){ try{ const c=ejlCfg(); if(c.role!=='car'){ const d=c.logDir||path.join(require('os').homedir(),'Documents','ejStudio','logs'); fs.mkdirSync(d,{recursive:true}); cfg.folder=d; saveCfg(); } }catch(_){} }
     ipcMain.handle('watch:get',()=>cfg);
-    ipcMain.handle('watch:pick',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose your RomRaider log folder',properties:['openDirectory'],defaultPath:cfg.folder||undefined});
+    ipcMain.handle('watch:pick',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose the log folder',properties:['openDirectory'],defaultPath:cfg.folder||undefined});
       if(!r.canceled&&r.filePaths[0]){ cfg.folder=r.filePaths[0]; saveCfg(); startWatch(); } return cfg; });
     ipcMain.handle('watch:auto',(e,v)=>{ cfg.auto=!!v; saveCfg(); return cfg; });
     ipcMain.handle('watch:off',()=>{ cfg.folder=null; saveCfg(); startWatch(); return cfg; });
