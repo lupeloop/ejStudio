@@ -244,19 +244,6 @@ function tstat(){ const eb=$('ed-top'), db=$('drawer-btn'); const n=typeof edCou
 const SCALES=[0.9,1,1.15,1.3];
 function uiScale(f){ UI.scale=f; save(); try{ if(window.rrlab&&window.rrlab.zoom) window.rrlab.zoom(f); else document.body.style.zoom=f; }catch(_){} RP.dirty=true; if(typeof drawerRefresh==='function') drawerRefresh(); toast('UI scale '+Math.round(f*100)+'%'); }
 function uiStep(d){ const i=SCALES.indexOf(UI.scale||1); uiScale(SCALES[Math.max(0,Math.min(SCALES.length-1,(i<0?1:i)+d))]); }
-function palette(){ if($('cmdk')) return; const items=[];
-  for(const [id,l] of ACTIONS) items.push(['Action',l,()=>runAction(id)]);
-  for(const b of document.querySelectorAll('#tabs [data-v]')) items.push(['View',b.textContent.trim(),()=>b.click()]);
-  for(const b of TV.el.querySelectorAll('.tt-it[data-g]')) items.push(['Table',b.childNodes[0].textContent.replace(/^[●✎ ]+/,''),()=>{ showView('table'); TV.openGroup(b.dataset.g,true); }]);
-  for(const f of SCALES) items.push(['UI scale',Math.round(f*100)+'%',()=>uiScale(f)]);
-  items.push(['Edit',EDIT.on?'Stop editing':'Edit tune',()=>EDITOR.on(!EDIT.on)],['Settings','Open settings',()=>drawer(true)],['Help',"What's new",whatsNew]);
-  const d=mk('div','',document.body); d.id='cmdk'; d.innerHTML='<div class="ck-card"><input class="inp" placeholder="Type a command, view or table"><div class="ck-list"></div></div>';
-  const inp=d.querySelector('input'), list=d.querySelector('.ck-list'); let hit=[], sel=0;
-  const draw=()=>{ const q=inp.value.toLowerCase().trim().split(/\s+/).filter(Boolean); hit=items.filter(([g,l])=>q.every(w=>(g+' '+l).toLowerCase().includes(w))).slice(0,40); sel=Math.min(sel,Math.max(0,hit.length-1));
-    list.innerHTML=hit.map(([g,l],i)=>`<button class="ck-it${i===sel?' on':''}" data-i="${i}"><span>${esc(l)}</span><i>${esc(g)}</i></button>`).join('')||'<div class="ck-it dim">No match</div>'; };
-  const done=()=>d.remove(), go=i=>{ const h=hit[i]; done(); if(h) h[2](); };
-  inp.oninput=()=>{ sel=0; draw(); }; inp.onkeydown=e=>{ if(e.key==='Escape'){ e.stopPropagation(); done(); } else if(e.key==='ArrowDown'){ e.preventDefault(); sel=Math.min(hit.length-1,sel+1); draw(); } else if(e.key==='ArrowUp'){ e.preventDefault(); sel=Math.max(0,sel-1); draw(); } else if(e.key==='Enter'){ e.preventDefault(); go(sel); } };
-  d.onclick=e=>{ const b=e.target.closest('[data-i]'); if(b) go(+b.dataset.i); else if(e.target===d) done(); }; draw(); inp.focus(); }
 // ════════════════════════════════════════════════════════════════════════════
 //  Helpers: fuel / octane, boost control and injectors. Each one reads the logs on the current revision,
 //  feeds the Helpers rail in Tables edit mode.

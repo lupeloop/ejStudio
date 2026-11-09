@@ -186,7 +186,11 @@ function ejlIpc(){
       require('child_process').spawn(f,['/S','--force-run'],{detached:true,stdio:'ignore',windowsHide:true}).unref(); setTimeout(()=>app.quit(),600); return {ok:true}; }catch(err){ elog('usb update '+err); return {ok:false,error:String(err.message||err)}; } });
   // ── Log storage: move old logs to .old, optionally delete old .old logs, warn on low disk ──
   function storage(){ const c=ejlCfg(), S=c.storage||{}, day=864e5, now=Date.now(), recName=ejl.rec?path.basename(ejl.file||''):null;
-    try{ if(S.oldAfterDays>0) for(const f of listLogs()) if(!f.old&&f.name!==recName&&now-f.mtime>S.oldAfterDays*day) moveLog(f,true);
+    try{ const zd=S.zipAfterDays==null?30:+S.zipAfterDays; if(zd>0){ const z=listLogs().filter(f=>!(!f.old&&f.name===recName)&&now-f.mtime>zd*day);
+        if(z.length){ const ent=[]; for(const f of z){ ent.push([f.name,fs.readFileSync(pathOf(f))]); const mj=path.join(f.old?OLD():LD(),'.meta',f.name.replace(/\.csv$/i,'.json')); if(fs.existsSync(mj)) ent.push(['.meta/'+path.basename(mj),fs.readFileSync(mj)]); }
+          fs.mkdirSync(OLD(),{recursive:true}); const zf=path.join(OLD(),'archive_'+new Date().toISOString().slice(0,10)+'_'+Date.now().toString(36)+'.zip'); fs.writeFileSync(zf,zipBuf(ent));
+          for(const f of z){ try{ fs.unlinkSync(pathOf(f)); fs.unlinkSync(path.join(f.old?OLD():LD(),'.meta',f.name.replace(/\.csv$/i,'.json'))); }catch(_){} } elog('archived '+z.length+' logs to '+path.basename(zf)); } }
+      if(S.oldAfterDays>0) for(const f of listLogs()) if(!f.old&&f.name!==recName&&now-f.mtime>S.oldAfterDays*day) moveLog(f,true);
       if(S.deleteOldAfterDays>0) for(const f of listLogs()) if(f.old&&now-f.mtime>S.deleteOldAfterDays*day){ fs.unlinkSync(pathOf(f)); try{ fs.unlinkSync(path.join(OLD(),'.meta',f.name.replace(/\.csv$/i,'.json'))); }catch(_){} }
       fs.mkdirSync(LD(),{recursive:true}); const st=fs.statfsSync(LD()), free=st.bavail*st.bsize/1e9; send('ejl',{t:'disk',freeGB:+free.toFixed(1),low:free<(S.diskWarnGB==null?2:S.diskWarnGB)}); }catch(err){ elog('storage '+err); } }
   setTimeout(storage,8000); setInterval(storage,3600e3); reg('ejl:storageNow',()=>{ storage(); return true; });
