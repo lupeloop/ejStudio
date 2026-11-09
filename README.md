@@ -119,6 +119,11 @@ A complete Subaru SSM logger, cluster and log manager built into ejStudio. Watch
 </tr>
 </table>
 
+## Trouble codes
+![Trouble codes](docs/img/logger_codes.png)
+
+The **Codes** tab reads current and stored codes when ejLogger connects, and again on **Scan**. **Reset ECU** clears them along with the ECU's learned values, and only unlocks with the ignition on and the engine off. In car mode, codes open from the Dock.
+
 ## Designer and themes
 ![ejLogger Designer](docs/img/logger_designer.png)
 
@@ -129,14 +134,8 @@ Lay out the cluster for each profile: click a tile to style it and size it (Wide
 Four cluster themes and four Dock styles to mix and match, then fine-tune.
 
 ## Parameters and profiles
-<table>
-<tr>
-<td width="50%"><img src="docs/img/logger_params.png" alt="Parameters"></td>
-<td width="50%"><img src="docs/img/logger_profiles.png" alt="Profiles"></td>
-</tr>
-</table>
+![Parameters](docs/img/logger_params.png)
 
-- **Seven preset profiles**, each with its own purpose-built cluster: Daily, Timing, Fuel-CL, Fuel-OL, Boost, AVCS and Idle. All editable.
 - **Parameters** grouped by category, with the expected logging rate for the selection. Only what the ECU supports is shown.
 - **Profiles** saved as standard profile XML, with their own order, glyph, screensaver and warn limits.
 - **Labels** set the title and unit each parameter shows on the cluster.
@@ -146,21 +145,13 @@ Four cluster themes and four Dock styles to mix and match, then fine-tune.
 
 Every log is named by date, time and profile, like `ejlogger_2026-11-06_1755_Daily.csv`. Zip, export, archive or delete them by day or profile; logs older than 30 days are zipped automatically.
 
-## USB stick and trouble codes
-<table>
-<tr>
-<td width="50%"><img src="docs/img/usb_stick.png" alt="USB stick in car mode"></td>
-<td width="50%"><img src="docs/img/logger_codes.png" alt="Trouble codes"></td>
-</tr>
-</table>
+## USB stick
+![USB stick in car mode](docs/img/usb_stick.png)
 
-- **USB stick:** plug one in and ejLogger offers what it finds: copy new logs to it, load the newest `.tune` on it, and install a newer `ejStudio-Setup` from it. Car mode shows big touch tiles; the laptop shows a dialog. Updates install silently, with no admin prompt.
-- **Trouble codes:** the **Codes** tab reads current and stored codes when ejLogger connects, and again on **Scan**. **Reset ECU** clears them along with the ECU's learned values, and only unlocks with the ignition on and the engine off. In car mode, codes open from the Dock.
+Plug a stick in and ejLogger offers what it finds: copy new logs to it, load the newest `.tune` on it, and install a newer `ejStudio-Setup` from it. Car mode shows big touch tiles; the laptop shows a dialog. Updates install silently, with no admin prompt.
 
 ## Config
 ![ejLogger Config](docs/img/logger_config.png)
-
-Every setting in one searchable place:
 
 | Section | What's there |
 |---|---|
@@ -236,7 +227,7 @@ Features switch on as channels are found. MAF scaling needs MAF voltage, RPM, wi
 Download the latest `ejStudio-Setup-x.y.z.exe` from **Releases** and run it. Updates are announced inside the app.
 
 ## Building from source
-Run `build.bat`. It bundles `src\` into `ejstudio.html`, installs dependencies, runs the ejLogger engine tests (`ejLogger\engine\test`), runs the self-test against `tests\fixtures`, and builds the installer into `dist\`.
+Run `build.bat`. It bundles `src\` into `ejstudio.html`, installs dependencies and builds the installer into `dist\`.
 
 ## Credits
 ejStudio grew out of tooling built around **[RomRaider](https://www.romraider.com)** and **[Project Lambda](https://lambdatuning.com)**.
