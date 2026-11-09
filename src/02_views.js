@@ -188,11 +188,11 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   function selStats(){ const t=built, n=(Math.abs(SEL.r1-SEL.r0)+1)*(Math.abs(SEL.c1-SEL.c0)+1); if(!t) return n+' selected'; const d=edDisp(t), b=baseOf(t), r0=Math.min(SEL.r0,SEL.r1), r1=Math.max(SEL.r0,SEL.r1), c0=Math.min(SEL.c0,SEL.c1), c1=Math.max(SEL.c0,SEL.c1);
     let lo=Infinity, hi=-Infinity, s=0, sb=0, k=0; for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){ const v=toD(d,t.z[r][c]); lo=Math.min(lo,v); hi=Math.max(hi,v); s+=v; if(b&&b.z[r]) sb+=toD(d,b.z[r][c]); k++; } if(!k) return n+' selected';
     const f=v=>v.toFixed(d.dp), dl=b?(s-sb)/k:0; return `${k} cell${k>1?'s':''} · min ${f(lo)} · max ${f(hi)} · avg ${f(s/k)}${b&&Math.abs(dl)>1e-9?` · Δ ${dl>0?'+':''}${dl.toFixed(d.dp)} ${d.u}`:''}`; }
-  function syncEd(){ if(side!=='b'){ const eb=$('ed-top'); if(eb){ eb.classList.toggle('on',ED()); eb.hidden=!TUNE; } const pn=root.closest('.pane'); if(pn) pn.classList.toggle('editing',ED()); if(!ED()) S.cardEd=null; } edB.style.display='none'; edB.classList.toggle('acc',ED()); edB.textContent=ED()?'Done':'Edit'; ebar.style.display=ED()?'':'none'; if(!ED()) return;
+  function syncEd(){ if(side!=='b'){ const eb=$('ed-top'); if(eb){ eb.classList.toggle('on',ED()); eb.hidden=!TUNE; } const pn=root.closest('.pane'); if(pn) pn.classList.toggle('editing',ED()); if(!ED()) S.cardEd=null; } edB.style.display='none'; edB.classList.toggle('acc',ED()); edB.textContent=ED()?'Done':'Edit'; ebar.style.display=ED()?'':'none'; if(hrail){ const o=ED()&&HR.open, was=hrail.style.display!=='none'; hrail.style.display=o?'':'none'; if(o) hrPaint(hrail); if(o!==was) requestAnimationFrame(()=>{ layout(); RP.dirty=true; }); } if(!ED()) return;
     const sl=SEL.r0!=null?selStats():'', n=edCount();
     ebar.innerHTML=`<span class="vlab">Editing</span><span class="mono dim">${sl}</span><button class="btn sm" data-e="undo"${EDIT.undo.length?'':' disabled'} title="${esc(EDIT.undo.length?'Undo '+EDIT.undo[EDIT.undo.length-1].label:'Nothing to undo')}">Undo</button><button class="btn sm" data-e="redo"${EDIT.redo.length?'':' disabled'}>Redo</button><button class="btn sm" data-e="diff"${REV.nodes.length>1?'':' disabled'} title="Compare this revision with another (read-only)">Compare revision ▾</button><button class="btn sm" data-e="hist"${EDIT.undo.length?'':' disabled'} title="Jump back to any step">Undo history ▾</button>`
       +`<button class="chip${EDIT.overlays?' on':''}" data-e="ov" title="Log trace, knock heat and B marker">Show log overlays</button><button class="chip${EDIT.onlyEd?' on':''}" data-e="only" title="Only list tables you have changed">Show changed tables only</button><span class="vfill"></span>`
-      +`<span class="mono dim">${n} unbuilt change${n!==1?'s':''}</span><button class="btn sm" data-e="sug" title="Apply & Compare: MAF scaling and knock timing suggestions">Suggestions</button><button class="btn sm acc" data-e="build" title="Save as a new revision (Ctrl+B)">Build</button>`; }
+      +`<span class="mono dim">${n} unbuilt change${n!==1?'s':''}</span>${side==="b"?"":(()=>{ const hn=hrCount(); return `<button class="btn sm hlpb${hn?" has":""}${HR.open?" on":""}" data-e="sug">Helpers · ${hn}</button>`; })()}<button class="btn sm acc" data-e="build" title="Save as a new revision (Ctrl+B)">Build</button>`; }
   function edDown(e){ const t=built; if(!t||!S.geo) return false; const p=cellAt(e.clientX,e.clientY), W=S.win; if(!p) return false;
     const nx=t.x.length, ny=t.z.length, hx=p.x<W.c0-0.5, hy=p.y<W.r0-0.5;
     if(hy&&!hx){ EDITOR.axis(t,'x',Math.max(0,Math.min(nx-1,Math.round(p.x))),axName(t.xin)); return true; }
@@ -210,10 +210,11 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
       for(let r=W.r0;r<W.r0+W.vy;r++) for(let q=W.c0;q<W.c0+W.vx;q++) if(b.z[r]&&!same(t.z[r][q],b.z[r][q])) c.strokeRect(g.hw+(q-W.c0)*g.cw+1.5,g.hh+(r-W.r0)*g.ch+1.5,g.cw-3,g.ch-3);
       c.fillStyle='#5ad1e6'; for(let q=W.c0;q<W.c0+W.vx;q++) if(b.x[q]!=null&&!same(t.x[q],b.x[q])) c.fillRect(g.hw+(q-W.c0)*g.cw+2,g.hh-4,g.cw-4,3);
       if(t.yin) for(let r=W.r0;r<W.r0+W.vy;r++) if(b.y[r]!=null&&!same(t.y[r],b.y[r])) c.fillRect(g.hw-4,g.hh+(r-W.r0)*g.ch+2,3,g.ch-4); }
+    hrDraw(c,g,t,W);
     if(SEL.r0!=null){ const r0=Math.min(SEL.r0,SEL.r1), r1=Math.max(SEL.r0,SEL.r1), c0=Math.min(SEL.c0,SEL.c1), c1=Math.max(SEL.c0,SEL.c1);
       const x0=g.hw+(Math.max(c0,W.c0)-W.c0)*g.cw, y0=g.hh+(Math.max(r0,W.r0)-W.r0)*g.ch, x1=g.hw+(Math.min(c1,W.c0+W.vx-1)-W.c0+1)*g.cw, y1=g.hh+(Math.min(r1,W.r0+W.vy-1)-W.r0+1)*g.ch;
       if(x1>x0&&y1>y0){ c.fillStyle='rgba(228,170,40,.16)'; c.fillRect(x0,y0,x1-x0,y1-y0); c.strokeStyle='#e4aa28'; c.lineWidth=2; c.strokeRect(x0+1,y0+1,x1-x0-2,y1-y0-2); } } }
-  const body=mk('div','tt-body',root), rail=mk('div','tt-rail',body), main=mk('div','tt-main',body);
+  const body=mk('div','tt-body',root), rail=mk('div','tt-rail',body), main=mk('div','tt-main',body), hrail=side==='b'?null:mk('div','hrail',body); if(hrail) hrail.style.display='none';
   const q=mk('input','tt-q',rail); q.type='search'; q.placeholder='Search tables'; const rlist=mk('div','tt-list',rail);
   const strip=mk('div','kstrip',main), bstrip=mk('div','kstrip bstrip',main); const msg=mk('div','tt-msg',main); msg.style.display='none';
   const cards=mk('div','tt-cards',main); cards.style.display='none'; cards.onclick=e=>{ const el=e.target.closest('[data-card]'); if(!el) return; const id=el.dataset.card;
@@ -269,7 +270,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   // category rail: tables + a Settings entry per category; search filters across names and cards
   function renderRail(){ if(!TT()){ rlist.innerHTML=''; return; } const qq=q.value.trim().toLowerCase(), groups={}, order=[];
     all().forEach(t=>{ if(!groups[t.group]){ groups[t.group]={g:t.group,cat:t.cat,name:t.gname,vars:[],need:need(t)}; order.push(t.group); } groups[t.group].vars.push(t.name); });
-    const item=(id,label,dim,title)=>`<button class="tt-it${T.grp===id?' on':''}" data-g="${esc(id)}"${title?` title="${esc(title)}"`:''}>${esc(label)}</button>`;
+    const item=(id,label,dim,title)=>{ const hn=hrGroupN(id); return `<button class="tt-it${T.grp===id?' on':''}" data-g="${esc(id)}"${title?` title="${esc(title)}"`:''}>${esc(label)}${hn?`<i class="hcn">${hn}</i>`:''}</button>`; };
     let h='';
     for(const cat of CATS){ const gs=order.map(g=>groups[g]).filter(o=>o.cat===cat), cs=TT().cards.filter(c=>c.cat===cat), extra=cat==='Limits'&&TT().byId.boost_limit;
       const hit=o=>!qq||(o.name+' '+o.vars.join(' ')).toLowerCase().includes(qq), chit=c=>!qq||c.label.toLowerCase().includes(qq);
@@ -512,7 +513,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
       c.fillStyle='rgba(0,0,0,.82)'; c.fillRect(bx,by,w,h); c.strokeStyle=red; c.lineWidth=1.5; c.strokeRect(bx,by,w,h); c.fillStyle='#fff'; c.textAlign='left'; c.fillText(tx,bx+5,by+h/2+0.5); }
     c.restore(); }
   function tick(dt){ if(!S.shown) return; if(S.tx!=null&&S.px!=null){ const k=Math.min(1,dt/120); S.px+=(S.tx-S.px)*k; S.py+=(S.ty-S.py)*k; } follow(false); draw(); wt.update(); }
-  return { el:root, frame, tick, openGroup(g,live){ T.grp=g; S.zoom=1; S.follow=true; save(); build(); if(live&&CX.L) frame(CX.i,true); if(live&&ED()&&S.tx!=null&&built){ SEL.r0=SEL.r1=Math.max(0,Math.min(built.z.length-1,Math.round(S.ty))); SEL.c0=SEL.c1=Math.max(0,Math.min(built.x.length-1,Math.round(S.tx))); draw(); syncEd(); } }, edRefresh(){ build(); syncEd(); }, cur:()=>built, sel:()=>SEL, setSel(o){ Object.assign(SEL,o); draw(); syncEd(); }, isShown:()=>S.shown, show(on){ S.shown=on; if(on){ renderBar(); build(); requestAnimationFrame(layout); } }, resize(){ layout(); },
+  return { el:root, frame, tick, openGroup(g,live){ T.grp=g; S.zoom=1; S.follow=true; save(); build(); if(live&&CX.L) frame(CX.i,true); if(live&&ED()&&S.tx!=null&&built){ SEL.r0=SEL.r1=Math.max(0,Math.min(built.z.length-1,Math.round(S.ty))); SEL.c0=SEL.c1=Math.max(0,Math.min(built.x.length-1,Math.round(S.tx))); draw(); syncEd(); } }, edRefresh(){ build(); syncEd(); renderRail(); }, showTable(id,r,c){ const t=byId(id); if(!t) return; T.grp=t.group; T.sel[t.group]=t.id; S.zoom=1; save(); renderBar(); build(); renderRail(); if(r!=null&&built){ SEL.r0=SEL.r1=r; SEL.c0=SEL.c1=c; draw(); syncEd(); } }, cur:()=>built, sel:()=>SEL, setSel(o){ Object.assign(SEL,o); draw(); syncEd(); }, isShown:()=>S.shown, show(on){ S.shown=on; if(on){ renderBar(); build(); requestAnimationFrame(layout); } }, resize(){ layout(); },
     setTune(){ S.pick=null; S.heatKey=''; renderBar(); build(); if(CX.L) frame(CX.i,true); }, refreshUnits(){ render(); if(isSet()) renderCards(); renderBreak(); }, logChanged(){ S.heatKey=''; renderStrip(); } };
 }
 

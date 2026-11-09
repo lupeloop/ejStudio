@@ -55,26 +55,30 @@ Every table and setting card in the tune, with the log replayed live on top.
 - Undo history and a read-only compare against any revision.
 - **Build** writes a new `revN.tune` and keeps an automatic backup.
 
-## Suggestions
-![Suggestions](docs/img/suggestions.png)
+## Helpers
+![Helpers](docs/img/helpers.png)
 
-MAF scaling, knock timing and Helper corrections, grouped by area with the evidence for each.
+**Helpers · n** in the edit bar opens the Helpers rail beside the table. Each helper lists its evidence and its changes as groups; picking one jumps the table to where its changes land. Ticked changes are previewed on the table (new value over the old one), unticked ones are outlined, and pending cells carry an amber corner while the rail is closed. Apply writes the ticked changes as one undo step. Nothing reaches the file until you Build.
+
+| Helper | Evidence | Changes |
+|---|---|---|
+| **Knock timing** | Repeated, sustained knock areas with FBKC, FLKC and event counts | Base timing pulls |
+| **MAF scaling** | Zoned bins with closed-loop and open-loop corrections | MAF scaling |
+| **Fuel & octane** | The car's fuel now and before, stoichiometric AFR | Timing pull after lower octane; added timing after better fuel |
+| **Boost control** | Target vs actual boost by RPM at wide-open throttle, peak overshoot, wastegate duty | Wastegate max and base |
+| **Injectors** | Closed-loop trims by pulse width | Injector latency; scaling shown for the injector card |
 
 > [!IMPORTANT]
-> Knock timing suggestions follow strict rules: only repeated, sustained knock on the current revision; nothing if IAM has dropped; only the table the ECU was using; spread over the cells the ECU blends; max 2° per cell; tapered with no humps; fuel-cut areas left alone; base timing only; never adds timing.
+> Knock timing follows strict rules: only repeated, sustained knock on the current revision; nothing if IAM has dropped; only the table the ECU was using; spread over the cells the ECU blends; max 2° per cell; tapered with no humps; fuel-cut areas left alone; base timing only; never adds timing.
 >
-> The one exception is the **Fuel & octane** helper after a move to better fuel: added timing comes as its own group, off until you tick it, at most 1° per cell per revision, only in cells with 20+ clean samples on the new fuel and nowhere near knock.
-
-Switch any cell or whole group on or off before applying. Nothing reaches the file until you Build.
-
-## Helpers
-Diagnosis for the jobs around the tables, in its own Helpers view; any changes they suggest appear as their own groups in Suggestions.
-- **Fuel & octane:** each car keeps a fuel history (brand, octane, ethanol % from the pump label). Moving to lower octane suggests a conservative pull at high load and an IAM reset; moving to better fuel can suggest added timing in clean cells. Ethanol changes show the new stoichiometric AFR and how far open-loop fuelling shifts.
-- **Boost control:** target vs actual boost by RPM at wide-open throttle, peak overshoot and wastegate duty, with wastegate max and base changes where boost falls short or overshoots.
-- **Injectors:** closed-loop trims by pulse width show whether injector scaling or latency is off, with the suggested scaling and latency changes.
+> The one exception is **Fuel & octane** after a move to better fuel: added timing is its own group, off until ticked, at most 1° per cell per revision, only in cells with 20+ clean samples on the new fuel and nowhere near knock.
 
 ## Car profiles
-Several cars, each with its engine, parts and fuel. Recent sessions are kept per car; switch cars on the start screen or in the drawer. The first launch offers to create one.
+<img src="docs/img/car_profile.png" width="420" align="right" alt="Car profile">
+
+Several cars, each with its engine, parts and fuel history (brand, octane and ethanol % from the pump label). Recent sessions are kept per car; switch cars on the start screen or in the drawer. The first launch offers to create one.
+
+<br clear="right">
 
 ## MAF Tools
 ![MAF Tools](docs/img/maf.png)
@@ -137,13 +141,18 @@ Four cluster themes and four Dock styles to mix and match, then fine-tune.
 ## Logs
 ![ejLogger Logs](docs/img/logger_logs.png)
 
-Every log is named by date, time and profile, like `ejlogger_2026-11-06_1755_master.csv`. Zip, export, archive or delete them by day or profile.
+Every log is named by date, time and profile, like `ejlogger_2026-11-06_1755_Daily.csv`. Zip, export, archive or delete them by day or profile.
 
-## USB stick
-Plug in a stick and ejLogger offers what it finds: copy new logs to it, load the newest `.tune` on it, and install a newer `ejStudio-Setup` from it. Car mode shows big touch tiles; the laptop shows a dialog. Updates install silently, with no admin prompt.
+## USB stick and trouble codes
+<table>
+<tr>
+<td width="50%"><img src="docs/img/usb_stick.png" alt="USB stick in car mode"></td>
+<td width="50%"><img src="docs/img/logger_codes.png" alt="Trouble codes"></td>
+</tr>
+</table>
 
-## Trouble codes
-A **Codes** tab reads current and stored trouble codes when ejLogger connects, and again on **Scan**. **Reset ECU** clears them along with the ECU's learned values; it only unlocks with the ignition on and the engine off. In car mode, codes open from the Dock.
+- **USB stick:** plug one in and ejLogger offers what it finds: copy new logs to it, load the newest `.tune` on it, and install a newer `ejStudio-Setup` from it. Car mode shows big touch tiles; the laptop shows a dialog. Updates install silently, with no admin prompt.
+- **Trouble codes:** the **Codes** tab reads current and stored codes when ejLogger connects, and again on **Scan**. **Reset ECU** clears them along with the ECU's learned values, and only unlocks with the ignition on and the engine off. In car mode, codes open from the Dock.
 
 ## Config
 ![ejLogger Config](docs/img/logger_config.png)
