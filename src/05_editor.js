@@ -120,7 +120,7 @@ const EDITOR={
 function dv1(d,v){ return (+toD(d,v).toFixed(Math.max(0,d.dp??3))).toString(); }
 ACTIONS.push(['ed:set','Set value','='],['ed:mul','Multiply','*'],['ed:div','Divide','/'],['ed:add','Add / subtract','+'],['ed:pct','Change by %','%'],['ed:interp','Interpolate','I'],['ed:interpH','Interpolate horizontally','Shift+I'],
   ['ed:interpV','Interpolate vertically','Alt+I'],['ed:smooth','Smooth','S'],['ed:revert','Revert to loaded tune','Delete'],['ed:undo','Undo','Ctrl+Z'],['ed:redo','Redo','Ctrl+Y'],['ed:copy','Copy cells','Ctrl+C'],['ed:copyax','Copy table with axes','Ctrl+Shift+C'],
-  ['ed:paste','Paste','Ctrl+V'],['ed:all','Select whole table','Ctrl+A'],['ed:build','Build revision','Ctrl+B'],['ed:sug','Helpers','G'],['ed:exit','Clear selection / leave Edit','Escape']);
+  ['ed:paste','Paste','Ctrl+V'],['ed:all','Select whole table','Ctrl+A'],['ed:build','Build revision','Ctrl+B'],['ed:sug','Helpers','H'],['ed:exit','Clear selection / leave Edit','Escape']);
 window.__tuneChanges=()=>{ const ch=edChanges(); if(!ch.length) return ['No unbuilt edits']; const o=['Unbuilt edits:'];
   for(const x of ch){ if(x.card){ o.push(`  ${x.card.label}: ${x.base.v.map(r=>r.join(' / ')).join(' · ')} → ${x.card.v.map(r=>r.map(fmtRaw).join(' / ')).join(' · ')}`); continue; }
     const d=edDisp(x.t); let lo=Infinity, hi=-Infinity; for(const [,,a,b] of x.cells){ const q=toD(d,b)-toD(d,a); lo=Math.min(lo,q); hi=Math.max(hi,q); }
@@ -160,15 +160,19 @@ window.__build=async()=>{ if(!TUNE||!EDIT.T){ toast('Nothing to build'); return;
   const sum=window.__tuneChanges().slice(1).map(x=>x.trim()), node={id:nid(),rev:next,parent:REV.cur,file,note:note.trim(),time:Date.now(),src:txt,sum};
   dl(new Blob([txt],{type:'application/json'}),file); try{ if(window.rrlab&&window.rrlab.backup) window.rrlab.backup(TUNE.car||'tune',file,txt); }catch(_){} REV.nodes.push(node); REV.cur=node.id; const on=EDIT.on;
   window.__treeSwitch=1; await loadTuneText(txt,file); window.__treeSwitch=0; if(on){ EDIT.on=true; EDIT.T=structuredClone(TUNE); } revSave(); TV.edRefresh(); drawerRefresh(); toast(`Built ${file} · open it in Lambda, run Test Write, then Write`); };
-function revDiff(){ const cur=curNode(), others=REV.nodes.filter(n=>n!==cur&&n.src); if(!cur||!others.length){ toast('No other revision to compare'); return; }
+function revDiff(){ const cur=curNode(), others=REV.nodes.filter(n=>n!==cur&&n.src); if(!cur){ toast('Load a tune'); return; }
   const d=mk('div','',document.body); d.id='mapdlg'; const done=()=>{ document.removeEventListener('keydown',kd,true); d.remove(); }, kd=e=>{ if(e.key==='Escape'){ e.stopPropagation(); done(); } }; document.addEventListener('keydown',kd,true);
   const show=id=>{ const o=REV.nodes.find(n=>n.id===id); let A, B=TUNE; try{ A=parseTune(o.src,o.file); }catch(_){ toast('Could not read that revision'); return; } const rows=[];
     for(const k of new Set([...Object.keys(A.m),...Object.keys(B.m)])){ const a=A.m[k], b=B.m[k]; if(JSON.stringify(a)===JSON.stringify(b)) continue; let n=0, mx=0;
       if(a&&b) a.forEach((r,i)=>r.forEach((v,j)=>{ const w=b[i]&&b[i][j]; if(v!==w){ n++; if(Number.isFinite(v)&&Number.isFinite(w)) mx=Math.max(mx,Math.abs(w-v)); } }));
       rows.push(`<div class="hrow"><b>${esc(k)}</b> <span class="dim">${a&&b?n+' value'+(n>1?'s':'')+(mx?' · max Δ '+(+mx.toPrecision(4)):''):'only in one revision'}</span></div>`); }
-    d.querySelector('.md-list').innerHTML=rows.length?rows.join(''):'<div class="hrow dim">No differences</div>'; d.querySelector('select').value=id; };
-  d.innerHTML=`<div class="md-card" style="width:min(560px,100%)"><div class="md-h"><b>rev${cur.rev} vs</b><select class="sel">${others.map(n=>`<option value="${n.id}">rev${n.rev}${n.note?' · '+esc(n.note):''}</option>`).join('')}</select></div><div class="md-list"></div><div class="md-f"><button class="btn ghost" data-x>Close</button></div></div>`;
-  d.querySelector('select').onchange=e=>show(e.target.value); d.onclick=e=>{ if(e.target.closest('[data-x]')||e.target===d) done(); }; show((others.find(n=>n.id===cur.parent)||others[others.length-1]).id); }
+    d.querySelector('.md-list').innerHTML=rows.length?rows.join(''):'<div class="hrow dim">No differences</div>'; d.querySelectorAll('[data-cmp]').forEach(b=>b.classList.toggle('on',b.dataset.cmp===id)); };
+  const kids={}, tree=[]; for(const n of REV.nodes) (kids[n.parent||'_']=kids[n.parent||'_']||[]).push(n); const walk=(p,dp)=>{ for(const n of kids[p]||[]){ tree.push([n,dp]); walk(n.id,dp+1); } }; walk('_',0);
+  const rows=tree.map(([n,dp])=>`<div class="rvr${n.id===REV.cur?' cur':''}" style="padding-left:${dp*14+6}px"><button class="rvn" ${n.id===REV.cur?'disabled':`data-cmp="${n.id}"`} title="${esc(n.file)}">rev ${n.rev}${n.note?' · '+esc(n.note):''}${n.id===REV.cur?' · current':''}</button>${n.id===REV.cur?'':`<button class="ibtn" data-rvo="${n.id}" title="Open this revision">▷</button>`}<button class="ibtn" data-rvs="${n.id}" title="Save .tune">⤓</button></div>`).join('');
+  d.innerHTML=`<div class="md-card" style="width:min(560px,100%)"><div class="md-h"><b>Revisions · rev${cur.rev} vs</b></div><div class="rvt">${rows}</div><div class="md-list"></div><div class="md-f"><button class="btn ghost" data-x>Close</button></div></div>`;
+  d.onclick=e=>{ if(e.target.closest('[data-x]')||e.target===d) return done(); const c=e.target.closest('[data-cmp]'); if(c) return show(c.dataset.cmp); const o=e.target.closest('[data-rvo]'); if(o){ done(); return revOpen(o.dataset.rvo); }
+    const v=e.target.closest('[data-rvs]'); if(v){ const n=REV.nodes.find(x=>x.id===v.dataset.rvs); if(n) dl(new Blob([n.src],{type:'application/json'}),n.file); } };
+  if(others.length) show((others.find(n=>n.id===cur.parent)||others[others.length-1]).id); else d.querySelector('.md-list').innerHTML=''; }
 window.__selftest=async files=>{ const out=[]; let fail=0; const ok=(c,m)=>{ out.push((c?'PASS  ':'FAIL  ')+m); if(!c) fail++; };
   try{ for(const f of files.filter(f=>/\.tune$/i.test(f.name))){ const T=parseTune(f.text,f.name), n=Object.keys(T.m).length; ok(n>100,`${f.name}: parses (${n} maps, ${T.tables.length} tables, ${T.cards.length} cards)`);
       TUNE=T; EDIT.T=structuredClone(TUNE); ok(tuneText()===f.text,`${f.name}: unedited write is byte-identical`);

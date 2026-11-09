@@ -14,7 +14,7 @@ function wire(){
   $('t-play').onclick=()=>rpPlay(!RP.playing); $('t-prev').onclick=()=>rpStep(-1); $('t-next').onclick=()=>rpStep(1);
   $('t-speed').querySelectorAll('button').forEach(b=>{ b.classList.toggle('on',+b.dataset.s===UI.speed); b.onclick=()=>{ UI.speed=+b.dataset.s; save(); $('t-speed').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }; });
   $('t-a').onclick=()=>{ RP.a=RP.playT; rpAB(); }; $('t-b').onclick=()=>{ RP.b=RP.playT; rpAB(); }; $('t-abx').onclick=()=>{ RP.a=RP.b=null; rpAB(); }; $('t-flag').onclick=e=>flagKey(e.shiftKey); $('t-trim').onclick=e=>trimSet(e.altKey?'clear':e.shiftKey?'b':'a');
-  $('t-evb').onclick=evMenu;
+  $('t-evb').onclick=evMenu; $('t-set').innerHTML=SVG_GEAR; $('t-set').onclick=()=>setPop($('t-set'),['rp'],'Replay');
   $('t-ev').onchange=e=>{ const ev=RP.L&&RP.L.allEv[+e.target.value]; e.target.value=''; e.target.blur(); if(ev){ rpPlay(false); rpSeek(ev.t,true); } };
   tlBind($('tl'),false);
   { const cv=$('tlb'); let dn=false; const at=e=>{ const r=cv.getBoundingClientRect(); setB(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*(RP.B?RP.B.dur:0)); };

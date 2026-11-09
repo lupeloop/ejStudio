@@ -377,7 +377,12 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
         return `<div class="knob"><label for="ejl-phon">Phone panel</label><span></span><input type="checkbox" id="ejl-phon" ${on?'checked':''} style="justify-self:end"></div>
         <div class="knob"><label>Address</label><span class="path">${on?esc('http://ejlogger.local'+(ad.port&&ad.port!==80?':'+ad.port:'')):'Off'}</span><span></span>${on&&ad.ips&&ad.ips.length?`<div class="note">Also ${ad.ips.map(i=>esc('http://'+i+(ad.port&&ad.port!==80?':'+ad.port:''))).join(' · ')}</div>`:''}</div>
         <div class="knob"><label>Tuner passcode</label><input type="text" id="ejl-pass" inputmode="numeric" maxlength="4" value="${esc(pc)}" style="width:90px;justify-self:end;font:16px var(--mono);letter-spacing:.3em;text-align:center"><span></span></div>`; }]]]];
-  function paintSet(){ if(!S.cfg) return; const q=S.q.trim().toLowerCase(), all=SECS.flatMap(s=>s[1]);
+  // merged sections: Wideband (+ fuel cut), Display (screensaver + night), System (+ health), Logs (files + storage)
+  const SEC0={}; { const merge=(into,from,name)=>{ let a,b; for(const g of SECS){ const i=g[1].findIndex(x=>x&&x[0]===into), j=g[1].findIndex(x=>x&&x[0]===from); if(i>=0) a=[g,i]; if(j>=0) b=[g,j]; } if(!a||!b) return;
+      const fa=a[0][1][a[1]][1], fb=b[0][1][b[1]][1]; SEC0[into]=fa; SEC0[from]=fb; a[0][1][a[1]]=[name||into,()=>fa()+fb()]; b[0][1].splice(b[1],1); };
+    merge('Wideband','Wideband fuel cut'); merge('Screensaver','Night','Display'); merge('Health','System','System'); merge('Log files','Log storage','Logs'); }
+  const SECREN={'Wideband fuel cut':'Wideband','Night':'Display','Screensaver':'Display','Health':'System','Log files':'Logs','Log storage':'Logs'};
+  function paintSet(){ if(!S.cfg) return; if(SECREN[S.sec]) S.sec=SECREN[S.sec]; const q=S.q.trim().toLowerCase(), all=SECS.flatMap(s=>s[1]);
     $('ejl-snav').innerHTML=SECS.map(([g,it])=>`<div class="g">${g}</div>`+it.map(([n])=>`<button data-n="${n}" class="${n===S.sec&&!q?'on':''} ">${n}</button>`).join('')).join('');
     let h; if(q){ const tmp=document.createElement('div'); h=all.map(([n,f])=>{ tmp.innerHTML=f(); const ks=[...tmp.querySelectorAll('.knob')].filter(k=>(n+' '+k.textContent).toLowerCase().includes(q)); return ks.length?`<div class="sec"><h2>${n}</h2><div class="card">${ks.map(k=>k.outerHTML).join('')}</div></div>`:''; }).join('')||'<span class="lbl">No settings match</span>'; }
     else { const it=all.find(x=>x[0]===S.sec)||all[0]; S.sec=it[0]; h=`<div class="sec"><h2>${it[0]}</h2><div class="card">${it[1]()}</div></div>`; }
@@ -404,7 +409,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
   let cpop=null;
   function openCpop(){ if(cpop) return; rescan(); cpop=mk('div','ejl-cpop',root); cpop.onclick=setClick; cpop.onchange=setChange; paintCpop(); }
   function closeCpop(){ if(cpop){ cpop.remove(); cpop=null; } }
-  function paintCpop(){ if(!cpop||!S.cfg) return; const r=$('ejl-conn').getBoundingClientRect(), all=SECS.flatMap(x=>x[1]), f=n=>all.find(x=>x[0]===n)[1](), idle=S.state==='idle';
+  function paintCpop(){ if(!cpop||!S.cfg) return; const r=$('ejl-conn').getBoundingClientRect(), all=SECS.flatMap(x=>x[1]), f=n=>(SEC0[n]||all.find(x=>x[0]===n)[1])(), idle=S.state==='idle';
     cpop.style.left=Math.max(8,Math.min(innerWidth-548,r.left))+'px'; cpop.style.top=(r.bottom+8)+'px';
     const ae=document.activeElement, keep=ae&&cpop.contains(ae)&&ae.tagName==='SELECT'; if(keep) return; // don't rebuild under an open dropdown
     cpop.innerHTML=`<div class="cph"><b>Connection</b><span class="lbl">${idle?'Not connected':esc(S.state)+(S.ecuId?' · ECU '+esc(S.ecuId):'')}</span></div>

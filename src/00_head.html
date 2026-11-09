@@ -317,6 +317,9 @@ body.desk #drawer{top:38px}
 .hin{display:flex;align-items:center;gap:8px;width:100%;font-size:12px;color:var(--mut2)}.hin span{flex:1}.hin input{width:64px}.hin em{font-style:normal;color:var(--mut)}
 .cdg label.ck{min-height:33px;padding:0 10px;box-sizing:border-box;border:1px solid var(--ctl-b);border-radius:8px;background:#0f0f14}
 .cdm{grid-column:1/-1;font:12px var(--mono);color:var(--mut)}
+.setpop{position:fixed;z-index:650;background:#000;border:1px solid var(--card-b);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.7);max-height:70vh;display:flex;flex-direction:column}.sph{display:flex;align-items:center;padding:.5rem .7rem;border-bottom:1px solid var(--card-b)}.sph b{flex:1;font-size:13px}.spb{overflow:auto;padding:.5rem .7rem}
+.evdg{border-bottom:1px solid var(--card-b);padding:.3rem .6rem}.evdg summary{cursor:pointer;font:600 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:.3rem 0}.evdb{max-height:40vh;overflow:auto}
+.rvt{max-height:30vh;overflow:auto;border-bottom:1px solid var(--card-b);padding:.3rem 0}.rvr{display:flex;align-items:center;gap:4px;padding-right:8px}.rvn{flex:1;text-align:left;background:none;border:0;color:var(--tx);font:12.5px var(--mono);padding:.35rem .4rem;border-radius:6px;cursor:pointer}.rvn:hover{background:#0b0b0e}.rvn.on{color:var(--acc);background:#0b0b0e}.rvr.cur .rvn{color:var(--mut)}
 .hlpb.has{border-color:#5a3a10;color:#f0a050}.hlpb.on{background:#e4aa28;border-color:#e4aa28;color:#000}.hcn{float:right;font:700 10px var(--mono);font-style:normal;color:#e4aa28;margin-left:6px}
 .sgcat{display:flex;align-items:center;gap:.5rem;margin:.5rem 0 .5rem}.sgcat span{flex:1;font:600 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
 .sgg{border:1px solid var(--card-b);border-radius:12px;overflow:hidden;margin-bottom:12px}.sggh{display:flex;align-items:center;gap:.7rem;padding:.7rem .9rem;background:#060608}.sggh b{flex:1;font-size:14px}.sggh em{font:12px var(--mono);font-style:normal;color:var(--mut)}
@@ -374,7 +377,7 @@ body.desk #drawer{top:38px}
     <canvas id="tl"></canvas>
     <button class="ibtn" id="t-a" title="Loop start (A)">A</button>
     <button class="ibtn" id="t-b" title="Loop end (B)">B</button>
-    <button class="ibtn" id="t-abx" title="Clear loop">✕</button><button class="ibtn" id="t-flag" title="Add flag at playhead · Shift+click: range start / end">⚑</button><button class="ibtn" id="t-trim" title="Trim start at playhead · Shift+click: trim end · Alt+click: clear trim">✂</button>
+    <button class="ibtn" id="t-abx" title="Clear loop">✕</button><button class="ibtn" id="t-flag" title="Add flag at playhead · Shift+click: range start / end">⚑</button><button class="ibtn" id="t-trim" title="Trim start at playhead · Shift+click: trim end · Alt+click: clear trim">✂</button><button class="ibtn" id="t-set" title="Replay settings"></button>
     <select class="sel" id="t-ev" hidden><option value="">Jump to event…</option></select><button class="evbtn" id="t-evb" title="Jump to an event in this log"><span>Jump to event</span><i>▾</i></button>
     <div id="tlpop" class="hidden"><canvas id="tlpop-cv"></canvas><button class="ibtn" id="tlpop-x" title="Close (Esc)">✕</button></div>
   </footer>

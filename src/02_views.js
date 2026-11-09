@@ -45,7 +45,8 @@ function GraphView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   mk('span','vlab',bar).textContent='Window'; const winLab=mk('span','mono vval',bar); const full=mk('button','btn sm',bar); full.textContent='Full log'; full.title='Zoom out to the whole log (mouse wheel zooms)';
   full.onclick=()=>{ G.full=true; save(); dirty(); };
   mk('span','vlab',bar).textContent='Playhead'; seg(bar,[['right','Right'],['center','Centre']],G.mode,v=>{ G.mode=v; save(); dirty(); });
-  mk('span','vfill',bar); const wt=WarnTiles(root);
+  mk('span','vfill',bar); if(side!=='b'){ const gm=mk('div','seg',bar); gm.innerHTML='<button class="on">Lanes</button><button>Scatter</button>'; gm.lastChild.onclick=()=>grMode('scatter');
+    const pg=mk('button','ibtn',bar); pg.innerHTML=SVG_GEAR; pg.title='Pull detection'; pg.onclick=()=>setPop(pg,['pull'],'Pull detection'); } const wt=WarnTiles(root);
   const box=mk('div','gv-lanes',root), lanes=[];
   const V=[['v:wbffb','Wideband vs FFB target'],['v:wb','Wideband'],['v:idc','Injector duty (IDC)'],['v:avcsi','AVCS intake: actual vs target'],['v:avcse','AVCS exhaust: actual vs target'],['v:dthr','Throttle rate'],['v:aerr','AFR error vs target'],['v:rb_boost','Boost target: rebuilt vs logged'],['v:rb_map','Boost: actual vs target'],['v:rb_wg','WG duty: rebuilt vs logged'],['v:rb_tim','Total timing: rebuilt vs logged'],['v:rb_tq','Requested torque: table vs logged'],['v:rb_thr','Target throttle: table vs logged']];
   const vOK=(L,v)=>{ if(!L) return true; const rb=L.rb||{}; if(v==='v:idc') return !!idcOf(L); if(v==='v:avcsi'||v==='v:avcse') return !!(L.c[v.slice(2)]&&avcsTgt(L,v.slice(2))); if(v==='v:dthr') return !!dThr(L); if(v==='v:aerr') return !!afrErr(L); if(v==='v:wb') return !!L.c.wb; if(v==='v:wbffb') return !!(L.c.wb&&L.ffbSrc);
@@ -190,7 +191,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     const f=v=>v.toFixed(d.dp), dl=b?(s-sb)/k:0; return `${k} cell${k>1?'s':''} · min ${f(lo)} · max ${f(hi)} · avg ${f(s/k)}${b&&Math.abs(dl)>1e-9?` · Δ ${dl>0?'+':''}${dl.toFixed(d.dp)} ${d.u}`:''}`; }
   function syncEd(){ if(side!=='b'){ const eb=$('ed-top'); if(eb){ eb.classList.toggle('on',ED()); eb.hidden=!TUNE; } const pn=root.closest('.pane'); if(pn) pn.classList.toggle('editing',ED()); if(!ED()) S.cardEd=null; } edB.style.display='none'; edB.classList.toggle('acc',ED()); edB.textContent=ED()?'Done':'Edit'; ebar.style.display=ED()?'':'none'; if(hrail){ const o=ED()&&HR.open, was=hrail.style.display!=='none'; hrail.style.display=o?'':'none'; if(o) hrPaint(hrail); if(o!==was) requestAnimationFrame(()=>{ layout(); RP.dirty=true; }); } if(!ED()) return;
     const sl=SEL.r0!=null?selStats():'', n=edCount();
-    ebar.innerHTML=`<span class="vlab">Editing</span><span class="mono dim">${sl}</span><button class="btn sm" data-e="undo"${EDIT.undo.length?'':' disabled'} title="${esc(EDIT.undo.length?'Undo '+EDIT.undo[EDIT.undo.length-1].label:'Nothing to undo')}">Undo</button><button class="btn sm" data-e="redo"${EDIT.redo.length?'':' disabled'}>Redo</button><button class="btn sm" data-e="diff"${REV.nodes.length>1?'':' disabled'} title="Compare this revision with another (read-only)">Compare revision ▾</button><button class="btn sm" data-e="hist"${EDIT.undo.length?'':' disabled'} title="Jump back to any step">Undo history ▾</button>`
+    ebar.innerHTML=`<span class="vlab">Editing</span><span class="mono dim">${sl}</span><button class="btn sm" data-e="undo"${EDIT.undo.length?'':' disabled'} title="${esc(EDIT.undo.length?'Undo '+EDIT.undo[EDIT.undo.length-1].label:'Nothing to undo')}">Undo</button><button class="btn sm" data-e="redo"${EDIT.redo.length?'':' disabled'}>Redo</button><button class="btn sm" data-e="diff"${REV.nodes.length>1?'':' disabled'} title="Revision tree and compare">Revisions ▾</button><button class="btn sm" data-e="hist"${EDIT.undo.length?'':' disabled'} title="Jump back to any step">Undo history ▾</button>`
       +`<button class="chip${EDIT.overlays?' on':''}" data-e="ov" title="Log trace, knock heat and B marker">Show log overlays</button><button class="chip${EDIT.onlyEd?' on':''}" data-e="only" title="Only list tables you have changed">Show changed tables only</button><span class="vfill"></span>`
       +`<span class="mono dim">${n} unbuilt change${n!==1?'s':''}</span>${side==="b"?"":(()=>{ const hn=hrCount(); return `<button class="btn sm hlpb${hn?" has":""}${HR.open?" on":""}" data-e="sug">Helpers · ${hn}</button>`; })()}<button class="btn sm acc" data-e="build" title="Save as a new revision (Ctrl+B)">Build</button>`; }
   function edDown(e){ const t=built; if(!t||!S.geo) return false; const p=cellAt(e.clientX,e.clientY), W=S.win; if(!p) return false;
@@ -524,7 +525,7 @@ function MafTableView(){
   let shown=false, liveBin=-1, revealKey=''; const root=mk('div','view mt'), bar=mk('div','vbar',root);
   mk('span','vlab',bar).textContent='OL calc'; const olSeg=seg(bar,[['afl','+AFL','OL = WB/FFB × (1+AFL)'],['raw','raw','OL = WB/FFB']],CFG.olAfl?'afl':'raw',v=>{ CFG.olAfl=v==='afl'; UI.cfg.olAfl=CFG.olAfl; save(); refinalize(); });
   const srcChip=mk('span','chip ro',bar); const ipwChip=mk('span','chip ro',bar); const seamChip=mk('span','chip ro',bar); const chkChip=mk('span','chip ro',bar); const poolChip=mk('span','chip ro',bar); const OPEN=new Set();
-  mk('span','vfill',bar);
+  mk('span','vfill',bar); { const fg=mk('button','ibtn',bar); fg.innerHTML=SVG_GEAR; fg.title='MAF filters'; fg.onclick=()=>setPop(fg,['flt'],'MAF filters'); }
   const now=mk('div','mt-now',root); now.style.display='none'; let nowSig='';
   const wrap=mk('div','ml',root), strip=mk('div','ml-strip',wrap), grid=mk('div','ml-grid',wrap), list=mk('div','ml-list',grid), side=mk('div','ml-side',grid); let SELB=-1;
   const mc=m=>m==null?null:(m<0.88||m>1.12)?'#ff6b6b':(m<0.93||m>1.07)?'#f0a050':(m<0.97||m>1.03)?'#7bbf50':'#8a8a92';
@@ -666,6 +667,7 @@ function MafCurveView(){
 //  SCATTER — any X vs Y over unmasked frames, optional colour channel, overlay log, trendline
 // ════════════════════════════════════════════════════════════════════════════
 function ScatterView(){ const S=UI.sc; let shown=false; const cache={key:''}; const root=mk('div','view sv'), bar=mk('div','vbar',root);
+  { const gm=mk('div','seg',bar); gm.innerHTML='<button>Lanes</button><button class="on">Scatter</button>'; gm.firstChild.onclick=()=>grMode('graph'); }
   const mkSel=(lab,key,tip)=>{ mk('span','vlab',bar).textContent=lab; const el=mk('select','sel sm',bar); el.title=tip; el.onchange=()=>{ S[key]=el.value; save(); cache.key=''; RP.dirty=true; }; return el; };
   const sx=mkSel('X','x','X axis channel'), sy=mkSel('Y','y','Y axis channel'), sc=mkSel('Colour by','c','Colour points by a third channel (blue = low, red = high)'), so=mkSel('Overlay','ov','Second log, drawn in cyan');
   mk('span','vlab',bar).textContent='Trend'; seg(bar,[['lin','Linear'],['poly','Poly','2nd-order curve'],['none','Off']],S.fit,v=>{ S.fit=v; save(); cache.key=''; RP.dirty=true; });
