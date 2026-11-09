@@ -11,7 +11,7 @@ const UI_DEF={layout:'1',sizes:{h:0.5,v:0.5,l:0.62,r:0.5},panes:['table','graph'
   tt:{grp:'timing',sel:{},opt:{mark:'glow',val:1,name:1,kmL:1,kmH:0,vvt:'off',km:60,fol:0,kch:'fbkc',ks:1,kw:1},rail:1,rc:{}},
   m:{src:'all',mode:'curve',scatter:false},trims:{},flags:{},keys:{},sc:{x:'',y:'',c:'',fit:'lin',ov:''},sevCol:{},diagOn:{},meta:{},home:null,logCol:{},link:false,pool:{},lrev:{},rails:{},dtab:'session',dq:'',seenVer:null,upd:null,cfg:{},limits:{},axis:null,fp:null,playT:0,open:{}};
 const UI=(()=>{ const d=JSON.parse(JSON.stringify(UI_DEF)); try{ const s=JSON.parse(localStorage.getItem('rrlab_ui_v1')||'null');
-  if(s) for(const k in d){ if(s[k]==null) continue; if(typeof d[k]==='object'&&!Array.isArray(d[k])&&d[k]) d[k]=Object.assign(d[k],s[k]); else d[k]=s[k]; } }catch(_){ try{ localStorage.setItem('rrlab_ui_bad',localStorage.getItem('rrlab_ui_v1')||''); localStorage.removeItem('rrlab_ui_v1'); window.__quar=1; }catch(e){} }
+  if(s) for(const k in s){ if(s[k]==null) continue; if(k in d&&typeof d[k]==='object'&&!Array.isArray(d[k])&&d[k]) d[k]=Object.assign(d[k],s[k]); else d[k]=s[k]; } }catch(_){ try{ localStorage.setItem('rrlab_ui_bad',localStorage.getItem('rrlab_ui_v1')||''); localStorage.removeItem('rrlab_ui_v1'); window.__quar=1; }catch(e){} }
   if(d.tt.opt) d.tt.opt=Object.assign({},UI_DEF.tt.opt,d.tt.opt); if(d.g) d.g=Object.assign({},UI_DEF.g,d.g); return d; })();
 if(UI.layout==='2v') UI.layout='2h'; (UI.presets||[]).forEach(p=>{ if(p&&p.layout==='2v') p.layout='2h'; });
 Object.assign(CFG,UI.cfg); CFG.olAfl=UI.cfg.olAfl!=null?UI.cfg.olAfl:true; let ULIM=UI.limits||{}; if(!UI.pu) UI.pu='psi'; if(UI.tt&&UI.tt.opt&&UI.tt.opt.kw==null) UI.tt.opt.kw=1;
