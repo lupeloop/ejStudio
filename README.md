@@ -37,6 +37,11 @@ Hover the logo in the top-left corner to switch modes. ejLogger keeps logging in
 
 # ejStudio
 
+## Start screen
+![Start screen](docs/img/landing.png)
+
+Pick the car, the tune and the logs, or reopen a recent session. ejLogger's status and newest logs sit alongside.
+
 ## Tables
 ![Tables](docs/img/tables.png)
 
@@ -54,6 +59,8 @@ Every table and setting card in the tune, with the log replayed live on top.
 - Type to edit (`*1.02`, `+0.5`, `-0.35`), arrow keys, selection stats.
 - **Revisions ▾**: the tuning tree, a read-only compare against any revision, and open or save any revision. Undo history alongside.
 - **Build** writes a new `revN.tune` and keeps an automatic backup.
+
+<img src="docs/img/revisions.png" width="520" alt="Revisions">
 
 ## Helpers
 ![Helpers](docs/img/helpers.png)
@@ -90,6 +97,8 @@ Several cars, each with its engine, parts, drivetrain (gear ratios, final drive,
 
 ## Graph and analysis
 ![Graph](docs/img/graph.png)
+
+![Scatter](docs/img/scatter.png)
 
 - Multi-lane graph with Full log view, event ticks and hover details; drag to scrub.
 - Searchable **Jump to event** menu: knock, boost, fuelling, AVCS, tip-in and more.
@@ -135,6 +144,8 @@ Four cluster themes and four Dock styles to mix and match, then fine-tune.
 
 ## Parameters and profiles
 ![Parameters](docs/img/logger_params.png)
+
+![Profiles](docs/img/logger_profiles.png)
 
 - **Parameters** grouped by category, with the expected logging rate for the selection. Only what the ECU supports is shown.
 - **Profiles** saved as standard profile XML, with their own order, glyph, screensaver and warn limits.
@@ -189,6 +200,8 @@ ejStudio can run a dedicated in-car PC as a full-screen cluster. Turn on **Confi
 - connects on its own and keeps retrying until the ECU answers;
 - auto-records each drive, with warm-up, warn limits, night dimming and screensavers (Header Pulses, Ink or Night Sky);
 - shows the **Dock** with a tap: QR, Reset peaks, Profiles, Codes and Record.
+
+![Dock](docs/img/logger_dock.png)
 
 Tap the top edge of the screen or press **Esc** for the full ejLogger.
 
