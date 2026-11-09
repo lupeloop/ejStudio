@@ -21,3 +21,9 @@
     StrCpy $INSTDIR "$R1\ejStudio"
   ${EndIf}
 !macroend
+
+; Always install for the current user only (no "all users" page). The app then lives under
+; %LOCALAPPDATA%\Programs\ejStudio and USB updates can install silently without admin rights.
+!macro customInstallMode
+  StrCpy $isForceCurrentInstall "1"
+!macroend
