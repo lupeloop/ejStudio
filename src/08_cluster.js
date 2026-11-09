@@ -54,7 +54,7 @@ const CLU=(()=>{
 #ejl .cl .clol{position:absolute;font:700 1.3cqw ejMono,var(--mono);padding:.1cqw .6cqw;border-radius:.4cqw}
 #ejl .cl .ring{position:absolute;inset:0;pointer-events:none;transition:opacity .5s}
 #ejl .cl.ol .g{border:var(--olw,1px) solid var(--olc,#2a2a2e);margin:2px}#ejl .cl{background:var(--bg0,#000)}#ejl .cl .tr .row b{color:var(--uc,#8a8a92)}#ejl .cl .g{border-radius:var(--rad,0)}
-#ejl .cl.ed .g{cursor:pointer}#ejl .cl.ed .g:hover{background:#0a0a0d}#ejl .cl.ed .g.sel{outline:2px solid var(--acc);outline-offset:-2px;z-index:2}#ejl .cl.ed .g.nl{opacity:.45}#ejl .cl.ed .g.dragover{background:var(--acc-d)}#ejl .cl .g.nl .v{color:#3a3a40}
+#ejl .cl.ed .g{cursor:pointer}#ejl .cl.ed .g:hover{background:#0a0a0d}#ejl .cl.ed .g.tsel{outline:2px solid var(--acc);outline-offset:-2px;z-index:2}#ejl .cl.ed .g.nl{opacity:.45}#ejl .cl.ed .g.dragover{background:var(--acc-d)}#ejl .cl .g.nl .v{color:#3a3a40}
 #ejl .cl .dock.left{left:0;right:auto;border-left:0;border-right:var(--dkbw,0px) solid var(--dkbc,transparent);transform:translateX(-1.2cqw)}#ejl .cl .dock.left.on{transform:none}
 #ejl .cl .dock{position:absolute;top:0;bottom:0;right:0;width:calc(var(--dkw,92)/1024*100cqw);background:var(--dkbg,#060608);display:flex;flex-direction:column;justify-content:space-evenly;align-items:stretch;padding:1cqw .6cqw;gap:.8cqw;z-index:5;opacity:0;transform:translateX(1.2cqw);pointer-events:none;transition:opacity .18s ease,transform .18s ease;border-left:var(--dkbw,0px) solid var(--dkbc,transparent)}
 #ejl .cl .dock.on{opacity:1;transform:none;pointer-events:auto}
@@ -104,7 +104,7 @@ const CLU=(()=>{
       if(ok){ for(let a=0;a<h;a++) for(let b=0;b<w;b++) occ2.add((r+a)+','+(c+b)); maxR=Math.max(maxR,r+h); return [r,c]; } } return [0,0]; };
     const put=(d,cid,def)=>{ const [w,h]=spanOf(cid)||def||[1,1], [r,c]=place(w,h); d.style.gridRow=`${r+1} / span ${h}`; d.style.gridColumn=`${c+1} / span ${w}`; d._p={r,c,w,h}; const hero=w>=2&&h>=2?1.9:w>=2?1.35:h>=2?1.25:1; if(hero>1) d.classList.add('hero'); return hero; };
     const style=(d,cid)=>{ for(const k of ['tc','vc','mc','uc']){ const v=tget(cid,k); if(v) d.style.setProperty('--'+k,v); } for(const k of ['ts','vs','ms','us']){ const v=num(tget(cid,k),NaN); if(Number.isFinite(v)) d.style.setProperty('--'+k,v); } };
-    const editable=(d,cid)=>{ if(!ctx.edit) return; d.dataset.cid=cid; d.draggable=true; if(cid===ctx.selected) d.classList.add('sel');
+    const editable=(d,cid)=>{ if(!ctx.edit) return; d.dataset.cid=cid; d.draggable=true; if(cid===ctx.selected) d.classList.add('tsel');
       d.onclick=()=>ctx.onSelect&&ctx.onSelect(cid); d.ondragstart=e=>{ e.dataTransfer.setData('text/plain',cid); };
       d.ondragover=e=>{ e.preventDefault(); d.classList.add('dragover'); }; d.ondragleave=()=>d.classList.remove('dragover');
       d.ondrop=e=>{ e.preventDefault(); d.classList.remove('dragover'); const from=e.dataTransfer.getData('text/plain'); if(from&&from!==cid&&ctx.onMove) ctx.onMove(from,cid); }; };
