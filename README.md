@@ -28,7 +28,7 @@ ejStudio is one app for the whole tuning loop. It loads logs alongside a Project
 
 | | Mode | What it's for |
 |:-:|---|---|
-| <img src="logos/ejstudio.svg" width="30"> | **ejStudio** | Tables, Graph, MAF Tools, Scatter Plots and tune editing. Opens by default. |
+| <img src="logos/ejstudio.svg" width="30"> | **ejStudio** | Tables, Graph, MAF Tools, Scatter Plots, Helpers and tune editing. Opens by default. |
 | <img src="logos/ejlogger.svg" width="30"> | **ejLogger** | Live logging: Live cluster, Parameters, Designer, Logs and Config. |
 
 Hover the logo in the top-left corner to switch modes. ejLogger keeps logging in the background while you work in ejStudio, shown by a red dot on the logo.
@@ -58,12 +58,23 @@ Every table and setting card in the tune, with the log replayed live on top.
 ## Suggestions
 ![Suggestions](docs/img/suggestions.png)
 
-MAF scaling and knock timing corrections, grouped by area with the evidence for each.
+MAF scaling, knock timing and Helper corrections, grouped by area with the evidence for each.
 
 > [!IMPORTANT]
-> Timing suggestions follow strict rules: only repeated, sustained knock on the current revision; nothing if IAM has dropped; only the table the ECU was using; spread over the cells the ECU blends; max 2° per cell; tapered with no humps; fuel-cut areas left alone; base timing only; **never adds timing**.
+> Knock timing suggestions follow strict rules: only repeated, sustained knock on the current revision; nothing if IAM has dropped; only the table the ECU was using; spread over the cells the ECU blends; max 2° per cell; tapered with no humps; fuel-cut areas left alone; base timing only; never adds timing.
+>
+> The one exception is the **Fuel & octane** helper after a move to better fuel: added timing comes as its own group, off until you tick it, at most 1° per cell per revision, only in cells with 20+ clean samples on the new fuel and nowhere near knock.
 
 Switch any cell or whole group on or off before applying. Nothing reaches the file until you Build.
+
+## Helpers
+Diagnosis for the jobs around the tables, in its own Helpers view; any changes they suggest appear as their own groups in Suggestions.
+- **Fuel & octane:** each car keeps a fuel history (brand, octane, ethanol % from the pump label). Moving to lower octane suggests a conservative pull at high load and an IAM reset; moving to better fuel can suggest added timing in clean cells. Ethanol changes show the new stoichiometric AFR and how far open-loop fuelling shifts.
+- **Boost control:** target vs actual boost by RPM at wide-open throttle, peak overshoot and wastegate duty, with wastegate max and base changes where boost falls short or overshoots.
+- **Injectors:** closed-loop trims by pulse width show whether injector scaling or latency is off, with the suggested scaling and latency changes.
+
+## Car profiles
+Several cars, each with its engine, parts and fuel. Recent sessions are kept per car; switch cars on the start screen or in the drawer. The first launch offers to create one.
 
 ## MAF Tools
 ![MAF Tools](docs/img/maf.png)
@@ -104,7 +115,7 @@ A complete Subaru SSM logger, cluster and log manager built into ejStudio. Watch
 ## Designer and themes
 ![ejLogger Designer](docs/img/logger_designer.png)
 
-Lay out the cluster for each profile: click a tile to style it, drag to reorder, add or remove gauges and pick the grid.
+Lay out the cluster for each profile: click a tile to style it and size it (Wide, Tall, Hero or Banner), drag to reorder, add or remove gauges and pick the grid.
 
 ![Cluster themes](docs/img/logger_themes.png)
 
@@ -118,6 +129,7 @@ Four cluster themes and four Dock styles to mix and match, then fine-tune.
 </tr>
 </table>
 
+- **Seven preset profiles**, each with its own purpose-built cluster: Daily, Timing, Fuel-CL, Fuel-OL, Boost, AVCS and Idle. All editable.
 - **Parameters** grouped by category, with the expected logging rate for the selection. Only what the ECU supports is shown.
 - **Profiles** saved as standard profile XML, with their own order, glyph, screensaver and warn limits.
 - **Labels** set the title and unit each parameter shows on the cluster.
@@ -125,7 +137,13 @@ Four cluster themes and four Dock styles to mix and match, then fine-tune.
 ## Logs
 ![ejLogger Logs](docs/img/logger_logs.png)
 
-Every log is named by date, time and profile, like `ejlogger_2026-11-06_1755_master.csv`. Zip, export, archive or delete them by day or profile, and copy new logs to a USB stick as soon as one is plugged in.
+Every log is named by date, time and profile, like `ejlogger_2026-11-06_1755_master.csv`. Zip, export, archive or delete them by day or profile.
+
+## USB stick
+Plug in a stick and ejLogger offers what it finds: copy new logs to it, load the newest `.tune` on it, and install a newer `ejStudio-Setup` from it. Car mode shows big touch tiles; the laptop shows a dialog. Updates install silently, with no admin prompt.
+
+## Trouble codes
+A **Codes** tab reads current and stored trouble codes when ejLogger connects, and again on **Scan**. **Reset ECU** clears them along with the ECU's learned values; it only unlocks with the ignition on and the engine off. In car mode, codes open from the Dock.
 
 ## Config
 ![ejLogger Config](docs/img/logger_config.png)
@@ -137,7 +155,7 @@ Every setting in one searchable place:
 | **This PC** | Car mode |
 | **Connection** | ECU port, logger definition, wideband |
 | **Cluster** | Cluster files, screensaver, warm-up, warn limits, night dimming |
-| **Recording** | Auto-record, log folder, log storage, USB stick |
+| **Recording** | Auto-record, log folder, log storage, USB stick (any stick, or one label) |
 | **System** | Health, restart, config backup |
 | **Phone & network** | Phone panel, address and passcode |
 
@@ -167,7 +185,7 @@ ejStudio can run a dedicated in-car PC as a full-screen cluster. Turn on **Confi
 - opens straight into ejLogger, full screen on the cluster, and loads the default profile;
 - connects on its own and keeps retrying until the ECU answers;
 - auto-records each drive, with warm-up, warn limits, night dimming and screensavers (Header Pulses, Ink or Night Sky);
-- shows the **Dock** with a tap: QR, Reset peaks, Profiles and Record.
+- shows the **Dock** with a tap: QR, Reset peaks, Profiles, Codes and Record.
 
 Tap the top edge of the screen or press **Esc** for the full ejLogger.
 
