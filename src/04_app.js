@@ -428,7 +428,6 @@ function profNow(){ return typeof carNow==='function'?carNow():null; }
 function profApply(){ PROF=profNow(); }
 // a tune remembers the car it was loaded with; loading it again picks that car
 function profAuto(T){ if(!T) return; const cars=UI.cars||[], m=cars.find(c=>c.rom&&c.rom===T.rom); if(m) UI.car=m.id; else { const c=profNow(); if(c&&!c.rom) c.rom=T.rom; } profApply(); }
-function profChanged(){ profApply(); save(); recompute(true); }
 // 3.1.0: the old Vehicle profiles become car profiles
 function profMigrate(){ const ps=UI.profiles; if(!Array.isArray(ps)||!ps.length){ delete UI.profiles; delete UI.profSel; return; } const cars=UI.cars||(UI.cars=[]);
   for(const p of ps){ let c=cars.find(x=>x.name&&x.name===p.name); if(!c){ c={id:'car'+p.id,name:p.name||'Car',engine:p.engine||'',avcs:false,inj:p.inj?String(p.inj)+' cc':'',maf:p.mafd?p.mafd+' mm':'',turbo:'',fuelHist:p.fuel?[{t:Date.now(),brand:'',octane:String(p.fuel),eth:''}]:[]}; cars.push(c); }

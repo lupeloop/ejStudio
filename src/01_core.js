@@ -523,7 +523,6 @@ function computePicks(L){
 //                    FBKC + FLKC (verified: KCA = FBKC at low load). Without KCA: IAM × knock advance max + FBKC + FLKC.
 const WG_RATE=10;
 function tAt(t,x,y){ return t?at2(t,x,t.yin?y:0):NaN; }
-function vecAt(v,ax,x){ return v&&ax?lerpArr(ax,v,x):0; }
 function bestVar(ids,f,logged,N){ const B=TUNE.byId; let best=null, be=Infinity;
   for(const id of ids){ const t=B[id]; if(!t) continue; if(!logged){ return t; } const e=[]; for(let i=0;i<N;i+=3){ const p=f(t,i); if(Number.isFinite(p)&&Number.isFinite(logged[i])) e.push(Math.abs(p-logged[i])); }
     const m=e.length?median(e):Infinity; if(m<be){ be=m; best=t; } }

@@ -260,7 +260,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
     if(!S.clu){ $('ejl-stage').innerHTML='<div class="empty">Loading the cluster files…</div>'; return; }
     drawCluster(16); }
   let lastT=performance.now();
-  const curProf=()=>(S.cfg&&S.cfg.profile)||'master';
+  const curProf=()=>(S.cfg&&S.cfg.profile)||'Daily';
   function drawDesigner(dt){ CLU.frame($('ejl-dstage'),{dockForce:performance.now()-(S.dockPeek||-1e9)<4000,C:S.clu,profile:curProf(),edit:true,selected:S.dsel,ver:S.cver,page:S.dpage,sel:sel(),byId:S.byId,cur:S.cur,num:S.num,mn:S.mn,mx:S.mx,rec:S.rec,recT0:S.recT0,hz:S.stats.hz,logging:S.state==='logging',
     onSelect:cid=>{ S.dsel=S.dsel===cid?null:cid; CLU.reset(); paintDside(); }, onMove:moveSlot, onPage:k=>{ S.dpage=k; CLU.reset(); }},dt); }
   // ── sidecar edits: applied in memory at once (cluster redraws), written to disk shortly after ──
@@ -322,7 +322,7 @@ body.ejl-pass #ejl .edtop,body.ejl-pass #ejl .csplit,body.ejl-pass #ejl .tabs,bo
     if(d.kind==='color'&&!/^#[0-9a-f]{6}$/i.test(v)){ return; }
     setProp(d.pf,d.pk,v); }
   $('ejl-sbody').addEventListener('input',propInput); $('ejl-sbody').addEventListener('change',propInput);
-  function drawCluster(dt){ CLU.frame($('ejl-stage'),{dtc:dtcCount(),noDock:ISPHONE,onTile:ISPHONE?openGraph:null,onDock,speed:roleVal('SPEED_SOURCE',/^Vehicle Speed/),C:S.clu,profile:(S.cfg&&S.cfg.profile)||'master',page:S.page,sel:sel(),byId:S.byId,cur:S.cur,num:S.num,mn:S.mn,mx:S.mx,rec:S.rec,recT0:S.recT0,hz:S.stats.hz,logging:S.state==='logging',onPage:k=>{ S.page=k; CLU.reset(); }},dt); }
+  function drawCluster(dt){ CLU.frame($('ejl-stage'),{dtc:dtcCount(),noDock:ISPHONE,onTile:ISPHONE?openGraph:null,onDock,speed:roleVal('SPEED_SOURCE',/^Vehicle Speed/),C:S.clu,profile:(S.cfg&&S.cfg.profile)||'Daily',page:S.page,sel:sel(),byId:S.byId,cur:S.cur,num:S.num,mn:S.mn,mx:S.mx,rec:S.rec,recT0:S.recT0,hz:S.stats.hz,logging:S.state==='logging',onPage:k=>{ S.page=k; CLU.reset(); }},dt); }
 
   // Parameters: Grouped (categories down the side, tickable cards)
   function paintParams(){ if(S.pview==='profiles') return paintProfiles(); if(S.pview==='labels') return paintLabels(); $('ejlv-params').classList.remove('nonav'); const q=S.pq.trim().toLowerCase(), cfg=S.cfg||{};

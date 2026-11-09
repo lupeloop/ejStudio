@@ -232,7 +232,6 @@ function vTiny(t){ const n=t&&t.name||''; return (/Non-Cruise/i.test(n)?'Non-Cru
 function nm(key,def){ const n=UI.names&&TUNE&&UI.names[TUNE.car||'_']; return (n&&n[key])||def; }
 async function renameTitle(key,def){ if(!TUNE) return; const cur=nm(key,def), v=await askVal('Rename',cur,'Use the name Project Lambda shows · leave empty to reset'); if(v==null) return;
   const car=TUNE.car||'_', N=(UI.names=UI.names||{})[car]=(UI.names[car]||{}); if(v.trim()&&v.trim()!==def) N[key]=v.trim(); else delete N[key]; save(); TV.edRefresh(); if(typeof TVb!=='undefined') TVb.edRefresh(); drawerRefresh(); }
-function TNOTE(){ return false; }
 function poolL(cur){ const P=ST.logs.filter(L=>pooled(L)&&(UI.lrev[L.fp]||REV.cur)===REV.cur); return P.length?P:(cur?[cur]:[]); }
 function showView(v){ if(!UI.panes.slice(0,paneCount()).includes(v)&&!POP[v]) setPaneView(UI.focus,v); }
 function tstat(){ const eb=$('ed-top'), db=$('drawer-btn'); const n=typeof edCount==='function'&&EDIT.T?edCount():0;

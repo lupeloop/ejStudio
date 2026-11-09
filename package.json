@@ -11,7 +11,7 @@
     "test:logger": "node ejLogger/engine/test/golden.test.js && node ejLogger/engine/test/engine.test.js"
   },
   "build": {
-    "appId": "com.ejlab.app",
+    "appId": "com.ejstudio.app",
     "productName": "ejStudio",
     "files": [
       "main.js",
@@ -56,7 +56,8 @@
       "artifactName": "ejStudio-Setup-${version}.exe",
       "deleteAppDataOnUninstall": false,
       "shortcutName": "ejStudio",
-      "include": "build/installer.nsh"
+      "include": "build/installer.nsh",
+      "guid": "d46c0fde-f96e-5679-8aa4-560e9a48ad86"
     },
     "fileAssociations": [
       {
