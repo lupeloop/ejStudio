@@ -3,7 +3,7 @@ const EDIT={on:false,T:null,undo:[],redo:[],ver:0,overlays:true,onlyEd:false,ok:
 function edReset(){ EDIT.T=null; EDIT.undo=[]; EDIT.redo=[]; EDIT.ver++; EDIT.ok.clear(); if(typeof TV!=='undefined'&&TV) TV.edRefresh(); }
 const RAIL_DEF={timing:2,fuel:5,maf:5,boost:2,wg:10}, rails=()=>Object.assign({},RAIL_DEF,UI.rails||{});
 function editorSettingsHtml(){ const R=rails(), f=(k,l,u)=>`<label class="drow"><span>${l}</span><input class="num" type="number" step="any" data-rail="${k}" value="${R[k]}"><em>${u}</em></label>`;
-  return '<div class="note">Safety rails warn before applying a change bigger than this from the loaded tune.</div>'+f('timing','Timing per cell','°')+f('fuel','Fuel target per cell','%')+f('maf','MAF scaling per bin','%')+f('boost','Boost target per cell','psi')+f('wg','Wastegate duty per cell','%'); }
+  return ''+f('timing','Timing per cell','°')+f('fuel','Fuel target per cell','%')+f('maf','MAF scaling per bin','%')+f('boost','Boost target per cell','psi')+f('wg','Wastegate duty per cell','%'); }
 const same=(a,b)=>a===b||Math.abs(a-b)<=1e-9*Math.max(1,Math.abs(a));
 const baseOf=t=>{ if(t&&t.__src){ const b=TUNE&&TUNE.byId[t.id]; return b&&b.z&&{z:b.z[0].map(v=>[v]),x:[0],y:b.x}; } return t&&TUNE&&TUNE.byId[t.id]; };
 function vT(t){ if(!t||t.yin||!t.z||t.z.length!==1||UI.vert1d===false) return t; const p=Object.create(t); p.__src=t; p.vert=true; p.x=[0]; p.y=t.x; p.yin=t.xin; p.z=t.z[0].map(v=>[v]); return p; }

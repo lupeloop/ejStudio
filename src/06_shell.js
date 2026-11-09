@@ -51,7 +51,7 @@ function wire(){
     if(bad.length||window.__quar){ elog('self-check reset: '+(bad.join(',')||'settings unreadable')); save(); setTimeout(()=>toast('Some saved settings were unreadable and were reset'),1500); } } profApply(); makeViews(); wire(); if(window.rrlab&&window.rrlab.info) window.rrlab.info().then(i=>{ INFO=i; drawerRefresh(); }).catch(()=>{}); setTimeout(()=>checkUpdates(false),5000); { const j=UI.panes.indexOf('table'); if(j>0) UI.panes[j]=UI.panes[0]; UI.panes[0]='table'; UI.focus=0; }
   try{ profMigrate(); profApply(); }catch(_){}
   try{ const s=JSON.parse(localStorage.getItem('rrlab_tune_v1')||'null'); if(s&&s.text){ TUNE=parseTune(s.text,s.name); applyTuneAxis(); profAuto(TUNE); revBoot(s.text,s.name); } }catch(_){ try{ localStorage.removeItem('rrlab_tune_v1'); }catch(e){} }
-  if(UI.axis){ BP=UI.axis.slice(); AXIS_SRC='custom'; }
+  UI.axis=null;
   landRefresh(); IDB.clear(); const stored=[], errs=[];   // logs are never kept between sessions; only the tune is
   if(stored.length){ if(TUNE){ busy(true,'Restoring session',stored.length+' log'+(stored.length>1?'s':'')); await sleep(80); for(const o of stored) await ingest(o,false,errs); busy(false); } else ST.queue.push(...stored); }
   if(ST.logs.length){ recompute(false); selectLog(ST.logs.find(L=>L.fp===UI.fp)||ST.logs[0],false); if(UI.playT) rpSeek(UI.playT,true); enterApp(); } else showLanding();
