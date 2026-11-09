@@ -3,7 +3,7 @@
 <p align="center"><b>Log analyzer · Tune editor · Live logger</b><br>for Subaru EJ engines tuned with Project Lambda</p>
 
 <p align="center">
-  <img src="docs/img/badges/version.svg" alt="Version 3.0.6">
+  <img src="docs/img/badges/version.svg" alt="Version 3.1.0">
   <img src="docs/img/badges/windows.svg" alt="Windows 10 and 11">
   <img src="docs/img/badges/ecu.svg" alt="Subaru SSM over K-Line">
   <img src="docs/img/badges/tunes.svg" alt="Project Lambda">
