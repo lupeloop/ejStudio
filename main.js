@@ -160,6 +160,30 @@ function ejlIpc(){
     for(const f of fresh){ try{ const t=path.join(dest,f.name); if(!(fs.existsSync(t)&&fs.statSync(t).size===f.size)){ copyLog(f,dest); n++; send('ejl',{t:'usbProgress',name:f.name,i:n,of:fresh.length}); }
       if(fs.existsSync(t)&&fs.statSync(t).size===f.size){ moveLog(f,true); moved++; } }catch(err){ elog('usb sync '+err); } }
     return {ok:true,copied:n,moved}; });
+  // ── USB stick: find the newest .tune and an ejStudio update anywhere on the stick ──
+  const verNum=v=>String(v||'').split('.').map(x=>parseInt(x,10)||0).reduce((a,x)=>a*1000+x,0);
+  function stickWalk(root){ const tunes=[], exes=[], SKIP=/^(System Volume Information|\$RECYCLE\.BIN|logs|\..*)$/i;
+    const walk=(dir,depth)=>{ if(depth>5) return; let ents=[]; try{ ents=fs.readdirSync(dir,{withFileTypes:true}); }catch(_){ return; }
+      for(const e of ents){ const p=path.join(dir,e.name); if(e.isDirectory()){ if(!SKIP.test(e.name)) walk(p,depth+1); continue; }
+        if(/\.tune$/i.test(e.name)) try{ const st=fs.statSync(p); tunes.push({path:p,name:e.name,mtime:st.mtimeMs,size:st.size}); }catch(_){}
+        const m=e.name.match(/^ejStudio[- ]Setup[- ](\d+\.\d+\.\d+)\.exe$/i); if(m) try{ const st=fs.statSync(p); exes.push({path:p,name:e.name,version:m[1],size:st.size}); }catch(_){} } };
+    walk(root,0); tunes.sort((a,b)=>b.mtime-a.mtime); exes.sort((a,b)=>verNum(b.version)-verNum(a.version)); return {tunes,exes}; }
+  reg('ejl:usbScan',(e,letter)=>{ const d=ejl.drives.find(x=>x.letter===letter); if(!d) return null; const recName=ejl.rec?path.basename(ejl.file||''):null, dest=path.join(d.path,'logs');
+    const fresh=listLogs().filter(f=>!f.old&&f.name!==recName&&!(()=>{ try{ return fs.statSync(path.join(dest,f.name)).size===f.size; }catch(_){ return false; } })());
+    const w=stickWalk(d.path), t=w.tunes[0]||null, last=ejlCfg().usbTune||{}, up=w.exes[0]&&verNum(w.exes[0].version)>verNum(app.getVersion())?w.exes[0]:null;
+    return {drive:d,logs:fresh.length,tune:t&&!(last.name===t.name&&last.size===t.size&&last.mtime===t.mtime)?t:null,update:up,version:app.getVersion()}; });
+  // tune from the stick: keep a copy under userData\tunes, earlier ones in .old (last 3)
+  reg('ejl:usbTune',(e,p,cur)=>{ try{ const dir=path.join(app.getPath('userData'),'tunes'), old=path.join(dir,'.old'); fs.mkdirSync(old,{recursive:true}); const stamp=new Date().toISOString().slice(0,16).replace(/[-:T]/g,'');
+      if(cur&&cur.name&&cur.text) fs.writeFileSync(path.join(old,stamp+'_'+path.basename(cur.name)),cur.text);
+      for(const f of fs.readdirSync(dir)) if(/\.tune$/i.test(f)) fs.renameSync(path.join(dir,f),path.join(old,stamp+'_'+f));
+      const keep=fs.readdirSync(old).map(f=>({f,t:fs.statSync(path.join(old,f)).mtimeMs})).sort((a,b)=>b.t-a.t); for(const k of keep.slice(3)) try{ fs.unlinkSync(path.join(old,k.f)); }catch(_){}
+      const text=fs.readFileSync(p,'utf8'), st=fs.statSync(p), tmp=path.join(dir,path.basename(p)+'.part'); fs.writeFileSync(tmp,text); fs.renameSync(tmp,path.join(dir,path.basename(p)));
+      ejlCfg().usbTune={name:path.basename(p),size:st.size,mtime:st.mtimeMs}; ejlSave(); return {ok:true,name:path.basename(p),text}; }catch(err){ elog('usb tune '+err); return {ok:false,error:String(err.message||err)}; } });
+  // update from the stick: copy the installer off the stick first, then run it silently (current user, no admin) and relaunch
+  reg('ejl:usbUpdate',async(e,p,go)=>{ try{ const dir=path.join(app.getPath('temp'),'ejStudio-update'); fs.mkdirSync(dir,{recursive:true}); const dst=path.join(dir,path.basename(p));
+      if(!go){ fs.copyFileSync(p,dst); if(fs.statSync(dst).size!==fs.statSync(p).size) throw new Error('copy check failed'); ejl.pendingUpdate=dst; return {ok:true,staged:dst,perMachine:/Program Files/i.test(process.execPath)}; }
+      const f=ejl.pendingUpdate||dst; if(!fs.existsSync(f)) throw new Error('installer missing'); try{ ejl.proc&&ejl.proc.postMessage({t:'quit'}); }catch(_){}
+      require('child_process').spawn(f,['/S','--force-run'],{detached:true,stdio:'ignore',windowsHide:true}).unref(); setTimeout(()=>app.quit(),600); return {ok:true}; }catch(err){ elog('usb update '+err); return {ok:false,error:String(err.message||err)}; } });
   // ── Log storage: move old logs to .old, optionally delete old .old logs, warn on low disk ──
   function storage(){ const c=ejlCfg(), S=c.storage||{}, day=864e5, now=Date.now(), recName=ejl.rec?path.basename(ejl.file||''):null;
     try{ if(S.oldAfterDays>0) for(const f of listLogs()) if(!f.old&&f.name!==recName&&now-f.mtime>S.oldAfterDays*day) moveLog(f,true);
