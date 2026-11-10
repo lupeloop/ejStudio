@@ -59,7 +59,7 @@ function mafToggle(bar){ const s=seg(bar,[['maf_table','Scaling'],['maf_curve','
 function MafBothView(){ const root=mk('div','view mb'), bar=mk('div','vbar',root), top=mk('div','mb-a',root), dv=mk('div','mb-d',root), bot=mk('div','mb-b',root);
   const gT=MT.el.querySelector('.vbar'), gV=MV.el.querySelector('.vbar'), iT=[...gT.children], iV=[...gV.children].filter(x=>!/vfill/.test(x.className));
   MBAR={gT,gV,iT,iV,tog:[mafToggle(gT),mafToggle(gV),mafToggle(bar)]}; let on=false;
-  dv.onpointerdown=e=>{ e.preventDefault(); dv.setPointerCapture(e.pointerId); dv.onpointermove=ev=>{ const r=root.getBoundingClientRect(); UI.mbSplit=Math.max(.2,Math.min(.8,(ev.clientX-r.left)/r.width)); fit(); }; dv.onpointerup=()=>{ dv.onpointermove=null; save(); }; };
+  dv.onpointerdown=e=>{ e.preventDefault(); dv.setPointerCapture(e.pointerId); dv.onpointercancel=()=>dv.onpointerup&&dv.onpointerup(); dv.onpointermove=ev=>{ const r=root.getBoundingClientRect(); UI.mbSplit=Math.max(.2,Math.min(.8,(ev.clientX-r.left)/r.width)); fit(); }; dv.onpointerup=()=>{ dv.onpointermove=null; save(); }; };
   const fit=()=>{ const f=UI.mbSplit||.55; root.style.gridTemplateColumns=`${f}fr 5px ${1-f}fr`; MT.resize(); MV.resize(); RP.dirty=true; };
   return { el:root, show(v){ on=v; if(v){ gT.style.display=gV.style.display='none'; const sp=mk('span','mb-sep'); bar.append(...iT.filter(x=>!x.classList.contains('vfill')),sp,...iV); top.appendChild(MT.el); bot.appendChild(MV.el); fit(); } },
     restore(){ gT.style.display=gV.style.display=''; gT.append(...iT); gV.append(...iV); bar.querySelectorAll('.mb-sep').forEach(x=>x.remove()); }, draw(){}, frame(){}, resize(){ if(on) fit(); }, isOn:()=>on }; }
@@ -71,7 +71,7 @@ function normPanes(){ const n=paneCount(), used=[], bad=v=>!VIEWS[v]||POP[v]||us
 function buildStage(){
   normPanes(); if(MB) MB.restore(); for(const k in VIEWS) VIEWS[k].el.querySelectorAll('.vbar>.link').forEach(x=>x.remove()); const st=$('stage'), n=paneCount(); for(const k in VIEWS) if(!POP[k]) hold.appendChild(VIEWS[k].el); st.innerHTML=''; st.className='stage l'+UI.layout;
   const P=[]; for(let k=0;k<n;k++) P.push(makePane(k));
-  const S=UI.sizes, div=(dir,key,box)=>{ const d=mk('div','divider '+dir); d.onpointerdown=e=>{ e.preventDefault(); d.setPointerCapture(e.pointerId); d.classList.add('on');
+  const S=UI.sizes, div=(dir,key,box)=>{ const d=mk('div','divider '+dir); d.onpointerdown=e=>{ e.preventDefault(); d.setPointerCapture(e.pointerId); d.onpointercancel=()=>d.onpointerup&&d.onpointerup(); d.classList.add('on');
       d.onpointermove=ev=>{ const r=box.getBoundingClientRect(), f=dir==='h'?(ev.clientX-r.left)/r.width:(ev.clientY-r.top)/r.height; S[key]=Math.max(0.15,Math.min(0.85,f)); applySizes(); };
       d.onpointerup=()=>{ d.onpointermove=null; d.classList.remove('on'); save(); }; }; return d; };
   if(n===1) st.append(P[0]);
@@ -99,7 +99,7 @@ function grMode(v){ UI.grLast=v; const n=paneCount(), from=v==='scatter'?'graph'
 // settings popover: drawer sections shown next to the feature they control, using the drawer's own handlers
 let DSEC={};
 function setPop(btn,keys,title){ const o=$('setpop'); if(o){ const same=o._k===keys.join(); o._close(); if(same) return; } drawerRefresh();
-  const d=mk('div','setpop',document.body); d.id='setpop'; d._k=keys.join(); d.innerHTML=`<div class="sph"><b>${esc(title)}</b><button class="ibtn" data-spx>✕</button></div><div class="spb"></div>`;
+  const d=mk('div','setpop',document.body); d.id='setpop'; d._k=keys.join(); d.innerHTML=`<div class="sph"><b>${esc(title)}</b><button class="ibtn" data-spx aria-label="Close">✕</button></div><div class="spb"></div>`;
   const bd=d.querySelector('.spb'), fill=()=>{ bd.innerHTML=keys.map(k=>DSEC[k]||'').join(''); }; fill(); drawerBind(bd);
   bd.addEventListener('click',()=>setTimeout(()=>{ drawerRefresh(); if(document.activeElement&&bd.contains(document.activeElement)&&/INPUT|SELECT/.test(document.activeElement.tagName)) return; fill(); },40));
   bd.addEventListener('change',()=>setTimeout(()=>{ drawerRefresh(); fill(); },40));
@@ -182,7 +182,7 @@ function tlBind(cv,big){ const tip=$('tltip'), tAt=e=>{ const r=cv.getBoundingCl
     if(RP.drag&&RP.drag.big===big){ RP.drag.t1=t; RP.drag.moved=true; if(!RP.drag.ab) rpSeek(t,true); } RP.dirty=true; });
   cv.addEventListener('pointerleave',()=>{ RP.hoverT=null; tip.classList.add('hidden'); RP.dirty=true; });
   cv.addEventListener('pointerdown',e=>{ if(!RP.L) return; try{ cv.setPointerCapture(e.pointerId); }catch(_){} const t=tAt(e); RP.drag={big,ab:big&&e.shiftKey,t0:t,t1:t,moved:false}; if(!RP.drag.ab) rpSeek(t,true); });
-  cv.addEventListener('pointerup',()=>{ const d=RP.drag; RP.drag=null; if(!d) return; if(d.ab&&Math.abs(d.t1-d.t0)>200){ RP.a=Math.min(d.t0,d.t1); RP.b=Math.max(d.t0,d.t1); rpAB(); }
+  cv.addEventListener('pointercancel',()=>{ RP.drag=null; }); cv.addEventListener('pointerup',()=>{ const d=RP.drag; RP.drag=null; if(!d) return; if(d.ab&&Math.abs(d.t1-d.t0)>200){ RP.a=Math.min(d.t0,d.t1); RP.b=Math.max(d.t0,d.t1); rpAB(); }
     if(!big&&!d.moved) pop(true); RP.dirty=true; }); }
 function pop(on){ $('tlpop').style.setProperty('--tlop',(UI.tlop??70)/100); $('tlpop').classList.toggle('hidden',!on); RP.tlcBk=null; RP.dirty=true; }
 
@@ -270,7 +270,7 @@ function landRefresh(){ if(!$('land-tune')) return; $('land-ver').textContent=AP
   $('ln-tune').classList.toggle('ok',!!TUNE);
   $('land-tune').innerHTML=TUNE?`<div class="lcur"><div class="lic">.tune</div><div><b>${esc(TUNE.name||'tune')}</b><small>${esc([TUNE.cal,cn&&cn.rev?'Rev '+cn.rev:'',cn&&cn.time?whenTxt(cn.time):''].filter(Boolean).join(' · '))}</small></div><span class="lb2"><button class="btn" data-l="edit" title="Open Tables to edit this tune, no log needed">Open in editor</button><button class="btn" data-l="tune">Change</button></span></div>`
     +(others.length?`<div class="lrec"><span>Revisions</span>${others.map(n=>`<button data-rev="${esc(n.id)}">${esc(n.file||'rev '+n.rev)}</button>`).join('')}</div>`:'')
-    :`<div class="ldrop big" data-l="tune">Load a Project Lambda .tune, or drop one here</div>`;
+    :`<div class="ldrop big" data-l="tune" role="button" tabindex="0">Load a Project Lambda .tune, or drop one here</div>`;
   const E=LAND.ejl&&LAND.ejl.files?LAND.ejl.files.filter(f=>!f.old&&f.name!==LAND.ejl.recording).slice(0,8):[];
   $('land-logs-s').textContent=E.length?'From ejLogger':'';
   $('land-rows').innerHTML=LAND.q.map((f,i)=>`<div class="lrow ${LAND.sel.has('f:'+i)?'on':''}" data-k="f:${i}"><span class="lcb"></span><span>${esc(f.name)}</span><span class="p">dropped</span><span class="r"></span><span class="z">${f.size?kb(f.size):''}</span></div>`).join('')
@@ -618,3 +618,5 @@ function reportText(){ if(!ST.logs.length&&!TUNE) return '';
   else o.push('No MAF scaling result');
   H('Tune changes'); o.push(...(window.__tuneChanges?window.__tuneChanges():['No tune edits this session']));
   return o.join('\n'); }
+
+document.addEventListener('keydown',e=>{ const t=e.target; if((e.key==='Enter'||e.key===' ')&&t&&t.getAttribute&&t.getAttribute('role')==='button'&&t.tagName!=='BUTTON'){ e.preventDefault(); t.click(); } });

@@ -58,7 +58,7 @@ function GraphView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
       cv.addEventListener('contextmenu',e=>{ e.preventDefault(); peakMenu(e,G.lanes[o.k],nearEv(e,cv)); }); let drag=null;
       cv.addEventListener('pointerdown',e=>{ if(e.button!==0) return; drag={x:e.clientX,off:RP.gOff,moved:false}; try{cv.setPointerCapture(e.pointerId);}catch(_){} });
       cv.addEventListener('pointermove',e=>{ if(!drag) return; const r=cv.getBoundingClientRect(), dx=e.clientX-drag.x; if(G.full&&CX.L){ if(Math.abs(dx)>2) drag.moved=true; if(drag.moved){ const f=Math.max(0,Math.min(1,(e.clientX-r.left-GL)/(r.width-GL-GR))); SEEK(f*CX.L.dur,false); } return; } if(Math.abs(dx)>3){ drag.moved=true; G.full=false; if(!RP.playing){ RP.gOff=drag.off-dx/(r.width-GL-GR)*G.win; dirty(); } } });
-      cv.addEventListener('pointerup',e=>{ if(drag&&!drag.moved){ const r=cv.getBoundingClientRect(), f=(e.clientX-r.left-GL)/(r.width-GL-GR); if(f>=0&&f<=1){ const [t0,t1]=win(); RP.gOff=0; SEEK(t0+f*(t1-t0),true); } } drag=null; });
+      cv.addEventListener('pointerup',e=>{ if(drag&&!drag.moved){ const r=cv.getBoundingClientRect(), f=(e.clientX-r.left-GL)/(r.width-GL-GR); if(f>=0&&f<=1){ const [t0,t1]=win(); RP.gOff=0; SEEK(t0+f*(t1-t0),true); } } drag=null; }); cv.addEventListener('pointercancel',()=>{ drag=null; });
       cv.addEventListener('pointermove',e=>{ if(!drag) laneTip(e,cv); }); cv.addEventListener('pointerleave',()=>$('tltip').classList.add('hidden'));
       lanes.push(o); }
     fill(); nSeg.set(G.n); dirty(); }
@@ -295,7 +295,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
       body=`<table class="cg"><tr><th>${esc(cardUnit(c))}</th>${cl.map(x=>`<th>${esc(x)}</th>`).join('')}</tr>${c.v.map((r,i)=>`<tr><th>${esc(rl[i]||'')}</th>${r.map((v,j)=>`<td>${open?`<input class="num xs" data-cv="${i},${j}" value="${esc(fv(v))}">`:fv(v)}</td>`).join('')}</tr>`).join('')}</table>`
         +(open?'<div class="drow"><button class="btn sm acc" data-cs>Apply</button><button class="btn sm ghost" data-cx>Cancel</button></div>':''); }
     else body=`<b>${cardVal(c)}</b><u>${esc(cardUnit(c))}</u>`;
-    return `<div class="${cls}" data-card="${esc(c.id)}" title="${esc(c.tip||'')}"><i data-rn="c:${esc(c.id)}">${esc(nm('c:'+c.id,c.label))}</i>${body}</div>`; }
+    return `<div class="${cls}" data-card="${esc(c.id)}" role="button" tabindex="0" title="${esc(c.tip||'')}"><i data-rn="c:${esc(c.id)}">${esc(nm('c:'+c.id,c.label))}</i>${body}</div>`; }
   function renderCards(){ const cat=setCat(), list=TT()?TT().cards.filter(c=>c.cat===cat):[]; let h='';
     if(cat==='Limits'&&TT()&&TT().byId.boost_limit) h+=`<div class="scard" title="Boost limit table value at the logged atmospheric pressure (sea level if baro isn't logged)"><i>Boost limit (fuel cut)</i><b data-bl>—</b><u>${esc(pDisp('abs').u)} at logged baro</u></div>`;
     for(const c of list) h+=cardHtml(c);
@@ -389,7 +389,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   gbox.addEventListener('pointermove',e=>{ const g=S.geo; if(!g) return; if(SEL.drag){ edMove(e); return; }
     if(P.on){ const dx=(e.clientX-P.x)/g.cw, dy=(e.clientY-P.y)/g.ch; if(Math.abs(dx)+Math.abs(dy)>0.3){ P.moved=true; if(S.zoom>1.01){ if(S.follow){ S.follow=false; syncZ(); } if(setWin(P.c0-dx,P.r0-dy)) render(); } } return; }
     hover(e); });
-  gbox.addEventListener('pointerup',e=>{ if(SEL.drag){ SEL.drag=false; return; } if(P.on&&!P.moved) clickCell(e); P.on=false; });
+  gbox.addEventListener('pointerup',e=>{ if(SEL.drag){ SEL.drag=false; return; } if(P.on&&!P.moved) clickCell(e); P.on=false; }); gbox.addEventListener('pointercancel',()=>{ SEL.drag=false; P.on=false; });
   gbox.addEventListener('pointerleave',()=>tip.classList.add('hidden'));
   function heatCell(e){ const t=built; if(!t||!T.opt.kmH||!knockTbl(t)) return null; const p=cellAt(e.clientX,e.clientY); if(!p) return null;
     const c=Math.round(p.x), r=Math.round(p.y), H=heatData(); return H&&H.cells[r+','+c]?{c,r,cell:H.cells[r+','+c]}:null; }
@@ -554,7 +554,7 @@ function MafTableView(){
     { const np=ST.logs.filter(pooled).length; poolChip.style.display=ST.logs.length>1?'':'none'; poolChip.textContent=np+' / '+ST.logs.length+' logs pooled'; poolChip.title='Choose pooled logs with the checkboxes in the drawer'; }
     list.innerHTML=''; strip.innerHTML=''; side.innerHTML=''; if(!B) return; if(SELB<0||!B[SELB]||!B[SELB].n){ SELB=B.findIndex(b=>b.n); }
     let mx=5; B.forEach((b,i)=>{ const d=dOf(i); if(d!=null) mx=Math.max(mx,Math.abs(d)); }); mx=Math.min(15,mx);
-    strip.innerHTML=B.map((b,i)=>{ const f=R&&b.n?R.f[i]:null; return `<i data-sb="${i}" class="${i===SELB?'pick':''}" style="background:${f!=null?mc(f):'#141418'}" title="${b.v.toFixed(3)} V${f!=null?' · ×'+f.toFixed(4):''}"></i>`; }).join('');
+    strip.innerHTML=B.map((b,i)=>{ const f=R&&b.n?R.f[i]:null; return `<i role="button" tabindex="0" data-sb="${i}" class="${i===SELB?'pick':''}" style="background:${f!=null?mc(f):'#141418'}" title="${b.v.toFixed(3)} V${f!=null?' · ×'+f.toFixed(4):''}"></i>`; }).join('');
     const E=zEdges(), zs=[[0,E[0]],[E[0],E[1]],[E[1],E[2]],[E[2],99]], col=UI.mafCol||(UI.mafCol={}); let h='';
     zs.forEach(([z0,z1],zi)=>{ const ids=B.map((b,i)=>i).filter(i=>B[i].v>=z0&&B[i].v<z1); if(!ids.length) return; let sw=0, sn=0; for(const i of ids){ const d=dOf(i); if(d!=null){ sw+=d*B[i].n; sn+=B[i].n; } }
       const avg=sn?sw/sn:null, cls=avg==null?'dim':Math.abs(avg)>=6?'bad':Math.abs(avg)>=3?'warn':'ok', shut=!!col[ZN[zi]];
@@ -562,9 +562,9 @@ function MafTableView(){
       if(shut) return;
       for(const i of ids){ const b=B[i], f=R&&b.n?R.f[i]:null, d=dOf(i), w=d==null?0:Math.min(50,Math.abs(d)/mx*50), kk=R&&R.kink[i]!=null, mo=R&&R.mono[i], ck=mo?'#ff5a5a':(kk||b.lean>0||b.rich||(b.agree!=null&&Math.abs(b.agree)>0.05))?'#f0a050':'';
         const sc=TUNE&&TUNE.mafScale, g0=sc&&sc[i]!=null?sc[i]:null, g1=R&&b.n&&R.nv?R.nv[i]:null, sr=String(b.src||'');
-        h+=`<div class="ml-r${i===SELB?' pick':''}${b.n?'':' emp'}" data-bin="${i}"><span class="lp" style="background:${lpC(b.src)}" title="${b.src||'no data'}"></span><span class="vv">${b.v.toFixed(3)}</span>`
+        h+=`<div class="ml-r${i===SELB?' pick':''}${b.n?'':' emp'}" data-bin="${i}" role="button" tabindex="0"><span class="lp" style="background:${lpC(b.src)}" title="${b.src||'no data'}"></span><span class="vv">${b.v.toFixed(3)}</span>`
           +`<span class="gs">${g0!=null?g0.toFixed(2):''}</span><span class="gs nw">${g1!=null?g1.toFixed(2):''}</span><span class="mm" style="color:${f!=null?mc(f):''}">${f!=null?'×'+f.toFixed(4):'—'}</span><span class="pc" style="color:${f!=null?mc(f):''}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}</span>`
-          +`<span class="nn ${b.trust==='solid'?'n-ok':b.n?'n-prov':''}">${b.n?b.n.toFixed(0):''}</span><span class="src">${(()=>{ const k=b.v.toFixed(3), ov=(UI.mafSrc||{})[k]; return (b.nCL?`<em class="c${ov==='OL'?' dim':''}${ov==='CL'?' set':''}" data-st="${k}" data-s="CL" title="${ov==='CL'?'CL only · click for Auto':'Use CL only'}">CL</em>`:'')+(b.nOL?`<em class="o${ov==='CL'?' dim':''}${ov==='OL'?' set':''}" data-st="${k}" data-s="OL" title="${ov==='OL'?'OL only · click for Auto':'Use OL only'}">OL</em>`:''); })()}</span><span class="ckw">${[mo?['NM','b','non-monotonic']:null,kk?['KINK','w','slope kink']:null,b.lean>0?['LEAN','w','lean']:null,b.rich?['RICH','w','rich floor']:null,b.agree!=null&&Math.abs(b.agree)>0.05?['CL≠OL','w','CL and OL disagree']:null].filter(Boolean).map(([t,c,ti])=>`<em class="${c}" title="${ti}">${t}</em>`).join('')}</span></div>`; } });
+          +`<span class="nn ${b.trust==='solid'?'n-ok':b.n?'n-prov':''}">${b.n?b.n.toFixed(0):''}</span><span class="src">${(()=>{ const k=b.v.toFixed(3), ov=(UI.mafSrc||{})[k]; return (b.nCL?`<em class="c${ov==='OL'?' dim':''}${ov==='CL'?' set':''}" role="button" tabindex="0" aria-pressed="${ov==='CL'}" data-st="${k}" data-s="CL" title="${ov==='CL'?'CL only · click for Auto':'Use CL only'}">CL</em>`:'')+(b.nOL?`<em class="o${ov==='CL'?' dim':''}${ov==='OL'?' set':''}" role="button" tabindex="0" aria-pressed="${ov==='OL'}" data-st="${k}" data-s="OL" title="${ov==='OL'?'OL only · click for Auto':'Use OL only'}">OL</em>`:''); })()}</span><span class="ckw">${[mo?['NM','b','non-monotonic']:null,kk?['KINK','w','slope kink']:null,b.lean>0?['LEAN','w','lean']:null,b.rich?['RICH','w','rich floor']:null,b.agree!=null&&Math.abs(b.agree)>0.05?['CL≠OL','w','CL and OL disagree']:null].filter(Boolean).map(([t,c,ti])=>`<em class="${c}" title="${ti}">${t}</em>`).join('')}</span></div>`; } });
     list.innerHTML='<div class="ml-h"><span></span><span style="text-align:left">Volts</span><span>Cur. g/s</span><span>New g/s</span><span>Multiplier</span><span>Change</span><span>n</span><span style="text-align:left">Source</span><span style="text-align:left">Checks</span></div>'+h; panel(); liveBin=-1; mark(); }
   function panel(){ const B=ST.bins, R=ST.row, b=B&&B[SELB]; if(!b){ side.innerHTML=''; return; } const i=SELB, f=R&&b.n?R.f[i]:null, d=dOf(i), sc=TUNE&&TUNE.mafScale;
     const pts=B.map((x,j)=>[x,dOf(j)]).filter(p=>p[1]!=null), v0=BP[0], v1=BP[BP.length-1], sx=v=>4+(v-v0)/(v1-v0)*272; let my=5; pts.forEach(p=>my=Math.max(my,Math.abs(p[1]))); const sy=q=>36-q/my*30;
@@ -572,7 +572,7 @@ function MafTableView(){
     if(kk) chk.push(`<button class="kk${on?' on':''}" data-fix="${i}" title="Slope kink: correction ${R.raw[i].toFixed(3)} vs neighbours' ${R.kink[i].toFixed(3)}"><i></i>${on?'kink · smoothed':'kink'}</button>`);
     if(R&&R.mono[i]) chk.push('<span class="ck bad">non-monotonic</span>'); if(b.agree!=null&&Math.abs(b.agree)>0.05) chk.push(`<span class="ck warn">CL≠OL ${(b.agree*100).toFixed(0)}%</span>`); if(b.lean>0) chk.push('<span class="ck warn">lean</span>'); if(b.rich) chk.push('<span class="ck warn">rich floor</span>');
     const ovr=(UI.mafSrc||{})[b.v.toFixed(3)], srcTxt=ovr?ovr+' only (set)':b.src==='MIX'?'Auto · CL + OL weighted by samples':b.src?'Auto · '+b.src:'—', st=(l,v,c)=>`<div class="st"><em>${l}</em><b${c?` style="color:${c}"`:''}>${v}</b></div>`;
-    side.innerHTML=`<div class="sh"><div class="sv">${b.v.toFixed(3)} V <span>· bin ${i+1}</span></div>${narrow?'<button class="ibtn" data-sx title="Close">✕</button>':''}</div><div class="smul" style="color:${f!=null?mc(f):'var(--mut)'}">${f!=null?'×'+f.toFixed(4):'no data'}</div><div class="sd" style="color:${f!=null?mc(f):'var(--mut)'}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}${b.n?' · n '+b.n.toFixed(0):''}</div>
+    side.innerHTML=`<div class="sh"><div class="sv">${b.v.toFixed(3)} V <span>· bin ${i+1}</span></div>${narrow?'<button class="ibtn" data-sx title="Close" aria-label="Close">✕</button>':''}</div><div class="smul" style="color:${f!=null?mc(f):'var(--mut)'}">${f!=null?'×'+f.toFixed(4):'no data'}</div><div class="sd" style="color:${f!=null?mc(f):'var(--mut)'}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}${b.n?' · n '+b.n.toFixed(0):''}</div>
       <svg class="spark" viewBox="0 0 280 110" preserveAspectRatio="none"><line x1="0" x2="280" y1="55" y2="55" stroke="#33333b" stroke-dasharray="3 3"/>${pts.length?`<path d="${pts.map((p,k)=>(k?'L':'M')+sx(p[0].v).toFixed(1)+' '+(55+(sy(p[1])-36)*1.6).toFixed(1)).join(' ')}" fill="none" stroke="#e4aa28" stroke-width="1.8" vector-effect="non-scaling-stroke"/>`:''}${d!=null?`<circle cx="${sx(b.v)}" cy="${55+(sy(d)-36)*1.6}" r="5" fill="${mc(f)}" stroke="#000" stroke-width="1.5"/>`:''}<line class="sl" x1="-9" x2="-9" y1="0" y2="110" stroke="#ff1e1e" stroke-width="1.5"/></svg>
       ${b.n?`<div class="sgp"><h5>Source</h5><div class="srcl">${srcTxt}</div></div>
       <div class="sgp"><h5>Correction</h5><div class="sts">${st('CL ×',f2(b.cl,3))}${st('OL ×',f2(b.ol,3))}</div></div>
@@ -630,7 +630,7 @@ function MafCurveView(){
   main.addEventListener('wheel',e=>{ if(!geo) return; e.preventDefault(); const r=main.getBoundingClientRect(), [a,b]=span(), f=Math.max(0,Math.min(1,(e.clientX-r.left-geo.L)/geo.gw)), v=a+f*(b-a), w=(b-a)*(e.deltaY<0?0.8:1.25); setSpan(v-f*w,v-f*w+w); },{passive:false});
   let pd=null; main.addEventListener('pointerdown',e=>{ pd={x:e.clientX,s:span()}; try{ main.setPointerCapture(e.pointerId); }catch(_){} });
   main.addEventListener('pointermove',e=>{ if(!pd||!geo) return; const [a,b]=pd.s, dv=-(e.clientX-pd.x)/geo.gw*(b-a); setSpan(a+dv,b+dv); });
-  main.addEventListener('pointerup',()=>{ pd=null; }); main.addEventListener('dblclick',()=>{ Z.v0=Z.v1=null; RP.dirty=true; });
+  main.addEventListener('pointerup',()=>{ pd=null; }); main.addEventListener('pointercancel',()=>{ pd=null; }); main.addEventListener('dblclick',()=>{ Z.v0=Z.v1=null; RP.dirty=true; });
   function data(){ if(M.src==='all'||!RP.L) return {bins:ST.bins,row:ST.row,spans:ST.logs.filter(pooled).map(trimSpan)};
     let lo=0, hi=RP.i; if(M.src==='ab'){ if(RP.a==null||RP.b==null) return {bins:null}; lo=rpIdx(Math.min(RP.a,RP.b)); hi=rpIdx(Math.max(RP.a,RP.b)); }
     const key=M.src+':'+lo+':'+hi+':'+ST.anKey+':'+CFG.olAfl, now=performance.now(); const spans=[{L:RP.L,lo,hi}];

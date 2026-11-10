@@ -18,7 +18,7 @@ function wire(){
   $('t-ev').onchange=e=>{ const ev=RP.L&&RP.L.allEv[+e.target.value]; e.target.value=''; e.target.blur(); if(ev){ rpPlay(false); rpSeek(ev.t,true); } };
   tlBind($('tl'),false);
   { const cv=$('tlb'); let dn=false; const at=e=>{ const r=cv.getBoundingClientRect(); setB(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*(RP.B?RP.B.dur:0)); };
-    cv.addEventListener('pointerdown',e=>{ if(!RP.B) return; dn=true; try{ cv.setPointerCapture(e.pointerId); }catch(_){} at(e); }); cv.addEventListener('pointermove',e=>{ if(dn) at(e); }); cv.addEventListener('pointerup',()=>{ dn=false; }); }
+    cv.addEventListener('pointerdown',e=>{ if(!RP.B) return; dn=true; try{ cv.setPointerCapture(e.pointerId); }catch(_){} at(e); }); cv.addEventListener('pointermove',e=>{ if(dn) at(e); }); cv.addEventListener('pointerup',()=>{ dn=false; }); cv.addEventListener('pointercancel',()=>{ dn=false; }); }
   $('b-link').onclick=toggleLink; $('png-btn').onclick=exportPNG; $('b-x').onclick=()=>setCompare(null); tlBind($('tlpop-cv'),true); $('tlpop-x').onclick=()=>pop(false); document.addEventListener('pointerdown',e=>{ if(!$('tlpop').classList.contains('hidden')&&!e.target.closest('#tlpop')&&!e.target.closest('#tl')) pop(false); },true);
   $('f-tune').onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(f){ LAND.tuneP={name:f.name,path:pathFor(f)}; loadTuneText(await f.text(),f.name); } };
   $('f-logs').onchange=e=>{ const fs=[...e.target.files]; e.target.value=''; if(!$('land').classList.contains('hidden')) landQueue(fs); else addFiles(fs); };
