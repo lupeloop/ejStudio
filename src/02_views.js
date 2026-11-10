@@ -42,11 +42,12 @@ function seg(host,items,cur,on){ const s=mk('div','seg',host); items.forEach(([v
 // ── warning tiles (Graph + Tables) ─────────────────────────────────────
 let WT=null;
 function WarnTiles(){ if(WT) return WT; const box=mk('div','wtiles',document.body); let sig='';
-  const place=()=>{ const b=document.getElementById('t-evb'), r=b&&b.offsetParent?b.getBoundingClientRect():null; if(!r){ box.style.display='none'; return; } box.style.display=''; box.style.left=r.left+'px'; box.style.top=(r.bottom-1)+'px'; box.style.width=r.width+'px'; };
+  const place=()=>{ const b=document.getElementById('t-evb'), r=b&&b.offsetParent?b.getBoundingClientRect():null; if(!r){ box.style.display='none'; return; } box.style.display=''; box.style.left=r.left+'px'; box.style.width=r.width+'px'; const up=r.top>innerHeight/2; box.classList.toggle('up',up); b.classList.toggle('wlu',up); if(up){ box.style.top=''; box.style.bottom=(innerHeight-r.top-1)+'px'; } else { box.style.bottom=''; box.style.top=(r.bottom-1)+'px'; } };
+  { const evb=document.getElementById('t-evb'); if(evb&&window.IntersectionObserver) new IntersectionObserver(es=>{ box.style.visibility=es[0].isIntersecting?'':'hidden'; }).observe(evb); }
   addEventListener('resize',()=>{ if(box.childElementCount) place(); });
   WT={ update(){ const L=RP.L, list=[]; if(L) for(const fam in LIMITS){ const j=L.fam.findIndex((f,x)=>f===fam&&x!==L.wbj); if(j<0) continue; const v=logCol(L,j)[RP.i], t=warnTier(fam,v); if(t) list.push({fam,v,t}); }
     list.sort((a,b)=>b.t-a.t); const s=list.map(o=>o.fam+o.t+o.v).join('|'); if(s===sig) return; sig=s; const top=list.length?list[0].t:0, b=document.getElementById('t-evb');
-    if(b){ b.classList.toggle('wl',!!list.length); b.classList.toggle('wl3',top>=3); } box.className='wtiles'+(top>=3?' t3':'');
+    if(b){ b.classList.toggle('wl',!!list.length); b.classList.toggle('wl3',top>=3); } box.classList.toggle('t3',top>=3);
     box.innerHTML=list.slice(0,4).map(o=>`<div class="wtile t${o.t}"><i>${esc(o.fam)}</i><b>${Number.isFinite(o.v)?+o.v.toFixed(2):'—'}</b></div>`).join(''); if(list.length) place(); } }; return WT; }
 
 // ════════════════════════════════════════════════════════════════════════════

@@ -50,7 +50,8 @@ Every table and setting card in the tune, with the log replayed live on top.
 - Knock heat and knock marks, shown only on the table the ECU was actually using at that moment.
 - Knock windows (FBKC, FLKC and IAM ranges from the tune), visited-cell and fuel-cut overlays.
 - Cruise / Non-Cruise (TGV closed / open) base timing with an **● ECU** marker on the active table.
-- Pooled across all logs recorded on the current revision.
+- Pooled across all logs recorded on the current revision; the chip next to Reference tables picks which logs.
+- 16 colour palettes in the table gear (Classic, Traffic, Viridis, Thermal and more). Every mark drawn over the cells switches to colours that stand out on the chosen palette.
 
 ## Edit tune
 ![Edit mode](docs/img/edit.png)
@@ -59,13 +60,15 @@ Every table and setting card in the tune, with the log replayed live on top.
 - Type to edit (`*1.02`, `+0.5`, `-0.35`), arrow keys, selection stats.
 - **Revisions ▾**: the tuning tree, a read-only compare against any revision, and open or save any revision. Undo history alongside.
 - **Build** writes a new `revN.tune` and keeps an automatic backup.
+- Changed cells carry a corner notch; **Changed only** lists just the tables you've touched.
+- On timing tables the knock breakdown folds into one line above the table; **Details** opens the full cards.
 
 <img src="docs/img/revisions.png" width="520" alt="Revisions">
 
 ## Helpers
 ![Helpers](docs/img/helpers.png)
 
-**Helpers · n** in the edit bar (or **H**) opens the Helpers rail beside the table. Each helper lists its evidence and its changes as groups; picking one jumps the table to where its changes land. Ticked changes are previewed on the table (new value over the old one), unticked ones are outlined, and pending cells carry an amber corner while the rail is closed. Apply writes the ticked changes as one undo step. Nothing reaches the file until you Build.
+**Helpers · n** in the edit bar (or **H**) opens the Helpers rail beside the table. Each helper lists its evidence and its changes as groups; picking one jumps the table to where its changes land. Ticked changes are previewed on the table (new value over the old one), unticked ones are outlined, and pending cells carry a mark in the top-right corner while the rail is closed. Apply writes the ticked changes as one undo step and keeps them in the rail as **Done** until **Clear done**. Nothing reaches the file until you Build.
 
 | Helper | Evidence | Changes |
 |---|---|---|
@@ -90,10 +93,11 @@ Several cars, each with its engine, parts, drivetrain (gear ratios, final drive,
 ## MAF Tools
 ![MAF Tools](docs/img/maf.png)
 
-- Scaling, Curve, or Both side by side in one tab.
-- Scaling list by zone (Idle, Cruise, Load, Boost): volts, current and new g/s, multiplier, change, samples and CL/OL source, with an overview strip and a pinned side panel for the selected bin.
+- Scaling, Curve, or Split side by side in one tab.
+- Scaling list by zone (Idle, Cruise, Load, Boost): volts, current and new g/s, multiplier, change, samples and CL/OL source, with an overview strip and a side panel for the selected bin (a drawer in narrow panes). Click a row's **CL** or **OL** tag to use only that source for the bin.
 - Closed-loop, open-loop and mixed corrections with slope-kink, monotonic and CL/OL agreement checks.
 - Corrected vs current curve with the live position.
+- OL calc, Source, coverage and filters sit behind the gear.
 
 ## Graph and analysis
 ![Graph](docs/img/graph.png)
@@ -106,6 +110,8 @@ Several cars, each with its engine, parts, drivetrain (gear ratios, final drive,
 - Two-log compare: log B draws over Graph, Tables and Scatter.
 - WOT pull splitter and diagnostics timeline; diagnostics switch on and off at the top of Jump to event.
 - MAF filters, pull detection and replay settings sit behind the gear in their own toolbar.
+- Warn limits light up above **Jump to event** in every view, and the matching FBKC, FLKC or IAM value turns red on the table.
+- A second Graph opens in split panes.
 
 ---
 
@@ -113,7 +119,7 @@ Several cars, each with its engine, parts, drivetrain (gear ratios, final drive,
 
 ![ejLogger](docs/img/logger_live.png)
 
-A complete Subaru SSM logger, cluster and log manager built into ejStudio. Watch the drive on the cluster, or switch to Basic View for a simple tile per parameter. Logs are standard CSV, ready for ejStudio or any other log tool.
+A complete Subaru SSM logger, cluster and log manager built into ejStudio. Watch the drive on the cluster, or switch to Basic View for one large tile per parameter that fills the screen. Logs are standard CSV, ready for ejStudio or any other log tool.
 
 <table>
 <tr>
@@ -165,7 +171,7 @@ Plug a stick in and ejLogger offers what it finds: copy new logs to it, load the
 | Section | What's there |
 |---|---|
 | **This PC** | Car mode |
-| **Connection** | ECU port, logger definition, wideband and its fuel-cut display |
+| **Connection** | ECU port, logger definition, wideband and its fuel-cut display, port names |
 | **Cluster** | Cluster files, display (screensaver, night dimming), warm-up, warn limits (shared with ejStudio's analysis) |
 | **Recording** | Auto-record, logs (folder, storage, auto-zip), USB stick (any stick, or one label) |
 | **System** | Health, restart, config backup |
