@@ -367,7 +367,7 @@ function hrPaint(el){ const D=hrData(); if(!D){ el.innerHTML=''; el._k=''; retur
     if(t.closest('[data-ca],[data-cn]')){ const v=!!t.closest('[data-ca]'); D.L.forEach((x,q)=>{ if(x.g===HR.cat) D.ON[q]=v; }); return r(); }
     const j=t.closest('[data-j]'); if(j){ const x=D.L[+j.dataset.j]; TV.showTable(x.t.id,x.r,x.c); } }; }
 // table overlay: amber corner on every pending cell; with the rail open, ticked cells show the new value over the old one, unticked get a dashed outline
-function hrDraw(c,g,t,W){ const D=HR.data; if(!D||!EDIT.on) return; const id=(t.__src||t).id, d=edDisp(t), A='#e4aa28';
+function hrDraw(c,g,t,W){ const D=HR.data; if(!D||!EDIT.on) return; const id=(t.__src||t).id, d=edDisp(t), A=INK().sel;
   D.L.forEach((x,k)=>{ if(x.done||(x.t.id!==id&&x.t.id!==t.id)) return; const R=t.vert?x.c:x.r, Cc=t.vert?0:x.c; if(R<W.r0||R>=W.r0+W.vy||Cc<W.c0||Cc>=W.c0+W.vx) return; const x0=g.hw+(Cc-W.c0)*g.cw, y0=g.hh+(R-W.r0)*g.ch, cw=g.cw, ch=g.ch;
     if(!HR.open){ c.fillStyle=A; c.beginPath(); const s1=Math.min(9,cw*.3), s2=Math.min(9,ch*.45); c.moveTo(x0+cw-2,y0+2); c.lineTo(x0+cw-2-s1,y0+2); c.lineTo(x0+cw-2,y0+2+s2); c.fill(); return; }
     if(!D.ON[k]){ if(x.g!==HR.cat) return; c.setLineDash([3,3]); c.strokeStyle=A; c.lineWidth=1.4; c.strokeRect(x0+2,y0+2,cw-4,ch-4); c.setLineDash([]); return; }

@@ -10,6 +10,22 @@ function sizeCanvas(cv){ const dpr=devicePixelRatio||1, W=cv.clientWidth, H=cv.c
 function fmtT(ms){ const s=Math.max(0,ms)/1000, m=Math.floor(s/60); return m+':'+(s-m*60).toFixed(1).padStart(4,'0'); }
 const lamK=d=>d==='afr'?LAM:1, uLbl=d=>d==='afr'?'AFR':'λ', dpOf=d=>d==='afr'?2:3;
 const COL={rb:'#a78bfa',acc:'#e4aa28',wb:'#b794f6',ffb:'#facc15',ol:'#3baf84',cl:'#5a9fd4',red:'#ff1e1e',grid:'#26262c',lab:'#8a8a92',muted:'#7d7d85',amber:'#f0c060',green:'#32c85a'};
+
+// ── table colour palettes; overlays pick colours that contrast with the active palette ──
+const TPALS=[['classic','Classic',null],['traffic','Traffic',[[60,170,80],[235,215,70],[220,60,50]]],['coolwarm','Cool–warm',[[59,76,192],[221,221,221],[180,4,38]]],['thermal','Thermal',[[20,10,10],[170,30,20],[240,170,30],[255,250,220]]],
+ ['viridis','Viridis',[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]]],['amber','Amber',[[26,20,8],[240,180,50]]],['grey','Grey',[[30,30,34],[215,215,219]]],['off','Off',[[18,18,22],[18,18,22]]],
+ ['jet','Jet',[[0,0,143],[0,0,255],[0,255,255],[255,255,0],[255,0,0],[128,0,0]]],['turbo','Turbo',[[48,18,59],[70,130,248],[27,229,181],[164,252,60],[251,185,56],[228,70,10],[122,4,3]]],['inferno','Inferno',[[0,0,4],[87,16,110],[188,55,84],[249,142,9],[252,255,164]]],['magma','Magma',[[0,0,4],[81,18,124],[183,55,121],[252,137,97],[252,253,191]]],
+ ['plasma','Plasma',[[13,8,135],[126,3,168],[204,71,120],[248,149,64],[240,249,33]]],['spectral','Spectral',[[94,79,162],[50,136,189],[171,221,164],[255,255,191],[253,174,97],[213,62,79],[158,1,66]]],['ice','Ice',[[8,20,40],[60,130,200],[220,240,255]]],['lime','Lime',[[8,26,10],[60,170,60],[210,250,160]]]];
+const INKC=['#ff1e1e','#00e0ff','#e4aa28','#ffffff','#000000','#2050ff','#00f060','#ff00d0'], INK_CLASSIC={cur:'#ff1e1e',knk:'#ff1e1e',sel:'#e4aa28',chg:'#e4aa28',win:['#00d8ff','#00f060','#ffaa00'],fc:'#b46cff',heat:true};
+const h2rgb=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16)), hexA=(h,a)=>'rgba('+h2rgb(h)+','+a+')', rlum=c=>{ const s=c.map(v=>{ v/=255; return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4); }); return .2126*s[0]+.7152*s[1]+.0722*s[2]; }, inkOut=h=>rlum(h2rgb(h))>.35?'#000':'#fff';
+function palRGB(f){ const p=TPALS.find(x=>x[0]===UI.tpal)||TPALS[0]; f=Math.max(0,Math.min(1,f)); if(!p[2]){ const h=240*(1-f)/60, C=.5, X=C*(1-Math.abs(h%2-1)), m=.5, r=[[C,X,0],[X,C,0],[0,C,X],[0,X,C],[X,0,C],[C,0,X]][Math.min(5,Math.floor(h))]; return r.map(v=>Math.round((v+m)*255)); }
+  const s=p[2], x=f*(s.length-1), i=Math.min(s.length-2,Math.floor(x)), k=x-i; return s[i].map((v,j)=>Math.round(v+(s[i+1][j]-v)*k)); }
+const cellF=(v,lo,hi)=>hi>lo?(v-lo)/(hi-lo):0.5, cellBg=(v,lo,hi)=>'rgb('+palRGB(cellF(v,lo,hi))+')', cellFg=(v,lo,hi)=>rlum(palRGB(cellF(v,lo,hi)))>.28?'#000':'#fff';
+let INKK='', INKV=INK_CLASSIC;
+function INK(){ const id=UI.tpal||'classic'; if(INKK===id) return INKV; INKK=id; if(id==='classic') return INKV=INK_CLASSIC; const S=[]; for(let i=0;i<=20;i++) S.push(palRGB(i/20));
+  const d=(a,b)=>{ const r=(a[0]+b[0])/2, dr=a[0]-b[0], dg=a[1]-b[1], db=a[2]-b[2]; return Math.sqrt((2+r/256)*dr*dr+4*dg*dg+(2+(255-r)/256)*db*db); };
+  const sc=INKC.map(h=>({h,s:Math.min(...S.map(c=>d(c,h2rgb(h))))})).sort((a,b)=>b.s-a.s); return INKV={cur:sc[0].h,knk:sc[0].h,sel:sc[1].h,chg:sc[1].h,win:[sc[0].h,sc[1].h,sc[2].h],fc:sc[2].h,heat:false}; }
+function mafPop(b){ setPop(b,['cov','flt'],'MAF data and filters',ex=>{ for(const [l,fn] of [['OL calc',window.__mafOL],['Source',window.__mafSrc]]){ if(!fn) continue; const r=mk('div','spr',ex); mk('span','vlab',r).textContent=l; fn(r); } }); }
 const FONT_MONO="ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,monospace";
 function rpSample(L,i){ const o={}; for(const k in L.c) o[k]=fin(L.c[k][i]); if(o.maf==null&&o.load!=null&&o.rpm!=null) o.maf=o.load*o.rpm/60; o.wb=fin(L.wb[i]); o.ffb=fin(L.ffb[i]); if(o.torque==null&&L.rb&&L.rb.tq) o.torque=fin(L.rb.tq.pred[i]); const tg=o.tboost!=null?o.tboost:(L.rb&&L.rb.boost?fin(L.rb.boost.fin[i]):null); o.berr=tg!=null&&o.map!=null?tg-o.map:null; return o; }
 const hasKey=(L,k)=>k==='maf'?!!(L.c.maf||(L.c.load&&L.c.rpm)):k==='berr'?!!(L.c.map&&(L.c.tboost||(L.rb&&L.rb.boost))):k==='torque'?!!(L.c.torque||(L.rb&&L.rb.tq)):!!L.c[k];
@@ -188,15 +204,15 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   const zo=mk('button','ibtn',bar), zi=mk('button','ibtn',bar), zf=mk('button','ibtn',bar), gear=mk('button','ibtn',bar);
   zo.textContent='−'; zi.textContent='+'; zf.innerHTML=SVG_TARGET; gear.innerHTML=SVG_GEAR; zo.title='Zoom out'; zi.title='Zoom in'; zf.title='Follow crosshair'; gear.title='Table options';
   const opts=mk('div','tt-opts',root); opts.style.display='none';
-  const ebar=mk('div','vbar tt-ebar',root); ebar.style.display='none';
+  const ebar=mk('div','tt-ebar',bar); ebar.style.display='none';
   ebar.onclick=e=>{ const b=e.target.closest('[data-e]'); if(!b||b.disabled) return; const a=b.dataset.e; if(a==='ov'){ EDIT.overlays=!EDIT.overlays; draw(); syncEd(); } else if(a==='only'){ EDIT.onlyEd=!EDIT.onlyEd; renderRail(); syncEd(); } else EDITOR.act(a); };
   function selStats(){ const t=built, n=(Math.abs(SEL.r1-SEL.r0)+1)*(Math.abs(SEL.c1-SEL.c0)+1); if(!t) return n+' selected'; const d=edDisp(t), b=baseOf(t), r0=Math.min(SEL.r0,SEL.r1), r1=Math.max(SEL.r0,SEL.r1), c0=Math.min(SEL.c0,SEL.c1), c1=Math.max(SEL.c0,SEL.c1);
     let lo=Infinity, hi=-Infinity, s=0, sb=0, k=0; for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){ const v=toD(d,t.z[r][c]); lo=Math.min(lo,v); hi=Math.max(hi,v); s+=v; if(b&&b.z[r]) sb+=toD(d,b.z[r][c]); k++; } if(!k) return n+' selected';
     const f=v=>v.toFixed(d.dp), dl=b?(s-sb)/k:0; return `${k} cell${k>1?'s':''} · min ${f(lo)} · max ${f(hi)} · avg ${f(s/k)}${b&&Math.abs(dl)>1e-9?` · Δ ${dl>0?'+':''}${dl.toFixed(d.dp)} ${d.u}`:''}`; }
   function syncEd(){ if(side!=='b'){ const eb=$('ed-top'); if(eb){ eb.classList.toggle('on',ED()); eb.hidden=!TUNE; } const pn=root.closest('.pane'); if(pn) pn.classList.toggle('editing',ED()); if(!ED()) S.cardEd=null; } edB.style.display='none'; edB.classList.toggle('acc',ED()); edB.textContent=ED()?'Done':'Edit'; ebar.style.display=ED()?'':'none'; if(hrail){ const o=ED()&&HR.open, was=hrail.style.display!=='none'; hrail.style.display=o?'':'none'; if(o) hrPaint(hrail); if(o!==was) requestAnimationFrame(()=>{ layout(); RP.dirty=true; }); } if(!ED()) return;
     const sl=SEL.r0!=null?selStats():'', n=edCount();
-    ebar.innerHTML=`<span class="vlab">Editing</span><span class="mono dim">${sl}</span><button class="btn sm" data-e="undo"${EDIT.undo.length?'':' disabled'} title="${esc(EDIT.undo.length?'Undo '+EDIT.undo[EDIT.undo.length-1].label:'Nothing to undo')}">Undo</button><button class="btn sm" data-e="redo"${EDIT.redo.length?'':' disabled'}>Redo</button><button class="btn sm" data-e="diff"${REV.nodes.length>1?'':' disabled'} title="Revision tree and compare">Revisions ▾</button><button class="btn sm" data-e="hist"${EDIT.undo.length?'':' disabled'} title="Jump back to any step">Undo history ▾</button>`
-      +`<button class="chip${EDIT.overlays?' on':''}" data-e="ov" title="Log trace, knock heat and B marker">Show log overlays</button><button class="chip${EDIT.onlyEd?' on':''}" data-e="only" title="Only list tables you have changed">Show changed tables only</button><span class="vfill"></span>`
+    ebar.innerHTML=`<button class="btn sm" data-e="undo"${EDIT.undo.length?'':' disabled'} title="${esc(EDIT.undo.length?'Undo '+EDIT.undo[EDIT.undo.length-1].label:'Nothing to undo')}">Undo</button><button class="btn sm" data-e="redo"${EDIT.redo.length?'':' disabled'}>Redo</button><button class="btn sm" data-e="diff"${REV.nodes.length>1?'':' disabled'} title="Revision tree and compare">Revisions ▾</button><button class="btn sm" data-e="hist"${EDIT.undo.length?'':' disabled'} title="Jump back to any step">History ▾</button>`
+      +`<button class="chip${EDIT.overlays?' on':''}" data-e="ov" title="Log trace, knock heat and B marker">Overlays</button><button class="chip${EDIT.onlyEd?' on':''}" data-e="only" title="Only list tables you have changed">Changed only</button><span class="vfill"></span><span class="mono dim">${sl}</span>`
       +`<span class="mono dim">${n} unbuilt change${n!==1?'s':''}</span>${side==="b"?"":(()=>{ const hn=hrCount(); return `<button class="btn sm hlpb${hn?" has":""}${HR.open?" on":""}" data-e="sug">Helpers · ${hn}</button>`; })()}<button class="btn sm acc" data-e="build" title="Save as a new revision (Ctrl+B)">Build</button>`; }
   function edDown(e){ const t=built; if(!t||!S.geo) return false; const p=cellAt(e.clientX,e.clientY), W=S.win; if(!p) return false;
     const nx=t.x.length, ny=t.z.length, hx=p.x<W.c0-0.5, hy=p.y<W.r0-0.5;
@@ -211,17 +227,18 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     tip.innerHTML=`<b>was ${o} → now ${n} ${esc(d.u)}</b><br>change ${(+n-+o>0?'+':'')+(+n-+o).toFixed(d.dp)}`; tip.classList.remove('hidden');
     tip.style.left=Math.min(bx.width-tip.offsetWidth-6,e.clientX-bx.left+14)+'px'; tip.style.top=Math.max(4,e.clientY-bx.top-tip.offsetHeight-10)+'px'; return true; }
   function edDraw(c,g,t,W){ if(!ED()) return; const b=baseOf(t);
-    if(b){ const tri=(x,y)=>{ const z=Math.max(7,Math.min(12,Math.min(g.cw,g.ch)*0.36)); c.fillStyle='#000'; c.beginPath(); c.moveTo(x,y); c.lineTo(x+z+1.5,y); c.lineTo(x,y+z+1.5); c.fill(); c.fillStyle='#e4aa28'; c.beginPath(); c.moveTo(x,y); c.lineTo(x+z,y); c.lineTo(x,y+z); c.fill(); };
+    if(b){ const tri=(x,y)=>{ const z=Math.max(7,Math.min(12,Math.min(g.cw,g.ch)*0.36)); c.fillStyle=inkOut(INK().chg); c.beginPath(); c.moveTo(x,y); c.lineTo(x+z+1.5,y); c.lineTo(x,y+z+1.5); c.fill(); c.fillStyle=INK().chg; c.beginPath(); c.moveTo(x,y); c.lineTo(x+z,y); c.lineTo(x,y+z); c.fill(); };
       for(let r=W.r0;r<W.r0+W.vy;r++) for(let q=W.c0;q<W.c0+W.vx;q++) if(b.z[r]&&!same(t.z[r][q],b.z[r][q])) tri(g.hw+(q-W.c0)*g.cw+1,g.hh+(r-W.r0)*g.ch+1);
-      c.fillStyle='#e4aa28'; for(let q=W.c0;q<W.c0+W.vx;q++) if(b.x[q]!=null&&!same(t.x[q],b.x[q])) c.fillRect(g.hw+(q-W.c0)*g.cw+2,g.hh-4,g.cw-4,3);
+      c.fillStyle=INK().chg; for(let q=W.c0;q<W.c0+W.vx;q++) if(b.x[q]!=null&&!same(t.x[q],b.x[q])) c.fillRect(g.hw+(q-W.c0)*g.cw+2,g.hh-4,g.cw-4,3);
       if(t.yin) for(let r=W.r0;r<W.r0+W.vy;r++) if(b.y[r]!=null&&!same(t.y[r],b.y[r])) c.fillRect(g.hw-4,g.hh+(r-W.r0)*g.ch+2,3,g.ch-4); }
     hrDraw(c,g,t,W);
     if(SEL.r0!=null){ const r0=Math.min(SEL.r0,SEL.r1), r1=Math.max(SEL.r0,SEL.r1), c0=Math.min(SEL.c0,SEL.c1), c1=Math.max(SEL.c0,SEL.c1);
       const x0=g.hw+(Math.max(c0,W.c0)-W.c0)*g.cw, y0=g.hh+(Math.max(r0,W.r0)-W.r0)*g.ch, x1=g.hw+(Math.min(c1,W.c0+W.vx-1)-W.c0+1)*g.cw, y1=g.hh+(Math.min(r1,W.r0+W.vy-1)-W.r0+1)*g.ch;
-      if(x1>x0&&y1>y0){ c.fillStyle='rgba(228,170,40,.16)'; c.fillRect(x0,y0,x1-x0,y1-y0); c.strokeStyle='#e4aa28'; c.lineWidth=2; c.strokeRect(x0+1,y0+1,x1-x0-2,y1-y0-2); } } }
+      if(x1>x0&&y1>y0){ c.fillStyle=hexA(INK().sel,.16); c.fillRect(x0,y0,x1-x0,y1-y0); c.strokeStyle=INK().sel; c.lineWidth=2; c.strokeRect(x0+1,y0+1,x1-x0-2,y1-y0-2); } } }
   const body=mk('div','tt-body',root), rail=mk('div','tt-rail',body), main=mk('div','tt-main',body), hrail=side==='b'?null:mk('div','hrail',body); if(hrail) hrail.style.display='none';
   const q=mk('input','tt-q',rail); q.type='search'; q.placeholder='Search tables'; const rlist=mk('div','tt-list',rail);
-  const strip=mk('div','kstrip',main), bstrip=mk('div','kstrip bstrip',main); const msg=mk('div','tt-msg',main); msg.style.display='none';
+  const kwrap=mk('div','kwrap',main), strip=mk('div','kstrip',kwrap), bstrip=mk('div','kstrip bstrip',kwrap), kdet=mk('button','chip kdet',kwrap); kdet.onclick=()=>{ UI.ttDet=!UI.ttDet; save(); syncCmp(); requestAnimationFrame(layout); };
+  function syncCmp(){ const on=!!knockTbl(built)&&!!CX.L; kdet.style.display=on?'':'none'; root.classList.toggle('kcmp',on&&!UI.ttDet); kdet.textContent=UI.ttDet?'Less':'Details'; } const msg=mk('div','tt-msg',main); msg.style.display='none';
   const cards=mk('div','tt-cards',main); cards.style.display='none'; cards.onclick=e=>{ const el=e.target.closest('[data-card]'); if(!el) return; const id=el.dataset.card;
     if(e.target.closest('[data-cx]')){ S.cardEd=null; renderCards(); return; }
     if(e.target.closest('[data-cs]')){ const c=TT().cards.find(q=>q.id===id), rows=c.v.map(r=>r.slice()); el.querySelectorAll('[data-cv]').forEach(inp=>{ const [i,j]=inp.dataset.cv.split(',').map(Number); rows[i][j]=parseFloat(String(inp.value).replace(',','.')); });
@@ -242,6 +259,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   optRow('Cell box','mark',[['outline','1 cell'],['glow','4 cells (blend)']],'How the live position is boxed: the nearest cell, or the 4 cells the ECU interpolates between (shaded by weight)',()=>!!built&&!!built.yin);
   optRow('Value tag','val',[[1,'On'],[0,'Off']],'Show the interpolated table value next to the crosshair',()=>!!built);
   optRow('Variant name','name',[[1,'On'],[0,'Off']],'In Auto mode, show which variant (TGV / VVT / mode) is active on the Auto chip',()=>!!built&&(tabs(built.group).length>1||hasAuto(built.group)));
+  { const r=mk('div','tt-or',opts); mk('span','vlab',r).textContent='Colours'; const sl=mk('select','sel sm',r); sl.innerHTML=TPALS.map(p=>`<option value="${p[0]}"${(UI.tpal||'classic')===p[0]?' selected':''}>${p[1]}</option>`).join(''); sl.onchange=()=>{ UI.tpal=sl.value; INKK=''; save(); kwLegP(); render(); draw(); RP.dirty=true; }; OROWS.push([r,()=>true]); }
   optRow('Knock heat','kmH',[[1,'On'],[0,'Off']],'Outline every cell where knock occurred while the ECU was using this table (pooled logs on this revision), coloured by the worst value',isKT);
   optRow('Knock mark','kmL',[[1,'On'],[0,'Off']],'An × on every cell where FBKC pulled timing while the ECU was using this table (pooled logs on this revision)',isKT);
   optRow('Follow CL/OL','fol',[[0,'Off'],[1,'On']],'Switch to Open loop fuel when the ECU enters open loop and back to Base timing in closed loop',grpIs('fuel'));
@@ -249,7 +267,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   optRow('Visited cells','dim',[[0,'Off'],[1,'Dim unvisited']],'Darken cells the pooled logs on this revision never reached; hover a cell for dwell time',()=>!!built&&!!built.yin&&!!CX.L);
   optRow('Fuel cut','fc',[[0,'Off'],[1,'On']],'Mark cells where the ECU was in fuel cut in the pooled logs (purple corner and dashed outline)',()=>!!built&&!!built.yin&&!!CX.L);
   const kwRow=optRow('Knock windows','kw',[[1,'On'],[0,'Off']],'Dashed outlines where FBKC is active, where FLKC can learn and where IAM can learn (from the tune)',isKT);
-  const kwLeg=mk('div','kwleg',kwRow); kwLeg.innerHTML='<span style="--c:#00d8ff">FBKC range</span><span style="--c:#00f060">FLKC learns</span><span style="--c:#ffaa00">IAM learns</span>';
+  const kwLeg=mk('div','kwleg',kwRow); const kwLegP=()=>{ const w=INK().win; kwLeg.innerHTML=`<span style="--c:${w[0]}">FBKC range</span><span style="--c:${w[1]}">FLKC learns</span><span style="--c:${w[2]}">IAM learns</span>`; }; kwLegP();
   function syncOpts(){ OROWS.forEach(([r,w])=>{ r.style.display=w()?'':'none'; }); kwLeg.style.display=T.opt.kw!==0?'':'none'; }
   if(T.rail==null) T.rail=1; if(!T.rc) T.rc={}; root.classList.toggle('norail',!T.rail);
   railBtn.onclick=()=>{ T.rail=T.rail?0:1; root.classList.toggle('norail',!T.rail); save(); requestAnimationFrame(layout); };
@@ -351,7 +369,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   // knock summary strip (timing / knock-advance groups), collapsible, channel switch for the heat layer
   function stripLive(L,i){ if(!L||i==null) return;
     strip.querySelectorAll('[data-lv]').forEach(e=>{ const k=e.dataset.lv, a=L.c[k], v=a?a[i]:NaN; e.textContent=Number.isFinite(v)?(k==='iam'?v.toFixed(3):v.toFixed(2)+'°'):'—'; e.className=!Number.isFinite(v)?'':k==='iam'?(v<0.99?'bad':'ok'):(v<-0.005?'warn':'ok'); const kc=e.closest('.kcard'); if(kc){ const j=L.idx?L.idx[k]:-1, wt=j!=null&&j>=0&&Number.isFinite(v)?warnTier(L.fam[j],v):0; kc.classList.toggle('wl',wt>0); } }); }
-  function renderStrip(){ const t=built; if(!knockTbl(t)||!CX.L){ strip.style.display='none'; return; } strip.style.display='';
+  function renderStrip(){ syncCmp(); const t=built; if(!knockTbl(t)||!CX.L){ strip.style.display='none'; return; } strip.style.display='';
     const k=CX.L.ksum||(CX.L.ksum=knockSummary(CX.L)); let h='';
     { for(const key of ['fbkc','flkc']){ const m=k[key]; if(!m) continue;
         h+=`<button class="kcard${kchs().includes(key)&&T.opt.kmH?' on':''}" data-ch="${key}" title="Toggle ${m.label} on the heat layer"><i>${m.label}</i><b data-lv="${key}">—</b><u>worst ${m.worst.toFixed(2)}° · ${m.cnt} frames · ${m.sus} sustained</u></button>`; }
@@ -375,7 +393,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     chart.style.display=oneD||t.vert?'':'none'; const ck=mk('div','ttc tth ttk',f); ck.innerHTML=t.vert?`<span class="axy">↓ ${esc(axName(t.yin))}</span>`:oneD?`<span class="axx">${esc(axName(t.xin))}</span>`:`<span class="axx">${esc(axName(t.xin))} →</span><span class="axy">↓ ${esc(axName(t.yin))}</span>`; ck.title=`X: ${axName(t.xin)}`+(oneD?'':` · Y: ${axName(t.yin)}`)+` · values in ${d.u}`;
     for(let i=w.c0;i<w.c0+w.vx;i++) mk('div','ttc tth',f).textContent=t.vert?d.u:(i-w.c0)%step===0?fmtA(t.xin,t.x[i]):'';
     for(let r=w.r0;r<w.r0+w.vy;r++){ mk('div','ttc tth ttl',f).textContent=oneD?d.u:fmtA(t.yin,t.y[r]);
-      for(let c=w.c0;c<w.c0+w.vx;c++){ const e=mk('div','ttc',f), v=t.z[r][c]; e.textContent=dv(d,v); e.style.background=heatC(v,t.lo,t.hi); } }
+      for(let c=w.c0;c<w.c0+w.vx;c++){ const e=mk('div','ttc',f), v=t.z[r][c]; e.textContent=dv(d,v); e.style.background=cellBg(v,t.lo,t.hi); if(UI.tpal&&UI.tpal!=='classic') e.style.color=cellFg(v,t.lo,t.hi); } }
     grid.appendChild(f); syncZ(); layout(); }
   function syncZ(){ zo.disabled=S.zoom<=1.01; zi.disabled=S.zoom>=3.99; zf.classList.toggle('on',S.follow); zf.disabled=S.zoom<=1.01; }
   function setZoom(z,ax,ay){ const t=built; if(!t) return; z=Math.max(1,Math.min(4,z)); if(Math.abs(z-S.zoom)<0.01) return; const w=S.win;
@@ -481,14 +499,14 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(S.py==null||S.tx==null||!vis(Math.round(S.py))) return; const v=bil(t,0,S.py), x=X(S.py), y=Y(v); c.strokeStyle=COL.red; c.lineWidth=2; c.shadowColor='rgba(255,0,0,.8)'; c.shadowBlur=6; c.beginPath(); c.moveTo(L0,y); c.lineTo(R0,y); c.moveTo(x,T0); c.lineTo(x,B0); c.stroke(); c.shadowBlur=0; c.fillStyle=COL.red; c.beginPath(); c.arc(x,y,5,0,7); c.fill(); }
   function draw(){ const g=S.geo, t=built; if(!g||!t||!S.shown) return; const oneD=!t.yin; if(oneD) drawChart(t,g); if(t.vert) drawV(t,g);
     const c=cv.getContext('2d'); c.setTransform(g.dpr,0,0,g.dpr,0,0); c.clearRect(0,0,g.GW,g.GH);
-    const W=S.win, X=f=>g.hw+(f-W.c0+0.5)*g.cw, Y=f=>g.hh+(f-W.r0+0.5)*g.ch, red=COL.red, L=CX.L;
+    const W=S.win, X=f=>g.hw+(f-W.c0+0.5)*g.cw, Y=f=>g.hh+(f-W.r0+0.5)*g.ch, red=INK().cur, L=CX.L;
     c.save(); c.beginPath(); c.rect(0,0,g.GW,g.GH); c.clip();
     if(L&&knockTbl(t)&&T.opt.kmH&&!(ED()&&!EDIT.overlays)){ const H=heatData(); if(H){ const a=Math.min(1,(performance.now()-S.heatT0)/600);   // lights up once
       for(const k in H.cells){ const [r,cc]=k.split(',').map(Number); if(cc<W.c0||cc>=W.c0+W.vx||r<W.r0||r>=W.r0+W.vy) continue; const m=H.cells[k], x0=g.hw+(cc-W.c0)*g.cw, y0=g.hh+(r-W.r0)*g.ch;
-        c.globalAlpha=a; c.strokeStyle=knockRamp(m.worst); c.lineWidth=2.5; c.strokeRect(x0+2,y0+2,g.cw-4,g.ch-4);
-        c.fillStyle=knockRamp(m.worst); c.beginPath(); c.moveTo(x0+g.cw-2,y0+2); c.lineTo(x0+g.cw-2,y0+Math.min(10,g.ch*0.45)); c.lineTo(x0+g.cw-Math.min(10,g.cw*0.3),y0+2); c.fill(); c.globalAlpha=1; } } }
+        c.globalAlpha=a; c.strokeStyle=INK().heat?knockRamp(m.worst):INK().knk; c.lineWidth=2.5; c.strokeRect(x0+2,y0+2,g.cw-4,g.ch-4);
+        c.fillStyle=INK().heat?knockRamp(m.worst):INK().knk; c.beginPath(); c.moveTo(x0+g.cw-2,y0+2); c.lineTo(x0+g.cw-2,y0+Math.min(10,g.ch*0.45)); c.lineTo(x0+g.cw-Math.min(10,g.cw*0.3),y0+2); c.fill(); c.globalAlpha=1; } } }
     if(knockTbl(t)&&T.opt.kw!==0&&TT()&&!(ED()&&!EDIT.overlays)){ const m=TT().m, v=(id,r,k)=>m[id]&&m[id][r]&&m[id][r][k]!=null?m[id][r][k]:null;
-      const W2=[[v('knock_load',0,1),null,v('knock_rpm_range',0,1),v('knock_rpm_range',1,1),'#00d8ff'],[v('spark_fine_load_limit',0,1),v('spark_fine_load_limit',1,1),v('spark_fine_rpm_min',0,1),v('spark_fine_rpm_max',0,1),'#00f060'],[v('iam_load_limit',0,1),v('iam_load_limit',1,1),v('iam_rpm_limit',0,1),v('iam_rpm_limit',1,1),'#ffaa00']];
+      const W2=[[v('knock_load',0,1),null,v('knock_rpm_range',0,1),v('knock_rpm_range',1,1),INK().win[0]],[v('spark_fine_load_limit',0,1),v('spark_fine_load_limit',1,1),v('spark_fine_rpm_min',0,1),v('spark_fine_rpm_max',0,1),INK().win[1]],[v('iam_load_limit',0,1),v('iam_load_limit',1,1),v('iam_rpm_limit',0,1),v('iam_rpm_limit',1,1),INK().win[2]]];
       const ex=v=>X(Math.round(v)), ey=v=>Y(Math.round(v));
       for(const [l0,l1,r0,r1,col] of W2){ if(l0==null||r0==null) continue; const x0=Math.max(g.hw,ex(fi(t.x,l0))-g.cw/2), x1=l1!=null?Math.min(g.GW,ex(fi(t.x,l1))+g.cw/2):g.GW, y0=Math.max(g.hh,ey(fi(t.y,r0))-g.ch/2), y1=r1!=null?Math.min(g.GH,ey(fi(t.y,r1))+g.ch/2):g.GH;
         if(x1-x0<2||y1-y0<2) continue; c.setLineDash([6,4]); c.strokeStyle='rgba(0,0,0,.45)'; c.lineWidth=3; c.strokeRect(x0+1,y0+1,x1-x0-2,y1-y0-2); c.strokeStyle=col; c.lineWidth=1.5; c.strokeRect(x0+1,y0+1,x1-x0-2,y1-y0-2); }
@@ -496,7 +514,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(L&&t.yin&&(T.opt.dim||T.opt.fc)&&!(ED()&&!EDIT.overlays)){ const V=visitData();
       if(V) for(let r=W.r0;r<Math.min(t.y.length,W.r0+W.vy);r++) for(let cc=W.c0;cc<Math.min(t.x.length,W.c0+W.vx);cc++){ const x0=g.hw+(cc-W.c0)*g.cw, y0=g.hh+(r-W.r0)*g.ch, k=r*t.x.length+cc;
         if(T.opt.dim&&!V.ms[k]){ c.fillStyle='rgba(0,0,0,.62)'; c.fillRect(x0,y0,g.cw,g.ch); }
-        if(T.opt.fc&&V.cut[k]){ c.strokeStyle='#b46cff'; c.lineWidth=1.6; c.setLineDash([4,3]); c.strokeRect(x0+3,y0+3,g.cw-6,g.ch-6); c.setLineDash([]); c.fillStyle='#b46cff'; c.beginPath(); c.moveTo(x0+2,y0+g.ch-2); c.lineTo(x0+2,y0+g.ch-Math.min(10,g.ch*.45)); c.lineTo(x0+Math.min(10,g.cw*.3),y0+g.ch-2); c.fill(); } } }
+        if(T.opt.fc&&V.cut[k]){ c.strokeStyle=INK().fc; c.lineWidth=1.6; c.setLineDash([4,3]); c.strokeRect(x0+3,y0+3,g.cw-6,g.ch-6); c.setLineDash([]); c.fillStyle=INK().fc; c.beginPath(); c.moveTo(x0+2,y0+g.ch-2); c.lineTo(x0+2,y0+g.ch-Math.min(10,g.ch*.45)); c.lineTo(x0+Math.min(10,g.cw*.3),y0+g.ch-2); c.fill(); } } }
     if(L&&knockTbl(t)&&T.opt.kmL&&!(ED()&&!EDIT.overlays)){ c.save(); c.beginPath(); c.rect(g.hw,g.hh,g.GW-g.hw,g.GH-g.hh); c.clip(); for(const PL of poolL(CX.L)) for(const k of (PL.kmarks||[])){ if(!kOnTable(PL,k.i,t)) continue;
         const kx=X(fi(t.x,k.load)), ky=Y(fi(t.y,k.rpm)), r=Math.max(3,Math.min(g.cw,g.ch)*0.28);
         c.strokeStyle='rgba(255,40,40,.9)'; c.lineWidth=2.2; c.beginPath(); c.moveTo(kx-r,ky-r); c.lineTo(kx+r,ky+r); c.moveTo(kx+r,ky-r); c.lineTo(kx-r,ky+r); c.stroke(); } c.restore(); }
@@ -535,15 +553,15 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
 // ════════════════════════════════════════════════════════════════════════════
 function MafTableView(){
   let shown=false, liveBin=-1, revealKey=''; const root=mk('div','view mt'), bar=mk('div','vbar',root);
-  mk('span','vlab',bar).textContent='OL calc'; const olSeg=seg(bar,[['afl','+AFL','OL = WB/FFB × (1+AFL)'],['raw','raw','OL = WB/FFB']],CFG.olAfl?'afl':'raw',v=>{ CFG.olAfl=v==='afl'; UI.cfg.olAfl=CFG.olAfl; save(); refinalize(); });
+  const olMk=h=>seg(h,[['afl','+AFL','OL = WB/FFB × (1+AFL)'],['raw','raw','OL = WB/FFB']],CFG.olAfl?'afl':'raw',v=>{ CFG.olAfl=v==='afl'; UI.cfg.olAfl=CFG.olAfl; save(); refinalize(); }); const olSeg=olMk(document.createElement('div')); window.__mafOL=olMk;
   const srcChip=mk('span','chip ro',bar); const ipwChip=mk('span','chip ro',bar); const seamChip=mk('span','chip ro',bar); const chkChip=mk('span','chip ro',bar); const poolChip=mk('button','chip',bar); poolChip.onclick=()=>setPop(poolChip,['pool'],'Pooled logs'); const OPEN=new Set();
-  mk('span','vfill',bar); { const fg=mk('button','ibtn',bar); fg.innerHTML=SVG_GEAR; fg.title='MAF filters and data'; fg.onclick=()=>setPop(fg,['cov','flt'],'MAF data and filters'); }
+  mk('span','vfill',bar); { const fg=mk('button','ibtn',bar); fg.innerHTML=SVG_GEAR; fg.title='MAF filters and data'; fg.onclick=()=>mafPop(fg); }
   const now=mk('div','mt-now',root); now.style.display='none'; let nowSig='';
   const wrap=mk('div','ml',root), strip=mk('div','ml-strip',wrap), grid=mk('div','ml-grid',wrap), list=mk('div','ml-list',grid), side=mk('div','ml-side',grid); let narrow=false; let SELB=-1;
   const mc=m=>m==null?null:(m<0.88||m>1.12)?'#ff6b6b':(m<0.93||m>1.07)?'#f0a050':(m<0.97||m>1.03)?'#7bbf50':'#8a8a92';
   const f2=(v,d,s)=>v==null||!Number.isFinite(v)?'<span class="dim">—</span>':(s&&v>0?'+':'')+v.toFixed(d);
   const ZN=['Idle','Cruise','Load','Boost'], zEdges=()=>{ const z=UI.mafZones; return Array.isArray(z)&&z.length===3?z:[1.2,1.9,2.5]; };
-  const lpC=s=>s==='CL'?'var(--cl,#4a90d9)':s==='OL'?'#3bb07f':s==='MIX'?'var(--acc)':'#1c1c22';
+  const lpC=s=>s==='CL'?'var(--cl,#4a90d9)':s==='OL'?'#3bb07f':s==='MIX'?'linear-gradient(var(--cl,#4a90d9) 50%,#3bb07f 50%)':'#1c1c22';
   const dOf=i=>{ const R=ST.row, sc=TUNE&&TUNE.mafScale, b=ST.bins&&ST.bins[i]; if(!R||!b||!b.n) return null; return sc&&R.nv?(R.nv[i]/sc[i]-1)*100:(R.f[i]-1)*100; };
   function refinalize(){ for(const b of ST.bins||[]) {} finalizeBins(ST.bins||[]); ST.row=scaleRow(ST.bins,ST.fixes); render(); RP.dirty=true; drawerRefresh(); }
   function render(){ const B=ST.bins, R=ST.row; olSeg.set(CFG.olAfl?'afl':'raw');
@@ -620,9 +638,9 @@ function MafTableView(){
 // ════════════════════════════════════════════════════════════════════════════
 function MafCurveView(){
   const M=UI.m; let shown=false, cache={key:null,bins:null,row:null,at:0}; const root=mk('div','view mv'), bar=mk('div','vbar',root);
-  mk('span','vlab',bar).textContent='Source'; seg(bar,[['all','All logs'],['play','To playhead'],['ab','A–B']],M.src,v=>{ M.src=v; cache.key=null; save(); RP.dirty=true; });
-  seg(bar,[['curve','Curve'],['delta','Δ %']],M.mode,v=>{ M.mode=v; save(); RP.dirty=true; });
-  seg(bar,[['both','Both'],['new','Corrected'],['old','Current']],M.show||'both',v=>{ M.show=v; save(); RP.dirty=true; }).title='Which maf_scale curve to draw';
+  window.__mafSrc=h=>seg(h,[['all','All logs'],['play','To playhead'],['ab','A–B']],M.src,v=>{ M.src=v; cache.key=null; save(); RP.dirty=true; }); { const g=mk('button','ibtn'); g.innerHTML=SVG_GEAR; g.title='MAF data and filters'; g.onclick=()=>mafPop(g); queueMicrotask(()=>bar.appendChild(g)); }
+  seg(bar,[['curve','Line'],['delta','Δ %']],M.mode,v=>{ M.mode=v; save(); RP.dirty=true; });
+  seg(bar,[['both','Corrected + current'],['new','Corrected'],['old','Current']],M.show||'both',v=>{ M.show=v; save(); RP.dirty=true; }).title='Which maf_scale curve to draw';
   const scBtn=mk('button','chip'+(M.scatter?' on':''),bar); scBtn.textContent='Scatter Plot'; scBtn.title='Show every kept frame behind the curve';
   scBtn.onclick=()=>{ M.scatter=!M.scatter; scBtn.classList.toggle('on',M.scatter); save(); RP.dirty=true; };
     const covBtn=mk('button','chip'+(M.cov!==false?' on':''),bar); covBtn.textContent='Coverage';

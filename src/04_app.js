@@ -55,7 +55,7 @@ function makeViews(){ GV=GraphView(); GV2=GraphView('2'); TV=TableView(); MT=Maf
 const MAFV=['maf_table','maf_curve','maf_both'], mafClash=(a,b)=>a===b||(a==='maf_both'&&(b==='maf_table'||b==='maf_curve'))||(b==='maf_both'&&(a==='maf_table'||a==='maf_curve'));
 let MB=null, MBAR=null;
 function mafMode(v){ UI.mafLast=v; const n=paneCount(), cur=UI.panes.slice(0,n).findIndex(x=>MAFV.includes(x)); setPaneView(cur>=0?cur:UI.focus,v); }
-function mafToggle(bar){ const s=seg(bar,[['maf_table','Scaling'],['maf_curve','Curve'],['maf_both','Both']],'',v=>{ const n=paneCount(), own=bar.closest('.view'), j=UI.panes.slice(0,n).findIndex(x=>VIEWS[x]&&VIEWS[x].el===own); UI.mafLast=v; setPaneView(j>=0?j:UI.focus,v); }); s.classList.add('mtog'); bar.prepend(s); return s; }
+function mafToggle(bar){ const s=seg(bar,[['maf_table','Scaling'],['maf_curve','Curve'],['maf_both','Split']],'',v=>{ const n=paneCount(), own=bar.closest('.view'), j=UI.panes.slice(0,n).findIndex(x=>VIEWS[x]&&VIEWS[x].el===own); UI.mafLast=v; setPaneView(j>=0?j:UI.focus,v); }); s.classList.add('mtog'); bar.prepend(s); return s; }
 function MafBothView(){ const root=mk('div','view mb'), bar=mk('div','vbar',root), top=mk('div','mb-a',root), dv=mk('div','mb-d',root), bot=mk('div','mb-b',root);
   const gT=MT.el.querySelector('.vbar'), gV=MV.el.querySelector('.vbar'), iT=[...gT.children], iV=[...gV.children].filter(x=>!/vfill/.test(x.className));
   MBAR={gT,gV,iT,iV,tog:[mafToggle(gT),mafToggle(gV),mafToggle(bar)]}; let on=false;
@@ -98,8 +98,8 @@ function viewNeeds(v){ if(!ST.logs.length) return []; if(v.endsWith('_b')) retur
 function grMode(v){ UI.grLast=v; const n=paneCount(), from=v==='scatter'?'graph':'scatter', k=UI.panes.slice(0,n).indexOf(from); setPaneView._raw=1; try{ setPaneView(k<0?UI.focus:k,v); }finally{ setPaneView._raw=0; } }
 // settings popover: drawer sections shown next to the feature they control, using the drawer's own handlers
 let DSEC={};
-function setPop(btn,keys,title){ const o=$('setpop'); if(o){ const same=o._k===keys.join(); o._close(); if(same) return; } drawerRefresh();
-  const d=mk('div','setpop',document.body); d.id='setpop'; d._k=keys.join(); d.innerHTML=`<div class="sph"><b>${esc(title)}</b><button class="ibtn" data-spx aria-label="Close">✕</button></div><div class="spb"></div>`;
+function setPop(btn,keys,title,extra){ const o=$('setpop'); if(o){ const same=o._k===keys.join(); o._close(); if(same) return; } drawerRefresh();
+  const d=mk('div','setpop',document.body); d.id='setpop'; d._k=keys.join(); d.innerHTML=`<div class="sph"><b>${esc(title)}</b><button class="ibtn" data-spx aria-label="Close">✕</button></div><div class="spb"></div>`; if(extra){ const ex=document.createElement('div'); ex.className='spx'; d.insertBefore(ex,d.querySelector('.spb')); extra(ex); }
   const bd=d.querySelector('.spb'), fill=()=>{ bd.innerHTML=keys.map(k=>DSEC[k]||'').join(''); }; fill(); drawerBind(bd);
   bd.addEventListener('click',()=>setTimeout(()=>{ drawerRefresh(); if(document.activeElement&&bd.contains(document.activeElement)&&/INPUT|SELECT/.test(document.activeElement.tagName)) return; fill(); },40));
   bd.addEventListener('change',()=>setTimeout(()=>{ drawerRefresh(); fill(); },40));
@@ -270,7 +270,7 @@ function landRefresh(){ if(!$('land-tune')) return; $('land-ver').textContent=AP
   $('ln-tune').classList.toggle('ok',!!TUNE);
   $('land-tune').innerHTML=TUNE?`<div class="lcur"><div class="lic">.tune</div><div><b>${esc(TUNE.name||'tune')}</b><small>${esc([TUNE.cal,cn&&cn.rev?'Rev '+cn.rev:'',cn&&cn.time?whenTxt(cn.time):''].filter(Boolean).join(' · '))}</small></div><span class="lb2"><button class="btn" data-l="edit" title="Open Tables to edit this tune, no log needed">Open in editor</button><button class="btn" data-l="tune">Change</button></span></div>`
     +(others.length?`<div class="lrec"><span>Revisions</span>${others.map(n=>`<button data-rev="${esc(n.id)}">${esc(n.file||'rev '+n.rev)}</button>`).join('')}</div>`:'')
-    :`<div class="ldrop big" data-l="tune" role="button" tabindex="0">Load a Project Lambda .tune, or drop one here</div>`;
+    :`<div class="ldrop big" data-l="tune" role="button" tabindex="0">Drop a Project Lambda .tune here</div>`;
   const E=LAND.ejl&&LAND.ejl.files?LAND.ejl.files.filter(f=>!f.old&&f.name!==LAND.ejl.recording).slice(0,8):[];
   $('land-logs-s').textContent=E.length?'From ejLogger':'';
   $('land-rows').innerHTML=LAND.q.map((f,i)=>`<div class="lrow ${LAND.sel.has('f:'+i)?'on':''}" data-k="f:${i}"><span class="lcb"></span><span>${esc(f.name)}</span><span class="p">dropped</span><span class="r"></span><span class="z">${f.size?kb(f.size):''}</span></div>`).join('')
@@ -280,7 +280,7 @@ function landRefresh(){ if(!$('land-tune')) return; $('land-ver').textContent=AP
   const go=$('land-go'); go.disabled=!TUNE; go.textContent=n?'Open session  →':'Open in editor  →';
   $('land-back').classList.toggle('hidden',!ST.logs.length);
   const SS=(UI.sessions||[]).map((s,i)=>Object.assign({i},s)).filter(s=>!UI.car||!s.car||s.car===UI.car), S=SS.slice(0,3); const cars=UI.cars||[];
-  $('land-car').innerHTML=cars.length?`<select id="land-carsel">${cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join('')}</select><button class="lchip" data-l="caredit">Edit</button><button class="lchip" data-l="caradd">＋ Car</button>`:`<button class="lchip" data-l="caradd">＋ Create car profile</button>`;
+  $('land-car').innerHTML=cars.length?`<select id="land-carsel">${cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join('')}</select><button class="lchip" data-l="caredit">Edit</button><button class="lchip" data-l="caradd">Add car</button>`:`<button class="lchip" data-l="caradd">Create car profile</button>`;
   $('land-last').innerHTML=S.length?`<div class="lbl">Pick up where you left off</div>`+S.map((s,i)=>`<button class="lses ${i?'':'top'}" data-ses="${s.i}" title="${esc(s.logs.map(l=>l.name).join('\n'))}"><b>${esc(s.tune.name)} <em>+ ${s.logs.length} log${s.logs.length===1?'':'s'}</em></b><small>${esc(whenTxt(s.t))} · ${esc(s.res||'')}</small>${i?'':'<span class="btn">Reopen</span>'}</button>`).join(''):'';
   let EJS=null; try{ EJS=EJL.S; }catch(_){} if(window.rrlab&&window.rrlab.desktop&&EJS){ const st=EJS, f0=LAND.ejl&&LAND.ejl.files&&LAND.ejl.files[0], ic=$('land-ejl').dataset.ic||'';
     const s=st.rec?['rec','Recording']:st.state==='logging'?['on','Logging']:st.state==='connecting'?['on','Connecting']:['','Not connected'];

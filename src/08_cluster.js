@@ -43,7 +43,7 @@ const CLU=(()=>{
 #ejl .cl .vr{display:flex;align-items:flex-end;gap:.5cqw;line-height:.86;margin:.9cqw 0 .5cqw}
 #ejl .cl .v{color:var(--vc,#f2f2f2);font:calc(9.6cqw*var(--s)*var(--vs,1))/.9 ejDIN,"Arial Narrow",sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap;transition:color .18s}
 #ejl .cl .u{font:calc(1.25cqw*var(--s)*var(--us,1)) ejMono,var(--mono);color:var(--uc,#8a8a92);padding-bottom:.4cqw}
-#ejl .cl .mm{color:var(--mc,#f2f2f2);font:calc(2.3cqw*var(--s)*var(--ms,1)) ejDIN,sans-serif;letter-spacing:.12em;display:flex;justify-content:space-between;width:88%;white-space:nowrap}#ejl .cl .mm.c{justify-content:center}
+#ejl .cl .mm{color:var(--mc,#f2f2f2);font:calc(2.3cqw*var(--s)*var(--ms,1)) ejDIN,sans-serif;letter-spacing:.03em;display:flex;justify-content:space-between;width:88%;white-space:nowrap}#ejl .cl .mm.c{justify-content:center}
 #ejl .cl .g.t1 .v{color:var(--wa,#f0b030)}#ejl .cl .g.t2 .v,#ejl .cl .g.t3 .v{color:var(--wr,#ff4040)}
 #ejl .cl.glow .g.t1 .v{text-shadow:0 0 1.2cqw color-mix(in srgb,var(--wa,#f0b030) 55%,transparent)}#ejl .cl.glow .g.t2 .v,#ejl .cl.glow .g.t3 .v{text-shadow:0 0 1.4cqw color-mix(in srgb,var(--wr,#ff4040) 60%,transparent)}
 #ejl .cl .g.t1 .v{animation:clf 1.2s ease-in-out infinite}#ejl .cl .g.t2 .v{animation:clf .7s ease-in-out infinite}#ejl .cl .g.t3 .v{animation:clf .32s steps(2) infinite}@keyframes clf{50%{opacity:.45}}
