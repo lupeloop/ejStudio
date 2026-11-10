@@ -18,7 +18,7 @@
   <a href="#supported-files">Files</a>
 </p>
 
-![ejStudio and ejLogger](docs/img/hero.png)
+![ejStudio](docs/img/hero.png)
 
 ejStudio is one app for the whole tuning loop. It loads logs alongside a Project Lambda `.tune`, replays the drive across every table, finds knock and fuelling problems, suggests corrections and builds the next revision for you to flash. Its built-in logger, **ejLogger**, records those logs from the car, drives an in-car cluster, and puts it all on a phone.
 
