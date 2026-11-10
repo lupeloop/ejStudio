@@ -9,3 +9,8 @@ ghtoken.js
 Claude outputs/
 ejLogger/.old/
 ejstudio.html
+
+# Impeccable (local design tooling)
+.claude/skills/impeccable/
+.claude/settings.local.json
+.impeccable/
