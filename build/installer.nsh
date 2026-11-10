@@ -1,4 +1,4 @@
-; ejStudio installer: dark welcome/finish pages and headers (Modern UI 2 colours).
+; ejStudio installer: dark pages matching the app (sidebar and header art in build/*.bmp).
 ; Inner-page boxes (folder picker, progress list) are standard Windows controls.
 !ifndef MUI_BGCOLOR
   !define MUI_BGCOLOR "0B0B0E"
