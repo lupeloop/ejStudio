@@ -29,7 +29,7 @@ function mergeLimits(){ TLIM=tuneLimits(typeof RP!=='undefined'?RP.L:null); cons
   LIMITS=out; }
 LIMITS=JSON.parse(JSON.stringify(ULIM));
 let saveT=0; function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ UI.limits=ULIM; try{ localStorage.setItem('rrlab_ui_v1',JSON.stringify(UI)); }catch(_){} },300); }
-const VIEW_NAMES={maf_both:'MAF Tools · Both',graph:'Graph',table:'Tables',maf_table:'MAF Tools · Scaling',maf_curve:'MAF Tools · Curve',scatter:'Scatter Plot'}, VIEW_ORDER=['table','graph','maf_table','maf_curve','maf_both','scatter'], TAB_ORDER=['table','graph','maf'];
+const VIEW_NAMES={maf_both:'MAF Tools · Both',graph:'Graph',graph2:'Graph · 2',table:'Tables',maf_table:'MAF Tools · Scaling',maf_curve:'MAF Tools · Curve',scatter:'Scatter Plot'}, VIEW_ORDER=['table','graph','maf_table','maf_curve','maf_both','scatter'], TAB_ORDER=['table','graph','maf'];
 const ST={logs:[],bins:null,row:null,ipw:null,fixes:new Set(),queue:[],anKey:0};
 const RP={L:null,i:0,playT:0,playing:false,lastTs:0,raf:0,dirty:true,a:null,b:null,kClear:-1,gOff:0,hoverT:null,flashes:[]};
 let toastT=0;
@@ -49,8 +49,8 @@ const IDB={db:null,
   all(){ return this.tx('readonly',s=>s.getAll()); }, put(o){ return this.tx('readwrite',s=>s.put(o)); }, del(k){ return this.tx('readwrite',s=>s.delete(k)); }, clear(){ return this.tx('readwrite',s=>s.clear()); } };
 
 // ── views ───────────────────────────────────────────────────────────────────
-let GV,TV,MT,MV,SV,GVb,TVb,VIEWS;
-function makeViews(){ GV=GraphView(); TV=TableView(); MT=MafTableView(); MV=MafCurveView(); SV=ScatterView(); VIEWS={graph:GV,table:TV,maf_table:MT,maf_curve:MV,scatter:SV}; MB=MafBothView(); VIEWS.maf_both=MB; GVb=TVb=new Proxy({},{get:()=>()=>{}}); if(Array.isArray(UI.panes)) UI.panes=UI.panes.map(v=>VIEWS[v]?v:'table'); }
+let GV,GV2,TV,MT,MV,SV,GVb,TVb,VIEWS;
+function makeViews(){ GV=GraphView(); GV2=GraphView('2'); TV=TableView(); MT=MafTableView(); MV=MafCurveView(); SV=ScatterView(); VIEWS={graph:GV,graph2:GV2,table:TV,maf_table:MT,maf_curve:MV,scatter:SV}; MB=MafBothView(); VIEWS.maf_both=MB; GVb=TVb=new Proxy({},{get:()=>()=>{}}); if(Array.isArray(UI.panes)) UI.panes=UI.panes.map(v=>VIEWS[v]?v:'table'); }
 // MAF Tools: one tab; each pane picks Scaling, Curve or Both. Both borrows the two views and merges their toolbars.
 const MAFV=['maf_table','maf_curve','maf_both'], mafClash=(a,b)=>a===b||(a==='maf_both'&&(b==='maf_table'||b==='maf_curve'))||(b==='maf_both'&&(a==='maf_table'||a==='maf_curve'));
 let MB=null, MBAR=null;
@@ -83,14 +83,14 @@ function applySizes(){ const st=$('stage'), S=UI.sizes, P=st.querySelectorAll('.
   if(UI.layout==='2h') { g(P[0],S.h); g(P[1],1-S.h); } else if(UI.layout==='2v'){ g(P[0],S.v); g(P[1],1-S.v); }
   else if(UI.layout==='3'){ g(P[0],S.l); g(st.querySelector('.col'),1-S.l); g(P[1],S.r); g(P[2],1-S.r); } else g(P[0],1); RP.dirty=true; }
 function makePane(k){ const v=UI.panes[k], p=mk('div','pane'+(k===UI.focus&&paneCount()>1?' focus':'')), ph=mk('div','ph',p), sel=mk('select','sel sm',ph); if(paneCount()===1) ph.style.display='none';
-  VIEW_ORDER.forEach(x=>{ const o=mk('option','',sel); o.value=x; o.textContent=VIEW_NAMES[x]; }); sel.value=v;
+  VIEW_ORDER.concat(v==='graph2'?['graph2']:[]).forEach(x=>{ const o=mk('option','',sel); o.value=x; o.textContent=VIEW_NAMES[x]; }); sel.value=v;
   sel.onchange=()=>setPaneView(k,sel.value);
   if(v in UI.sync){ const ln=mk('button','ibtn link'+(UI.sync[v]?' on':''),paneCount()===1?VIEWS[v].el.querySelector('.vbar'):ph); ln.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>';
     ln.title='Follow the playhead'; ln.onclick=()=>{ UI.sync[v]=!UI.sync[v]; ln.classList.toggle('on',UI.sync[v]); save(); if(UI.sync[v]&&v==='table') TV.frame(RP.i,true); RP.dirty=true; if(v==='maf_table') MT.frame(); }; }
   if(v!=='maf_both'){ const po=mk('button','ibtn link',paneCount()===1?VIEWS[v].el.querySelector('.vbar'):ph); po.textContent='⧉'; po.title='Pop out into its own window'; po.onclick=e=>{ e.stopPropagation(); popOut(v); }; }
   const pb=mk('div','pb vin',p); pb.appendChild(VIEWS[v].el); p.addEventListener('pointerdown',()=>{ if(UI.focus!==k){ UI.focus=k; document.querySelectorAll('.pane').forEach((x,j)=>x.classList.toggle('focus',j===k&&paneCount()>1)); syncTabs(); save(); } },true);
   return p; }
-function setPaneView(k,v){ if(v==='maf') v=UI.mafLast||'maf_table'; if(v==='graph'&&UI.grLast==='scatter'&&!setPaneView._raw) v='scatter'; if(MAFV.includes(v)) UI.mafLast=v; const n=paneCount(), old=UI.panes[k]; for(let j=0;j<n;j++) if(j!==k&&mafClash(UI.panes[j],v)) UI.panes[j]=mafClash(old,v)?'':old; UI.panes[k]=v; save(); buildStage(); }
+function setPaneView(k,v){ if(v==='maf') v=UI.mafLast||'maf_table'; if(v==='graph'&&UI.grLast==='scatter'&&!setPaneView._raw) v='scatter'; if(v==='graph'||v==='graph2'){ const n0=paneCount(), oth=UI.panes.slice(0,n0).filter((x,j)=>j!==k); v=oth.includes('graph')?'graph2':'graph'; } if(MAFV.includes(v)) UI.mafLast=v; const n=paneCount(), old=UI.panes[k]; for(let j=0;j<n;j++) if(j!==k&&mafClash(UI.panes[j],v)) UI.panes[j]=mafClash(old,v)?'':old; UI.panes[k]=v; save(); buildStage(); }
 function viewNeeds(v){ if(!ST.logs.length) return []; if(v.endsWith('_b')) return RP.B?[]:['a compare log (B)'];
   if(v==='maf_table'||v==='maf_curve'||v==='maf_both') return ST.logs.some(L=>L.cap.maf)?[]:mafNeeds(RP.L||ST.logs[0]);
   if(v==='table') return ST.logs.some(L=>L.c.rpm)?[]:[IN_NAMES.rpm]; return []; }
@@ -103,12 +103,12 @@ function setPop(btn,keys,title){ const o=$('setpop'); if(o){ const same=o._k===k
   const bd=d.querySelector('.spb'), fill=()=>{ bd.innerHTML=keys.map(k=>DSEC[k]||'').join(''); }; fill(); drawerBind(bd);
   bd.addEventListener('click',()=>setTimeout(()=>{ drawerRefresh(); if(document.activeElement&&bd.contains(document.activeElement)&&/INPUT|SELECT/.test(document.activeElement.tagName)) return; fill(); },40));
   bd.addEventListener('change',()=>setTimeout(()=>{ drawerRefresh(); fill(); },40));
-  const r=btn.getBoundingClientRect(), W=Math.min(360,innerWidth-16); d.style.width=W+'px'; d.style.left=Math.max(8,Math.min(innerWidth-W-8,r.right-W))+'px';
+  const r=btn.getBoundingClientRect(), W=Math.min(keys.includes('cov')?460:360,innerWidth-16); d.style.width=W+'px'; d.style.left=Math.max(8,Math.min(innerWidth-W-8,r.right-W))+'px';
   if(r.top>innerHeight/2) d.style.bottom=(innerHeight-r.top+6)+'px'; else d.style.top=(r.bottom+6)+'px';
   const out=e=>{ if(!e.target.closest('#setpop')&&!btn.contains(e.target)) d._close(); }, kd=e=>{ if(e.key==='Escape'){ e.stopPropagation(); d._close(); } };
   d._close=()=>{ d.remove(); document.removeEventListener('pointerdown',out,true); document.removeEventListener('keydown',kd,true); };
   d.querySelector('[data-spx]').onclick=()=>d._close(); setTimeout(()=>{ document.addEventListener('pointerdown',out,true); document.addEventListener('keydown',kd,true); },0); }
-function syncTabs(){ const vis=UI.panes.slice(0,paneCount()); document.querySelectorAll('#tabs button').forEach(b=>{ const tv=b.dataset.v, is=v=>tv==='maf'?MAFV.includes(v):tv==='graph'?(v==='graph'||v==='scatter'):v===tv; b.classList.toggle('on',vis.some(is)); b.classList.toggle('foc',is(UI.panes[UI.focus])); const m=viewNeeds(tv==='maf'?'maf_table':tv); b.classList.toggle('na',!!m.length); b.style.display=b.dataset.v.endsWith('_b')&&!RP.B?'none':''; b.title=m.length?'Needs: '+m.join(', '):''; });
+function syncTabs(){ const vis=UI.panes.slice(0,paneCount()); document.querySelectorAll('#tabs button').forEach(b=>{ const tv=b.dataset.v, is=v=>tv==='maf'?MAFV.includes(v):tv==='graph'?(v==='graph'||v==='scatter'||v==='graph2'):v===tv; b.classList.toggle('on',vis.some(is)); b.classList.toggle('foc',is(UI.panes[UI.focus])); const m=viewNeeds(tv==='maf'?'maf_table':tv); b.classList.toggle('na',!!m.length); b.style.display=b.dataset.v.endsWith('_b')&&!RP.B?'none':''; b.title=m.length?'Needs: '+m.join(', '):''; });
   document.querySelectorAll('#stage .pane').forEach((p,k)=>{ const pb=p.querySelector('.pb'), m=viewNeeds(UI.panes[k]); if(!pb) return; pb.classList.toggle('na',!!m.length); let e=pb.querySelector('.na-msg'); if(m.length){ if(!e) e=mk('div','na-msg',pb); e.textContent='Needs: '+m.join(', '); } else if(e) e.remove(); });
   document.querySelectorAll('#layouts button').forEach(b=>b.classList.toggle('on',b.dataset.l===UI.layout)); syncPresets(); }
 function syncPresets(){ document.querySelectorAll('#presets button').forEach((b,k)=>{ const p=UI.presets[k]; b.classList.toggle('has',!!p); b.title=p?`Preset ${k+1}: ${p.panes.slice(0,p.layout==='1'?1:p.layout==='3'?3:2).map(v=>VIEW_NAMES[v]).join(' + ')} — click to load, Shift+click to overwrite`:`Empty — click to save the current layout`; }); }
@@ -117,7 +117,7 @@ function preset(k,saveIt){ const p=UI.presets[k]; if(saveIt||!p){ UI.presets[k]=
 
 // ── replay ──────────────────────────────────────────────────────────────────
 function selectLog(L,keep){ const t=RP.playT; if(RP.B===L) RP.B=null; RP.L=L; mergeLimits(); UI.fp=L?L.fp:null; if(!keep){ RP.a=RP.b=null; RP.kClear=-1; } RP.gOff=0; RP.tlKey=null; RP.i=-1;
-  if(L){ TV.setTune(); GV.fill(); SV.fill(); MV.reset(); TV.logChanged(); rpSeek(keep?Math.min(t,L.dur):0,true); } fillEvents(); rpAB(); save(); drawerRefresh(); if(L) autoWx(L); cmpUI(); if(window.__edChanged) window.__edChanged(); }
+  if(L){ TV.setTune(); GV.fill(); GV2.fill(); SV.fill(); MV.reset(); TV.logChanged(); rpSeek(keep?Math.min(t,L.dur):0,true); } fillEvents(); rpAB(); save(); drawerRefresh(); if(L) autoWx(L); cmpUI(); if(window.__edChanged) window.__edChanged(); }
 function rpSeek(t,snap){ const L=RP.L; if(!L) return; RP.playT=Math.max(0,Math.min(L.dur,t)); const i=rpIdx(RP.playT); RP.i=i; if(UI.sync.table) TV.frame(i,snap); MT.frame(); RP.dirty=true; rpTime(); }
 function rpStep(d){ const L=RP.L; if(!L) return; rpPlay(false); const i=Math.max(0,Math.min(L.N-1,RP.i+d)); RP.playT=L.t[i]; RP.i=i; if(UI.sync.table) TV.frame(i,false); MT.frame(); RP.dirty=true; rpTime(); }
 function rpPlay(on){ RP.playing=!!on&&!!RP.L; if(RP.playing){ RP.gOff=0; if(RP.playT>=RP.L.dur) rpSeek(RP.a!=null&&RP.b!=null?Math.min(RP.a,RP.b):0,true); } $('t-play').textContent=RP.playing?'❚❚':'▶'; if(!RP.playing){ UI.playT=RP.playT; save(); } }
@@ -149,7 +149,7 @@ function loop(ts){
   if(RP.B&&UI.link){ const nt=Math.max(0,Math.min(RP.B.dur,RP.playT+RP.bOff)); if(nt!==RP.bT){ RP.bT=nt; RP.bI=rpIdxL(RP.B,nt); RP.dirty=true; } }
   if(RP.B&&RP.bI!==RP.bIp){ RP.bIp=RP.bI; TVb.frame(RP.bI,false); }
   TV.tick(dt); TVb.tick(dt);
-  if(RP.dirty){ RP.dirty=false; if(UI.sync.graph!==false||RP.playing===false) GV.draw(); MV.draw(); SV.draw(); GVb.draw(); drawTL($('tl'),false); if(RP.B) drawTLB(); if(!$('tlpop').classList.contains('hidden')) drawTL($('tlpop-cv'),true); }
+  if(RP.dirty){ RP.dirty=false; if(UI.sync.graph!==false||RP.playing===false) GV.draw(); GV2.draw(); MV.draw(); SV.draw(); drawTL($('tl'),false); if(RP.B) drawTLB(); if(!$('tlpop').classList.contains('hidden')) drawTL($('tlpop-cv'),true); }
   RP.raf=requestAnimationFrame(loop);
 }
 
@@ -304,7 +304,7 @@ function drawerRefresh(){ const d=$('drawer-bd'); if(!d) return; const L=RP.L, T
   const row=(lab,html,tip)=>`<div class="drow"${tip?` title="${tip}"`:''}><span>${lab}</span>${html}</div>`;
   const q=UI.dq||'', ae=document.activeElement, refocus=ae&&ae.dataset&&ae.dataset.dsearch!=null, tabs=[['session','Session'],['settings','Settings'],['about','About'+(ERRS.length?'<i class="errdot"></i>':'')]]; if(UI.dtab==='analysis') UI.dtab='session';
   const tuneB=T?`<div class="kv"><span>CAL</span><b>${esc(T.cal)}</b><span>ROM</span><b>${esc(T.rom)}</b><span>Read</span><b>${esc(T.read)}</b><span>File</span><b>${esc(T.name)}</b></div><button class="btn sm" data-act="tune">Replace tune</button>`:'<button class="btn acc sm" data-act="tune">Load tune</button>';
-  const logsB=ST.logs.map((x,i)=>`<div class="lrow${x===L?' on':''}"><input type="checkbox" data-pool="${i}"${pooled(x)?' checked':''} title="Pool into MAF scaling"><button class="lplay" data-log="${i}" title="Replay this log">${x===L?'▶':'▷'}</button><span class="lname" title="${esc(x.name)}">${esc(x.name)}</span><span class="lmeta"><b>${x.an.aud.kept.toLocaleString()}</b>/${x.N.toLocaleString()}</span><button class="lplay${x===RP.B?' on':''}" data-cmp="${i}" title="${x===RP.B?'End compare':'Compare as log B'}"${x===RP.B?` style="color:${logC('b')};border-color:${logC('b')}"`:''}${x===L?' disabled':''}>B</button><button class="lx" data-rm="${i}" title="Remove">×</button></div>${typeof logRevHtml==='function'?logRevHtml(x,i):''}`).join('')
+  const logsB=ST.logs.map((x,i)=>`<div class="lrow${x===L?' on':''}"><input type="checkbox" data-pool="${i}"${pooled(x)?' checked':''} title="Pool into MAF scaling"><button class="lplay" data-log="${i}" title="Replay this log">${x===L?'▶':'▷'}</button><span class="lname" title="${esc(x.name)}">${esc(x.name)}</span><span class="lmeta">${x.N.toLocaleString()}</span><button class="lplay${x===RP.B?' on':''}" data-cmp="${i}" title="${x===RP.B?'End compare':'Compare as log B'}"${x===RP.B?` style="color:${logC('b')};border-color:${logC('b')}"`:''}${x===L?' disabled':''}>B</button><button class="lx" data-rm="${i}" title="Remove">×</button></div>${typeof logRevHtml==='function'?logRevHtml(x,i):''}`).join('')
     +`<div class="drow"><button class="btn sm" data-act="logs" title="CSV logs or an .ejstudio session">Add logs</button><button class="btn sm" data-act="sess" title="Tune, revisions, logs, layout, flags, trims, notes and vehicle profile in one .ejlab file (Ctrl+S)">Save session</button></div>`;
   const covB=`${cov}<div class="achips">${chip(agg.nowb,'no wideband')}${chip(agg.notgt,'no target λ')}${chip(agg.notrim,'no trims')}${chip(agg.warmup,'warmup')}${chip(agg.cut,'fuel cut')}${chip(agg.recover,'cut recovery')}${chip(agg.overrun,'OL overrun')}${chip(agg.trans,'transient')}${chip(agg.rail,'WB rail')}${chip(agg.idle,'idle/crank')}${chip(agg.nan,'unreadable')}${chip(agg.bad,'malformed')}</div>`
     +`<div class="note">Fuel-cut detection: <b>${tier||'—'}</b>${agg.lean?` · <span class="warn">${agg.lean} lean-outlier frames flagged</span>`:''}</div>`+(lmc?`<div class="note warn">Load comp active in tune · MAP not logged</div>`:'')
@@ -320,10 +320,10 @@ function drawerRefresh(){ const d=$('drawer-bd'); if(!d) return; const L=RP.L, T
   const colB=row('Flag severity',['info','warn','crit'].map(c=>`<input type="color" data-sev="${c}" value="${sevC(c)}" title="${{info:'Info',warn:'Warning',crit:'Critical'}[c]}">`).join(''))+row('Log A / B',['a','b'].map(c=>`<input type="color" data-lc="${c}" value="${logC(c)}" title="Log ${c.toUpperCase()}">`).join(''));
   const homeB=`<label class="drow" title="Used to fetch weather for each log"><span>Home location</span><input class="num" style="width:160px;text-align:left" data-home="1" value="${esc(UI.home?UI.home.name:'')}" placeholder="City"></label>`;
   const rpB=`<label class="drow"><span>WB smoothing (graph)</span><input class="num" type="number" min="0" max="3000" step="100" data-ui="tau" value="${UI.tau}"><em>ms</em></label><label class="drow" title="Opacity of the expanded timeline"><span>Expanded timeline opacity</span><input class="num" type="number" min="30" max="100" step="5" data-ui="tlop" value="${UI.tlop??70}"><em>%</em></label>`;
-    DSEC.flt=fltB; DSEC.diag=diagB; DSEC.rp=rpB;
+    DSEC.flt=fltB; DSEC.diag=diagB; DSEC.rp=rpB; DSEC.cov=`<div class="dsh">MAF data · ${agg.kept.toLocaleString()} of ${agg.total.toLocaleString()} frames used</div>`+covB;
     d.innerHTML=`<div class="dtabs">${tabs.map(([v,l])=>`<button data-dtab="${v}">${l}</button>`).join('')}</div><input class="tt-q dsq" type="search" data-dsearch placeholder="Search settings" value="${esc(q)}">`
    +S('session','tune','Tune',tuneB)+''
-   +S('session','logs','Logs',logsB+covB,`<em>${agg.kept.toLocaleString()} / ${agg.total.toLocaleString()} frames</em>`)
+   +S('session','logs','Logs',logsB,`<em>${agg.total.toLocaleString()} frames</em>`)
    +(DESK?S('session','watch','Log folder',DESK.section(),DESK.st.folder?`<em>${DESK.st.auto?'watching':'manual'}</em>`:''):'')
       +(L?S('session','meta','Session notes',metaHtml(L)):'')+(L?S('session','pf','Pulls · flags · trim',pfHtml(L),`<em>${(L.pulls||[]).length} pulls</em>`):'')
    +((DSEC.pull=(thr('pullThr','Throttle ≥',CFG.pullThr,1,'%')+thr('pullDur','Min length',CFG.pullDur,0.1,'s')+thr('pullSpan','Min RPM sweep',CFG.pullSpan,50,'rpm'))),'')
@@ -467,7 +467,7 @@ async function openSession(o,name){
   if(o.rev&&o.rev.nodes&&o.rev.nodes.length){ REV=o.rev; REVP={}; const n=curNode(); window.__treeSwitch=1; await loadTuneText(n.src,n.file); window.__treeSwitch=0; revSave(); } else if(o.tune&&o.tune.text) await loadTuneText(o.tune.text,o.tune.name);
   const errs=[]; for(const g of o.logs||[]){ busy(true,'Opening session',g.name); await sleep(30); await ingest(g,false,errs); } busy(false);
   if(!ST.logs.length){ toast('Session had no readable logs'); return; }
-  edRestore(o.edits); save(); ST.fixes.clear(); recompute(false); enterApp(); GV.build(); selectLog(ST.logs.find(L=>L.fp===o.active)||ST.logs[0],false); if(o.playT) rpSeek(o.playT,true);
+  edRestore(o.edits); save(); ST.fixes.clear(); recompute(false); enterApp(); GV.build(); GV2.build(); selectLog(ST.logs.find(L=>L.fp===o.active)||ST.logs[0],false); if(o.playT) rpSeek(o.playT,true);
   toast(errs.length?errs.join(' · '):'Session opened · '+(name||'')); }
 // ── autosave: last 5 sessions in IndexedDB, offered on the landing page ─────
 const REC={db:null,last:'',

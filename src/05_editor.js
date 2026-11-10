@@ -365,11 +365,11 @@ function hrPaint(el){ const D=hrData(); if(!D){ el.innerHTML=''; el._k=''; retur
     const j=t.closest('[data-j]'); if(j){ const x=D.L[+j.dataset.j]; TV.showTable(x.t.id,x.r,x.c); } }; }
 // table overlay: amber corner on every pending cell; with the rail open, ticked cells show the new value over the old one, unticked get a dashed outline
 function hrDraw(c,g,t,W){ const D=HR.data; if(!D||!EDIT.on) return; const id=(t.__src||t).id, d=edDisp(t), A='#e4aa28';
-  D.L.forEach((x,k)=>{ if(x.t.id!==id&&x.t.id!==t.id) return; if(x.r<W.r0||x.r>=W.r0+W.vy||x.c<W.c0||x.c>=W.c0+W.vx) return; const x0=g.hw+(x.c-W.c0)*g.cw, y0=g.hh+(x.r-W.r0)*g.ch, cw=g.cw, ch=g.ch;
+  D.L.forEach((x,k)=>{ if(x.t.id!==id&&x.t.id!==t.id) return; const R=t.vert?x.c:x.r, Cc=t.vert?0:x.c; if(R<W.r0||R>=W.r0+W.vy||Cc<W.c0||Cc>=W.c0+W.vx) return; const x0=g.hw+(Cc-W.c0)*g.cw, y0=g.hh+(R-W.r0)*g.ch, cw=g.cw, ch=g.ch;
     if(!HR.open){ c.fillStyle=A; c.beginPath(); c.moveTo(x0+2,y0+2); c.lineTo(x0+2+Math.min(9,cw*.3),y0+2); c.lineTo(x0+2,y0+2+Math.min(9,ch*.45)); c.fill(); return; }
     if(!D.ON[k]){ if(x.g!==HR.cat) return; c.setLineDash([3,3]); c.strokeStyle=A; c.lineWidth=1.4; c.strokeRect(x0+2,y0+2,cw-4,ch-4); c.setLineDash([]); return; }
     c.fillStyle='#1a1306'; c.fillRect(x0+1,y0+1,cw-2,ch-2); c.strokeStyle=A; c.lineWidth=1.5; c.strokeRect(x0+1.5,y0+1.5,cw-3,ch-3);
-    const nv=toD(d,x.to).toFixed(d.dp), ov=toD(d,t.z[x.r][x.c]).toFixed(d.dp); c.textAlign='center'; c.textBaseline='middle';
+    const nv=toD(d,x.to).toFixed(d.dp), ov=toD(d,x.t.z[x.r][x.c]).toFixed(d.dp); c.textAlign='center'; c.textBaseline='middle';
     if(ch>=30){ c.font='600 '+Math.min(10,ch*.28)+'px system-ui,sans-serif'; c.fillStyle='#8a8a92'; const oy=y0+ch*.3, ow=c.measureText(ov).width; c.fillText(ov,x0+cw/2,oy); c.strokeStyle='#8a8a92'; c.lineWidth=1; c.beginPath(); c.moveTo(x0+cw/2-ow/2-1,oy); c.lineTo(x0+cw/2+ow/2+1,oy); c.stroke();
       c.font='800 '+Math.min(13,ch*.36)+'px system-ui,sans-serif'; c.fillStyle=A; c.fillText(nv,x0+cw/2,y0+ch*.66); }
     else { c.font='800 '+Math.max(8,Math.min(12,ch*.62))+'px system-ui,sans-serif'; c.fillStyle=A; c.fillText(nv,x0+cw/2,y0+ch/2+.5); } }); }

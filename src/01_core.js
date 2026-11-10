@@ -297,6 +297,7 @@ function finalizeBins(bins){
     b.m=b.n?wmed(b._cl.concat(CFG.olAfl?b._ola:b._olr)):null;
     b.conf=Math.min(1,b.n/CFG.solidN); b.trust=!b.n?'none':b.n>=CFG.solidN?'solid':'provisional';
     b.src=!b.n?null:b.nOL&&b.nCL?'MIX':b.nOL?'OL':'CL';
+    { const ov=(typeof UI!=='undefined'&&UI.mafSrc||{})[(b.v!=null?b.v:0).toFixed(3)]; if(ov==='CL'&&b.nCL){ b.m=wmed(b._cl); b.n=b.nCL; } else if(ov==='OL'&&b.nOL){ b.m=wmed(CFG.olAfl?b._ola:b._olr); b.n=b.nOL; } b.conf=Math.min(1,b.n/CFG.solidN); b.trust=!b.n?'none':b.n>=CFG.solidN?'solid':'provisional'; }
     b.agree=(b.nCL>=5&&b.nOL>=5&&b.cl!=null&&b.ol!=null)?b.ol-b.cl:null;
     b.rich=b.wb!=null&&b.wb<=CFG.richFloor;
   }

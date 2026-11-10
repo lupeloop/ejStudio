@@ -39,13 +39,13 @@ function closeCtx(){ const m=document.getElementById('ctxm'); if(m) m.remove(); 
 document.addEventListener('pointerdown',e=>{ if(!e.target.closest('#ctxm')) closeCtx(); },true);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeCtx(); },true);
 function GraphView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){return RP.bT},get i(){return RP.bI}}:{get L(){return RP.L},get playT(){return RP.playT},get i(){return RP.i}}, SEEK=side==='b'?t=>setB(t):(t,sn)=>rpSeek(t,sn);
-  const G=UI.g; let shown=false; const root=mk('div','view gv');
+  const G=side==='2'?(UI.g2||(UI.g2=JSON.parse(JSON.stringify(UI.g)))):UI.g; let shown=false; const root=mk('div','view gv');
   const bar=mk('div','vbar',root);
   mk('span','vlab',bar).textContent='Lanes'; const nSeg=seg(bar,[1,2,3,4,5].map(n=>[n,String(n)]),G.n,v=>{ G.n=+v; save(); build(); });
   mk('span','vlab',bar).textContent='Window'; const winLab=mk('span','mono vval',bar); const full=mk('button','btn sm',bar); full.textContent='Full log'; full.title='Zoom out to the whole log (mouse wheel zooms)';
   full.onclick=()=>{ G.full=true; save(); dirty(); };
   mk('span','vlab',bar).textContent='Playhead'; seg(bar,[['right','Right'],['center','Centre']],G.mode,v=>{ G.mode=v; save(); dirty(); });
-  mk('span','vfill',bar); if(side!=='b'){ const gm=mk('div','seg',bar); gm.innerHTML='<button class="on">Lanes</button><button>Scatter</button>'; gm.lastChild.onclick=()=>grMode('scatter');
+  mk('span','vfill',bar); if(side!=='b'&&side!=='2'){ const gm=mk('div','seg',bar); gm.innerHTML='<button class="on">Lanes</button><button>Scatter</button>'; gm.lastChild.onclick=()=>grMode('scatter');
     const pg=mk('button','ibtn',bar); pg.innerHTML=SVG_GEAR; pg.title='Pull detection'; pg.onclick=()=>setPop(pg,['pull'],'Pull detection'); } const wt=WarnTiles(root);
   const box=mk('div','gv-lanes',root), lanes=[];
   const V=[['v:wbffb','Wideband vs FFB target'],['v:wb','Wideband'],['v:idc','Injector duty (IDC)'],['v:avcsi','AVCS intake: actual vs target'],['v:avcse','AVCS exhaust: actual vs target'],['v:dthr','Throttle rate'],['v:aerr','AFR error vs target'],['v:rb_boost','Boost target: rebuilt vs logged'],['v:rb_map','Boost: actual vs target'],['v:rb_wg','WG duty: rebuilt vs logged'],['v:rb_tim','Total timing: rebuilt vs logged'],['v:rb_tq','Requested torque: table vs logged'],['v:rb_thr','Target throttle: table vs logged']];
@@ -345,13 +345,15 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
       return; }
     list.forEach(t=>{ const b=mk('button','chip'+(!on&&cur&&cur.id===t.id?' on':'')+(on&&cur&&cur.id===t.id?' match':''),vrow); b.title=on&&cur&&cur.id===t.id?'Active variant (picked by Auto). Click to lock this one':'Lock to this variant'; b.textContent=t.name; b.onclick=()=>{ T.sel[g]=t.id; save(); build(); }; }); }
   // knock summary strip (timing / knock-advance groups), collapsible, channel switch for the heat layer
+  function stripLive(L,i){ if(!L||i==null) return;
+    strip.querySelectorAll('[data-lv]').forEach(e=>{ const k=e.dataset.lv, a=L.c[k], v=a?a[i]:NaN; e.textContent=Number.isFinite(v)?(k==='iam'?v.toFixed(3):v.toFixed(2)+'°'):'—'; e.className=!Number.isFinite(v)?'':k==='iam'?(v<0.99?'bad':'ok'):(v<-0.005?'warn':'ok'); }); }
   function renderStrip(){ const t=built; if(!knockTbl(t)||!CX.L){ strip.style.display='none'; return; } strip.style.display='';
     const k=CX.L.ksum||(CX.L.ksum=knockSummary(CX.L)); let h='';
-    { for(const key of ['fbkc','flkc','kca']){ const m=k[key]; if(!m) continue;
-        h+=`<button class="kcard${kchs().includes(key)&&T.opt.kmH?' on':''}" data-ch="${key}" title="Toggle ${m.label} on the heat layer (several can be on at once)"><i>${m.label}</i><b class="${m.worst<0?'warn':'ok'}">${m.worst.toFixed(2)}°</b><u>${m.cnt} frames · ${m.iso} isolated / ${m.sus} sustained${m.adv?` · +${m.adv}° adv`:''}</u></button>`; }
-      if(k.iam) h+=`<div class="kcard"><i>IAM</i><b class="${k.iam.status==='Mid-log drop'?'bad':'ok'}">${k.iam.min.toFixed(2)}</b><u>${k.iam.status}</u></div>`; }
+    { for(const key of ['fbkc','flkc']){ const m=k[key]; if(!m) continue;
+        h+=`<button class="kcard${kchs().includes(key)&&T.opt.kmH?' on':''}" data-ch="${key}" title="Toggle ${m.label} on the heat layer"><i>${m.label}</i><b data-lv="${key}">—</b><u>worst ${m.worst.toFixed(2)}° · ${m.cnt} frames · ${m.sus} sustained</u></button>`; }
+      if(k.iam) h+=`<div class="kcard"><i>IAM</i><b data-lv="iam">—</b><u>min ${k.iam.min.toFixed(2)} · ${k.iam.status}</u></div>`; }
     if(!h){ strip.style.display='none'; return; }
-    strip.innerHTML=h;
+    strip.innerHTML=h; stripLive(CX.L,CX.i);
     strip.querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>{ const k=b.dataset.ch; let s=kchs(); if(!T.opt.kmH){ s=[k]; T.opt.kmH=1; } else s=s.includes(k)?s.filter(x=>x!==k):s.concat(k); if(!s.length) T.opt.kmH=0; T.opt.kchs=s.length?s:[k]; save(); S.heatKey=''; renderStrip(); syncOpts(); draw(); }); }
   function kchs(){ if(!Array.isArray(T.opt.kchs)) T.opt.kchs=[T.opt.kch||'fbkc']; return T.opt.kchs; }
   let built=null;
@@ -424,13 +426,13 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     const W=gbox.clientWidth-16, H=gbox.clientHeight-16; if(W<40||H<40) return;
     const hw=Math.max(60,Math.min(72,W*0.06)), cw=(W-hw)/nx; let ch,hh,chH=0;
     if(t.vert){ const hw2=Math.max(64,Math.min(80,W*0.08)); ch=Math.max(24,Math.min(32,(H-26)/ny)); hh=26; const cw2=Math.max(96,Math.min(140,W*0.16));
-      grid.style.gridTemplateColumns=hw2+'px '+cw2+'px'; grid.style.gridTemplateRows=hh+'px repeat('+ny+','+ch+'px)'; grid.style.fontSize=Math.min(15,ch*0.55)+'px';
+      grid.style.gridTemplateColumns=hw2+'px '+cw2+'px'; grid.style.gridTemplateRows=hh+'px repeat('+ny+','+ch+'px)'; grid.style.fontSize=Math.min(18,ch*0.62)+'px';
       const GW=hw2+cw2, GH=hh+ch*ny, dpr=devicePixelRatio||1, chW=Math.max(160,W-GW-14); cv.width=GW*dpr; cv.height=GH*dpr; cv.style.width=GW+'px'; cv.style.height=GH+'px';
       chart.width=chW*dpr; chart.height=GH*dpr; chart.style.width=chW+'px'; chart.style.height=GH+'px'; S.geo={hw:hw2,hh,cw:cw2,ch,nx:1,ny,GW,GH,chW,dpr}; draw(); return; }
     if(oneD){ ch=Math.max(18,Math.min(34,cw*0.7)); hh=ch; chH=Math.max(100,H-hh-ch-6); }
     else { ch=Math.max(11,Math.min(H/(ny+1),40*Math.max(1,S.zoom))); hh=Math.max(20,Math.min(ch,26)); ch=Math.max(11,Math.min(ch,(H-hh)/ny)); }
     grid.style.gridTemplateColumns=hw+'px repeat('+nx+','+cw+'px)'; grid.style.gridTemplateRows=hh+'px repeat('+ny+','+ch+'px)';
-    grid.style.fontSize=Math.max(8,Math.min(14,Math.min(cw/4.1,ch*0.72)))+'px';
+    grid.style.fontSize=Math.max(9,Math.min(17,Math.min(cw/3.7,ch*0.78)))+'px';
     const GW=hw+cw*nx, GH=hh+ch*ny, dpr=devicePixelRatio||1; cv.width=GW*dpr; cv.height=GH*dpr; cv.style.width=GW+'px'; cv.style.height=GH+'px';
     if(oneD){ chart.width=GW*dpr; chart.height=chH*dpr; chart.style.width=GW+'px'; chart.style.height=chH+'px'; }
     S.geo={hw,hh,cw,ch,nx,ny,GW,GH,chH,dpr}; draw(); }
@@ -438,6 +440,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(!TT()){ msg.textContent='No tune loaded'; msg.style.display=''; gbox.style.display='none'; return; } gbox.style.display=isSet()?'none':'';
     msg.style.display='none'; gbox.classList.remove('off'); }
   function frame(i,snap){ const L=CX.L; if(!L) return; const d=rpSample(L,i); S.live=d;
+    stripLive(L,i);
     const np=L.pick?L.pick[i]:null, nf=L.fuel?L.fuel[i]:'normal', wasT=tgv(), pc=np!==S.pick, fc=nf!==S.fuel; S.pick=np; S.fuel=nf; let rebuilt=false;
     if(T.opt.fol&&i>0&&L.st){ const c=L.st[i], p=L.st[i-1]; if(Number.isFinite(c)&&Number.isFinite(p)&&(p>=10)===(c>=10)){ const want=c>=10?'fuel':'timing';
       if(want!==T.grp&&tabs(want).length){ T.grp=want; S.zoom=1; S.follow=true; save(); build(); rebuilt=true; } } }
@@ -461,16 +464,17 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(T.opt.val){ const tx=fmtVal(t,v); c.font='800 15px system-ui,sans-serif'; c.textAlign='left'; const w=c.measureText(tx).width+10, h=24; let bx=x+10, by=y-h-8; if(bx+w>g.GW) bx=x-10-w; if(by<T0) by=y+8;
       c.fillStyle='rgba(0,0,0,.82)'; c.fillRect(bx,by,w,h); c.strokeStyle=red; c.lineWidth=1.5; c.strokeRect(bx,by,w,h); c.fillStyle='#fff'; c.fillText(tx,bx+5,by+h/2+0.5); } }
   // one-axis tables listed down the side: the graph beside them reads like EcuFlash (axis across, value up)
-  function drawV(t,g){ const c=chart.getContext('2d'); c.setTransform(g.dpr,0,0,g.dpr,0,0); c.clearRect(0,0,g.chW,g.GH); const d=uDisp(t); let lo=t.lo, hi=t.hi; if(hi-lo<1e-9){ lo-=1; hi+=1; } const pad=(hi-lo)*0.06; lo-=pad; hi+=pad;
-    const n=t.z.length, ax=(t.y||[]).map(Number), a0=ax.length?ax[0]:0, a1=ax.length?ax[n-1]:n-1, VH=Math.min(g.GH,(chart.parentElement&&chart.parentElement.clientHeight)||g.GH), L0=46, R0=g.chW-12, T0=g.hh+10, B0=VH-26;
+  function drawV(t,g){ const c=chart.getContext('2d'); c.setTransform(g.dpr,0,0,g.dpr,0,0); c.clearRect(0,0,g.chW,g.GH); const d=uDisp(t), n=t.z.length, Wn=S.win||{r0:0,vy:n}, q0=Math.max(0,Wn.r0|0), q1=Math.max(q0+1,Math.min(n-1,(Wn.r0|0)+(Wn.vy|0)-1)), vis=r=>r>=q0&&r<=q1;
+    let lo=Infinity, hi=-Infinity; for(let r=q0;r<=q1;r++){ const v=t.z[r][0]; if(Number.isFinite(v)){ lo=Math.min(lo,v); hi=Math.max(hi,v); } } if(!Number.isFinite(lo)){ lo=t.lo; hi=t.hi; } if(hi-lo<1e-9){ lo-=1; hi+=1; } const pad=(hi-lo)*0.08; lo-=pad; hi+=pad;
+    const ax=(t.y||[]).map(Number), a0=ax.length?ax[q0]:q0, a1=ax.length?ax[q1]:q1, VH=Math.min(g.GH,(chart.parentElement&&chart.parentElement.clientHeight)||g.GH), L0=46, R0=g.chW-12, T0=g.hh+10, B0=VH-26;
     const X=r=>{ const v=ax.length?(r<=0?ax[0]:r>=n-1?ax[n-1]:ax[Math.floor(r)]+(ax[Math.ceil(r)]-ax[Math.floor(r)])*(r-Math.floor(r))):r; return L0+(R0-L0)*((v-a0)/((a1-a0)||1)); }, Y=v=>B0-(B0-T0)*(v-lo)/(hi-lo);
     c.strokeStyle=COL.grid; c.lineWidth=1; c.fillStyle=COL.lab; c.font='11px '+FONT_MONO; c.textBaseline='middle';
     for(let k=0;k<=4;k++){ const v=lo+(hi-lo)*k/4, y=Y(v); c.beginPath(); c.moveTo(L0,y); c.lineTo(R0,y); c.stroke(); const vv=v*d.k+(d.o||0); c.textAlign='right'; c.fillText(Math.abs((hi-lo)*d.k)<10?vv.toFixed(2):vv.toFixed(0),L0-6,y); }
-    c.textAlign='center'; for(let k=0;k<=4;k++){ const r=(n-1)*k/4, x=X(r), av=ax.length?(ax[Math.round(r)]):r; c.beginPath(); c.moveTo(x,T0); c.lineTo(x,B0); c.stroke(); c.fillText(Number.isFinite(av)?(Math.abs(a1-a0)<10?av.toFixed(2):av.toFixed(0)):'',x,B0+14); }
-    const b=baseOf(t); if(ED()&&b){ c.strokeStyle='#5c5c66'; c.setLineDash([4,4]); c.lineWidth=1.4; c.beginPath(); b.z.forEach((q,r)=>{ if(r) c.lineTo(X(r),Y(q[0])); else c.moveTo(X(r),Y(q[0])); }); c.stroke(); c.setLineDash([]); }
-    c.strokeStyle=COL.acc; c.lineWidth=2; c.beginPath(); t.z.forEach((q,r)=>{ if(r) c.lineTo(X(r),Y(q[0])); else c.moveTo(X(r),Y(q[0])); }); c.stroke();
-    c.fillStyle=COL.acc; t.z.forEach((q,r)=>{ c.beginPath(); c.arc(X(r),Y(q[0]),2.4,0,7); c.fill(); });
-    if(S.py==null||S.tx==null) return; const v=bil(t,0,S.py), x=X(S.py), y=Y(v); c.strokeStyle=COL.red; c.lineWidth=2; c.shadowColor='rgba(255,0,0,.8)'; c.shadowBlur=6; c.beginPath(); c.moveTo(L0,y); c.lineTo(R0,y); c.moveTo(x,T0); c.lineTo(x,B0); c.stroke(); c.shadowBlur=0; c.fillStyle=COL.red; c.beginPath(); c.arc(x,y,5,0,7); c.fill(); }
+    c.textAlign='center'; for(let k=0;k<=4;k++){ const r=q0+(q1-q0)*k/4, x=X(r), av=ax.length?(ax[Math.round(r)]):r; c.beginPath(); c.moveTo(x,T0); c.lineTo(x,B0); c.stroke(); c.fillText(Number.isFinite(av)?(Math.abs(a1-a0)<10?av.toFixed(2):av.toFixed(0)):'',x,B0+14); }
+    const path=z=>{ c.beginPath(); let st=0; for(let r=q0;r<=q1;r++){ const y=Y(z[r][0]); if(st++) c.lineTo(X(r),y); else c.moveTo(X(r),y); } c.stroke(); };
+    c.save(); c.beginPath(); c.rect(L0,T0-4,R0-L0,B0-T0+8); c.clip(); const b=baseOf(t); if(ED()&&b){ c.strokeStyle='#5c5c66'; c.setLineDash([4,4]); c.lineWidth=1.4; path(b.z); c.setLineDash([]); }
+    c.strokeStyle=COL.acc; c.lineWidth=2; path(t.z); c.fillStyle=COL.acc; for(let r=q0;r<=q1;r++){ c.beginPath(); c.arc(X(r),Y(t.z[r][0]),2.6,0,7); c.fill(); } c.restore();
+    if(S.py==null||S.tx==null||!vis(Math.round(S.py))) return; const v=bil(t,0,S.py), x=X(S.py), y=Y(v); c.strokeStyle=COL.red; c.lineWidth=2; c.shadowColor='rgba(255,0,0,.8)'; c.shadowBlur=6; c.beginPath(); c.moveTo(L0,y); c.lineTo(R0,y); c.moveTo(x,T0); c.lineTo(x,B0); c.stroke(); c.shadowBlur=0; c.fillStyle=COL.red; c.beginPath(); c.arc(x,y,5,0,7); c.fill(); }
   function draw(){ const g=S.geo, t=built; if(!g||!t||!S.shown) return; const oneD=!t.yin; if(oneD) drawChart(t,g); if(t.vert) drawV(t,g);
     const c=cv.getContext('2d'); c.setTransform(g.dpr,0,0,g.dpr,0,0); c.clearRect(0,0,g.GW,g.GH);
     const W=S.win, X=f=>g.hw+(f-W.c0+0.5)*g.cw, Y=f=>g.hh+(f-W.r0+0.5)*g.ch, red=COL.red, L=CX.L;
@@ -529,9 +533,9 @@ function MafTableView(){
   let shown=false, liveBin=-1, revealKey=''; const root=mk('div','view mt'), bar=mk('div','vbar',root);
   mk('span','vlab',bar).textContent='OL calc'; const olSeg=seg(bar,[['afl','+AFL','OL = WB/FFB × (1+AFL)'],['raw','raw','OL = WB/FFB']],CFG.olAfl?'afl':'raw',v=>{ CFG.olAfl=v==='afl'; UI.cfg.olAfl=CFG.olAfl; save(); refinalize(); });
   const srcChip=mk('span','chip ro',bar); const ipwChip=mk('span','chip ro',bar); const seamChip=mk('span','chip ro',bar); const chkChip=mk('span','chip ro',bar); const poolChip=mk('span','chip ro',bar); const OPEN=new Set();
-  mk('span','vfill',bar); { const fg=mk('button','ibtn',bar); fg.innerHTML=SVG_GEAR; fg.title='MAF filters'; fg.onclick=()=>setPop(fg,['flt'],'MAF filters'); }
+  mk('span','vfill',bar); { const fg=mk('button','ibtn',bar); fg.innerHTML=SVG_GEAR; fg.title='MAF filters and data'; fg.onclick=()=>setPop(fg,['cov','flt'],'MAF data and filters'); }
   const now=mk('div','mt-now',root); now.style.display='none'; let nowSig='';
-  const wrap=mk('div','ml',root), strip=mk('div','ml-strip',wrap), grid=mk('div','ml-grid',wrap), list=mk('div','ml-list',grid), side=mk('div','ml-side',grid); let SELB=-1;
+  const wrap=mk('div','ml',root), strip=mk('div','ml-strip',wrap), grid=mk('div','ml-grid',wrap), list=mk('div','ml-list',grid), side=mk('div','ml-side',grid); let narrow=false; let SELB=-1;
   const mc=m=>m==null?null:(m<0.88||m>1.12)?'#ff6b6b':(m<0.93||m>1.07)?'#f0a050':(m<0.97||m>1.03)?'#7bbf50':'#8a8a92';
   const f2=(v,d,s)=>v==null||!Number.isFinite(v)?'<span class="dim">—</span>':(s&&v>0?'+':'')+v.toFixed(d);
   const ZN=['Idle','Cruise','Load','Boost'], zEdges=()=>{ const z=UI.mafZones; return Array.isArray(z)&&z.length===3?z:[1.2,1.9,2.5]; };
@@ -560,26 +564,38 @@ function MafTableView(){
         const sc=TUNE&&TUNE.mafScale, g0=sc&&sc[i]!=null?sc[i]:null, g1=R&&b.n&&R.nv?R.nv[i]:null, sr=String(b.src||'');
         h+=`<div class="ml-r${i===SELB?' pick':''}${b.n?'':' emp'}" data-bin="${i}"><span class="lp" style="background:${lpC(b.src)}" title="${b.src||'no data'}"></span><span class="vv">${b.v.toFixed(3)}</span>`
           +`<span class="gs">${g0!=null?g0.toFixed(2):''}</span><span class="gs nw">${g1!=null?g1.toFixed(2):''}</span><span class="mm" style="color:${f!=null?mc(f):''}">${f!=null?'×'+f.toFixed(4):'—'}</span><span class="pc" style="color:${f!=null?mc(f):''}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}</span>`
-          +`<span class="nn ${b.trust==='solid'?'n-ok':b.n?'n-prov':''}">${b.n?b.n.toFixed(0):''}</span><span class="src">${/CL|MIX/.test(sr)?'<em class="c">CL</em>':''}${/OL|MIX/.test(sr)?'<em class="o">OL</em>':''}</span><span class="ckw" style="color:${ck||'transparent'}">${ck?`<i style="background:${ck}"></i>${[mo?'non-monotonic':'',kk?'slope kink':'',b.lean>0?'lean':'',b.rich?'rich':'',b.agree!=null&&Math.abs(b.agree)>0.05?'CL/OL disagree':''].filter(Boolean).join(' · ')}`:''}</span></div>`; } });
+          +`<span class="nn ${b.trust==='solid'?'n-ok':b.n?'n-prov':''}">${b.n?b.n.toFixed(0):''}</span><span class="src">${(()=>{ const k=b.v.toFixed(3), ov=(UI.mafSrc||{})[k]; return (b.nCL?`<em class="c${ov==='OL'?' dim':''}${ov==='CL'?' set':''}" data-st="${k}" data-s="CL" title="${ov==='CL'?'CL only · click for Auto':'Use CL only'}">CL</em>`:'')+(b.nOL?`<em class="o${ov==='CL'?' dim':''}${ov==='OL'?' set':''}" data-st="${k}" data-s="OL" title="${ov==='OL'?'OL only · click for Auto':'Use OL only'}">OL</em>`:''); })()}</span><span class="ckw">${[mo?['NM','b','non-monotonic']:null,kk?['KINK','w','slope kink']:null,b.lean>0?['LEAN','w','lean']:null,b.rich?['RICH','w','rich floor']:null,b.agree!=null&&Math.abs(b.agree)>0.05?['CL≠OL','w','CL and OL disagree']:null].filter(Boolean).map(([t,c,ti])=>`<em class="${c}" title="${ti}">${t}</em>`).join('')}</span></div>`; } });
     list.innerHTML='<div class="ml-h"><span></span><span style="text-align:left">Volts</span><span>Cur. g/s</span><span>New g/s</span><span>Multiplier</span><span>Change</span><span>n</span><span style="text-align:left">Source</span><span style="text-align:left">Checks</span></div>'+h; panel(); liveBin=-1; mark(); }
   function panel(){ const B=ST.bins, R=ST.row, b=B&&B[SELB]; if(!b){ side.innerHTML=''; return; } const i=SELB, f=R&&b.n?R.f[i]:null, d=dOf(i), sc=TUNE&&TUNE.mafScale;
     const pts=B.map((x,j)=>[x,dOf(j)]).filter(p=>p[1]!=null), v0=BP[0], v1=BP[BP.length-1], sx=v=>4+(v-v0)/(v1-v0)*272; let my=5; pts.forEach(p=>my=Math.max(my,Math.abs(p[1]))); const sy=q=>36-q/my*30;
     const wbD=b.wb!=null?b.wb*lamK(UI.wbDisp):null, ffD=b.ff!=null?b.ff*lamK(UI.ffbDisp):null, kk=R&&R.kink[i]!=null, on=ST.fixes.has(i), chk=[];
     if(kk) chk.push(`<button class="kk${on?' on':''}" data-fix="${i}" title="Slope kink: correction ${R.raw[i].toFixed(3)} vs neighbours' ${R.kink[i].toFixed(3)}"><i></i>${on?'kink · smoothed':'kink'}</button>`);
     if(R&&R.mono[i]) chk.push('<span class="ck bad">non-monotonic</span>'); if(b.agree!=null&&Math.abs(b.agree)>0.05) chk.push(`<span class="ck warn">CL≠OL ${(b.agree*100).toFixed(0)}%</span>`); if(b.lean>0) chk.push('<span class="ck warn">lean</span>'); if(b.rich) chk.push('<span class="ck warn">rich floor</span>');
-    side.innerHTML=`<div class="sv">${b.v.toFixed(3)} V · BIN ${i+1}</div><div class="smul" style="color:${f!=null?mc(f):'var(--mut)'}">${f!=null?'×'+f.toFixed(4):'no data'}</div><div class="sd" style="color:${f!=null?mc(f):'var(--mut)'}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}${b.src?' · '+b.src:''}${b.n?' · n '+b.n.toFixed(0):''}</div>
-      <svg class="spark" viewBox="0 0 280 72"><line x1="0" x2="280" y1="36" y2="36" stroke="#33333b" stroke-dasharray="3 3"/>${pts.length?`<path d="${pts.map((p,k)=>(k?'L':'M')+sx(p[0].v).toFixed(1)+' '+sy(p[1]).toFixed(1)).join(' ')}" fill="none" stroke="#e4aa28" stroke-width="1.6"/>`:''}${d!=null?`<circle cx="${sx(b.v)}" cy="${sy(d)}" r="4.5" fill="${mc(f)}" stroke="#000" stroke-width="1.5"/>`:''}<line class="sl" x1="-9" x2="-9" y1="0" y2="72" stroke="#ff1e1e" stroke-width="1.5"/></svg>
-      ${b.n?`<div class="kv"><i>CL ×</i><span>${f2(b.cl,3)}</span><i>OL ×</i><span>${f2(b.ol,3)}</span><i>AFL</i><span>${f2(b.afl,2,1)}</span><i>AFC</i><span>${f2(b.afc,2,1)}</span><i>WB ${uLbl(UI.wbDisp)}</i><span>${f2(wbD,dpOf(UI.wbDisp))}</span><i>FFB ${uLbl(UI.ffbDisp)}</i><span>${f2(ffD,dpOf(UI.ffbDisp))}</span><i>CL / OL n</i><span>${b.nCL.toFixed(0)} / ${b.nOL.toFixed(0)}</span>${sc&&R?`<i>g/s</i><span>${sc[i].toFixed(2)} → ${R.nv[i].toFixed(2)}</span>`:''}</div>`:''}
+    const ovr=(UI.mafSrc||{})[b.v.toFixed(3)], srcTxt=ovr?ovr+' only (set)':b.src==='MIX'?'Auto · CL + OL weighted by samples':b.src?'Auto · '+b.src:'—', st=(l,v,c)=>`<div class="st"><em>${l}</em><b${c?` style="color:${c}"`:''}>${v}</b></div>`;
+    side.innerHTML=`<div class="sh"><div class="sv">${b.v.toFixed(3)} V <span>· bin ${i+1}</span></div>${narrow?'<button class="ibtn" data-sx title="Close">✕</button>':''}</div><div class="smul" style="color:${f!=null?mc(f):'var(--mut)'}">${f!=null?'×'+f.toFixed(4):'no data'}</div><div class="sd" style="color:${f!=null?mc(f):'var(--mut)'}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}${b.n?' · n '+b.n.toFixed(0):''}</div>
+      <svg class="spark" viewBox="0 0 280 110" preserveAspectRatio="none"><line x1="0" x2="280" y1="55" y2="55" stroke="#33333b" stroke-dasharray="3 3"/>${pts.length?`<path d="${pts.map((p,k)=>(k?'L':'M')+sx(p[0].v).toFixed(1)+' '+(55+(sy(p[1])-36)*1.6).toFixed(1)).join(' ')}" fill="none" stroke="#e4aa28" stroke-width="1.8" vector-effect="non-scaling-stroke"/>`:''}${d!=null?`<circle cx="${sx(b.v)}" cy="${55+(sy(d)-36)*1.6}" r="5" fill="${mc(f)}" stroke="#000" stroke-width="1.5"/>`:''}<line class="sl" x1="-9" x2="-9" y1="0" y2="110" stroke="#ff1e1e" stroke-width="1.5"/></svg>
+      ${b.n?`<div class="sgp"><h5>Source</h5><div class="srcl">${srcTxt}</div></div>
+      <div class="sgp"><h5>Correction</h5><div class="sts">${st('CL ×',f2(b.cl,3))}${st('OL ×',f2(b.ol,3))}</div></div>
+      <div class="sgp"><h5>Trims</h5><div class="sts">${st('AFL',f2(b.afl,2,1))}${st('AFC',f2(b.afc,2,1))}</div></div>
+      <div class="sgp"><h5>Fuelling</h5><div class="sts">${st('WB '+uLbl(UI.wbDisp),f2(wbD,dpOf(UI.wbDisp)))}${st('FFB '+uLbl(UI.ffbDisp),f2(ffD,dpOf(UI.ffbDisp)))}</div></div>
+      <div class="sgp"><h5>Samples</h5><div class="sts">${st('CL',b.nCL.toFixed(0))}${st('OL',b.nOL.toFixed(0))}</div></div>
+      ${sc&&R?`<div class="sgp"><h5>MAF scale</h5><div class="sts">${st('Cur. g/s',sc[i].toFixed(2))}${st('New g/s',R.nv[i].toFixed(2),f!=null?mc(f):'')}</div></div>`:''}`:''}
       ${chk.length?`<div class="cks">${chk.join(' ')}</div>`:''}<div class="drow"><button class="btn sm" data-jc="${i}">Show on curve</button><button class="btn sm" data-jt="${i}">Open in Tables</button></div>`; }
   function selBin(i,scroll){ SELB=i; list.querySelectorAll('.ml-r.pick').forEach(x=>x.classList.remove('pick')); const r=list.querySelector(`.ml-r[data-bin="${i}"]`); if(r){ r.classList.add('pick'); if(scroll) r.scrollIntoView({block:'center',behavior:'smooth'}); }
     strip.querySelectorAll('i.pick').forEach(x=>x.classList.remove('pick')); const c=strip.querySelector(`[data-sb="${i}"]`); if(c) c.classList.add('pick'); panel(); liveBin=-1; mark(); }
   strip.addEventListener('click',e=>{ const c=e.target.closest('[data-sb]'); if(!c) return; const i=+c.dataset.sb, b=ST.bins[i]; if(!b) return; const zi=zEdges().filter(z=>b.v>=z).length; if(UI.mafCol&&UI.mafCol[ZN[zi]]){ delete UI.mafCol[ZN[zi]]; save(); SELB=i; render(); selBin(i,true); } else selBin(i,true); });
-  wrap.addEventListener('click',e=>{ const fx=e.target.closest('[data-fix]'); if(fx){ const i=+fx.dataset.fix; if(ST.fixes.has(i)) ST.fixes.delete(i); else ST.fixes.add(i); ST.row=scaleRow(ST.bins,ST.fixes); render(); RP.dirty=true; return; }
+  root.addEventListener('click',e=>{ if(e.target.closest('[data-sx]')){ side.classList.remove('open'); return; }
+    const st=e.target.closest('[data-st]'); if(st){ const k=st.dataset.st, src=st.dataset.s, M=UI.mafSrc||(UI.mafSrc={}); if(M[k]===src) delete M[k]; else M[k]=src; save(); refinalize(); return; }
+    const fx=e.target.closest('[data-fix]'); if(fx){ const i=+fx.dataset.fix; if(ST.fixes.has(i)) ST.fixes.delete(i); else ST.fixes.add(i); ST.row=scaleRow(ST.bins,ST.fixes); render(); RP.dirty=true; return; }
     const jc=e.target.closest('[data-jc]'); if(jc){ const vis=UI.panes.slice(0,paneCount()); if(!vis.includes('maf_curve')&&!vis.includes('maf_both')) mafMode('maf_curve'); MV.focusBin(+jc.dataset.jc); return; }
     const jt=e.target.closest('[data-jt]'); if(jt){ const i=+jt.dataset.jt; showView('table'); TV.openGroup('maf',false); if(EDIT.on) TV.setSel({r0:i,r1:i,c0:0,c1:0}); return; }
     const zs=e.target.closest('[data-zs]'); if(zs){ const E=zEdges(), zi=+zs.dataset.zs, z=[[0,E[0]],[E[0],E[1]],[E[1],E[2]],[E[2],99]][zi]; if(window.__sug) window.__sug({maf:z}); return; }
     const zh=e.target.closest('.ml-z'); if(zh){ const n=ZN[+zh.dataset.z], c=UI.mafCol||(UI.mafCol={}); if(c[n]) delete c[n]; else c[n]=1; save(); render(); return; }
-    const r=e.target.closest('.ml-r'); if(r) selBin(+r.dataset.bin,false); });
+    const r=e.target.closest('.ml-r'); if(r){ selBin(+r.dataset.bin,false); if(narrow) side.classList.add('open'); } });
+  // narrow pane (Both, splits): the bin panel becomes a drawer over the list
+  const lay=()=>{ const n=wrap.clientWidth>0&&wrap.clientWidth<980; if(n===narrow) return; narrow=n; root.classList.toggle('mlnarrow',n); if(n){ root.appendChild(side); side.classList.add('drw'); side.classList.remove('open'); } else { grid.appendChild(side); side.classList.remove('drw','open'); } panel(); };
+  try{ new ResizeObserver(lay).observe(wrap); }catch(_){}
+  root.addEventListener('keydown',e=>{ if(e.key==='Escape'&&side.classList.contains('open')){ e.stopPropagation(); side.classList.remove('open'); } });
   root.tabIndex=0; root.addEventListener('keydown',e=>{ if(!ST.bins||(e.key!=='ArrowDown'&&e.key!=='ArrowUp')||e.target.closest('input')) return; e.preventDefault(); e.stopPropagation(); const B=ST.bins; let i=SELB; do{ i+=e.key==='ArrowDown'?1:-1; }while(B[i]&&!B[i].n); if(B[i]) selBin(i,true); });
 
   function nowStrip(L,vb){ const B=ST.bins; if(vb<0||!B||!B[vb]){ if(nowSig){ now.style.display='none'; nowSig=''; } return; } const b=B[vb], f=ST.row&&b.n?ST.row.f[vb]:null, an=L.an, lp=an?an.loop[RP.i]:0;
