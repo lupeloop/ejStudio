@@ -24,11 +24,14 @@ function seg(host,items,cur,on){ const s=mk('div','seg',host); items.forEach(([v
   b.onclick=()=>{ s.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); on(v); }; }); s.set=v=>s.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.v==String(v))); return s; }
 
 // ── warning tiles (Graph + Tables) ─────────────────────────────────────
-function WarnTiles(host){ const box=mk('div','wtiles',host); let sig='';
-  return { update(){ const L=RP.L; if(!L){ box.innerHTML=''; sig=''; return; } const list=[];
-    for(const fam in LIMITS){ const j=L.fam.findIndex((f,x)=>f===fam&&x!==L.wbj); if(j<0) continue; const v=logCol(L,j)[RP.i], t=warnTier(fam,v); if(t) list.push({fam,v,t}); }
-    list.sort((a,b)=>b.t-a.t); const s=list.map(o=>o.fam+o.t+o.v).join('|'); if(s===sig) return; sig=s;
-    box.innerHTML=list.slice(0,4).map(o=>`<div class="wtile t${o.t}"><i>${esc(o.fam)}</i><b>${Number.isFinite(o.v)?+o.v.toFixed(2):'—'}</b></div>`).join(''); } }; }
+let WT=null;
+function WarnTiles(){ if(WT) return WT; const box=mk('div','wtiles',document.body); let sig='';
+  const place=()=>{ const b=document.getElementById('t-evb'), r=b&&b.offsetParent?b.getBoundingClientRect():null; if(!r){ box.style.display='none'; return; } box.style.display=''; box.style.left=r.left+'px'; box.style.top=(r.bottom-1)+'px'; box.style.width=r.width+'px'; };
+  addEventListener('resize',()=>{ if(box.childElementCount) place(); });
+  WT={ update(){ const L=RP.L, list=[]; if(L) for(const fam in LIMITS){ const j=L.fam.findIndex((f,x)=>f===fam&&x!==L.wbj); if(j<0) continue; const v=logCol(L,j)[RP.i], t=warnTier(fam,v); if(t) list.push({fam,v,t}); }
+    list.sort((a,b)=>b.t-a.t); const s=list.map(o=>o.fam+o.t+o.v).join('|'); if(s===sig) return; sig=s; const top=list.length?list[0].t:0, b=document.getElementById('t-evb');
+    if(b){ b.classList.toggle('wl',!!list.length); b.classList.toggle('wl3',top>=3); } box.className='wtiles'+(top>=3?' t3':'');
+    box.innerHTML=list.slice(0,4).map(o=>`<div class="wtile t${o.t}"><i>${esc(o.fam)}</i><b>${Number.isFinite(o.v)?+o.v.toFixed(2):'—'}</b></div>`).join(''); if(list.length) place(); } }; return WT; }
 
 // ════════════════════════════════════════════════════════════════════════════
 //  GRAPH — 1-5 lanes; time zoom 10 s … full log; playhead right or centred
@@ -208,9 +211,9 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     tip.innerHTML=`<b>was ${o} → now ${n} ${esc(d.u)}</b><br>change ${(+n-+o>0?'+':'')+(+n-+o).toFixed(d.dp)}`; tip.classList.remove('hidden');
     tip.style.left=Math.min(bx.width-tip.offsetWidth-6,e.clientX-bx.left+14)+'px'; tip.style.top=Math.max(4,e.clientY-bx.top-tip.offsetHeight-10)+'px'; return true; }
   function edDraw(c,g,t,W){ if(!ED()) return; const b=baseOf(t);
-    if(b){ c.strokeStyle='#5ad1e6'; c.lineWidth=2;
-      for(let r=W.r0;r<W.r0+W.vy;r++) for(let q=W.c0;q<W.c0+W.vx;q++) if(b.z[r]&&!same(t.z[r][q],b.z[r][q])) c.strokeRect(g.hw+(q-W.c0)*g.cw+1.5,g.hh+(r-W.r0)*g.ch+1.5,g.cw-3,g.ch-3);
-      c.fillStyle='#5ad1e6'; for(let q=W.c0;q<W.c0+W.vx;q++) if(b.x[q]!=null&&!same(t.x[q],b.x[q])) c.fillRect(g.hw+(q-W.c0)*g.cw+2,g.hh-4,g.cw-4,3);
+    if(b){ const tri=(x,y)=>{ const z=Math.max(7,Math.min(12,Math.min(g.cw,g.ch)*0.36)); c.fillStyle='#000'; c.beginPath(); c.moveTo(x,y); c.lineTo(x+z+1.5,y); c.lineTo(x,y+z+1.5); c.fill(); c.fillStyle='#e4aa28'; c.beginPath(); c.moveTo(x,y); c.lineTo(x+z,y); c.lineTo(x,y+z); c.fill(); };
+      for(let r=W.r0;r<W.r0+W.vy;r++) for(let q=W.c0;q<W.c0+W.vx;q++) if(b.z[r]&&!same(t.z[r][q],b.z[r][q])) tri(g.hw+(q-W.c0)*g.cw+1,g.hh+(r-W.r0)*g.ch+1);
+      c.fillStyle='#e4aa28'; for(let q=W.c0;q<W.c0+W.vx;q++) if(b.x[q]!=null&&!same(t.x[q],b.x[q])) c.fillRect(g.hw+(q-W.c0)*g.cw+2,g.hh-4,g.cw-4,3);
       if(t.yin) for(let r=W.r0;r<W.r0+W.vy;r++) if(b.y[r]!=null&&!same(t.y[r],b.y[r])) c.fillRect(g.hw-4,g.hh+(r-W.r0)*g.ch+2,3,g.ch-4); }
     hrDraw(c,g,t,W);
     if(SEL.r0!=null){ const r0=Math.min(SEL.r0,SEL.r1), r1=Math.max(SEL.r0,SEL.r1), c0=Math.min(SEL.c0,SEL.c1), c1=Math.max(SEL.c0,SEL.c1);
@@ -228,7 +231,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   cards.addEventListener('keydown',e=>{ if(!e.target.dataset||!e.target.dataset.cv) return; if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); const b=cards.querySelector('[data-cs]'); if(b) b.click(); } else if(e.key==='Escape'){ e.stopPropagation(); S.cardEd=null; renderCards(); } });
   cards.addEventListener('dblclick',e=>{ const r=e.target.closest('[data-rn]'); if(r){ const c=TT().cards.find(q=>'c:'+q.id===r.dataset.rn); renameTitle(r.dataset.rn,c?c.label:''); } });
   ttl.ondblclick=()=>{ const cur=built; if(cur) renameTitle('g:'+cur.group,cur.gname); };
-  const gbox=mk('div','tt-box',main), chart=mk('canvas','tt-ch',gbox), gw=mk('div','tt-gw',gbox), grid=mk('div','tt-g',gw), cv=mk('canvas','tt-cv',gw), tip=mk('div','tip hidden',gbox);
+  const gbox=mk('div','tt-box',main), chart=mk('canvas','tt-vc',gbox), gw=mk('div','tt-gw',gbox), grid=mk('div','tt-g',gw), cv=mk('canvas','tt-cv',gw), tip=mk('div','tip hidden',gbox);
   const wt=WarnTiles(root);
   zo.onclick=()=>setZoom(S.zoom/1.5); zi.onclick=()=>setZoom(S.zoom*1.5);
   zf.onclick=()=>{ S.follow=!S.follow; syncZ(); if(S.follow) follow(true); };
@@ -276,10 +279,10 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     let h='';
     for(const cat of CATS){ const gs=order.map(g=>groups[g]).filter(o=>o.cat===cat), cs=TT().cards.filter(c=>c.cat===cat), extra=cat==='Limits'&&TT().byId.boost_limit;
       const hit=o=>!qq||(o.name+' '+o.vars.join(' ')).toLowerCase().includes(qq), chit=c=>!qq||c.label.toLowerCase().includes(qq);
-      const gl=gs.filter(hit), cl=cs.filter(chit); if(!gl.length&&!cl.length&&!(extra&&!qq)) continue;
+      const oe=ED()&&EDIT.onlyEd, gl=gs.filter(hit).filter(o=>!oe||grpEdited(o.g)), cl=cs.filter(chit).filter(c=>!oe||edChanges().some(x=>x.card&&x.card.id===c.id)), ex=extra&&!qq&&!oe; if(!gl.length&&!cl.length&&!ex) continue;
       const open=qq||!T.rc[cat]; h+=`<div class="tt-cat${open?'':' shut'}"><button class="tt-ch" data-c="${esc(cat)}">${esc(cat)}</button>`;
       if(open){ for(const o of gl){ const ed=ED()&&grpEdited(o.g); if(ED()&&EDIT.onlyEd&&!ed) continue; h+=item(o.g,(ed?'● ':'')+nm('g:'+o.g,o.name),o.need.length,o.need.length?'Needs: '+o.need.join(', '):''); }
-        if(cl.length||extra) h+=item('set:'+cat,qq&&cl.length?'Settings · '+cl.map(c=>c.label).slice(0,2).join(', ')+(cl.length>2?'…':''):cat+' settings',false,'Single values from the tune for '+cat.toLowerCase()+' (switch points, limits, steps)'); }
+        if(cl.length||ex) h+=item('set:'+cat,qq&&cl.length?'Settings · '+cl.map(c=>c.label).slice(0,2).join(', ')+(cl.length>2?'…':''):cat+' settings',false,'Single values from the tune for '+cat.toLowerCase()+' (switch points, limits, steps)'); }
       h+='</div>'; }
     rlist.innerHTML=h||'<div class="tt-none">No match</div>'; }
   rlist.onclick=e=>{ const c=e.target.closest('[data-c]'); if(c){ const k=c.dataset.c; T.rc[k]=!T.rc[k]; save(); renderRail(); return; }
@@ -342,11 +345,12 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(g==='timing'){ const live=S.pick, isRef=t=>/VVT On/i.test(t.name), prim=list.filter(t=>!isRef(t)), ref=list.filter(isRef);
       prim.forEach(t=>{ const sel=cur&&cur.id===t.id, ecu=live&&t._ids.includes(live), b=mk('button','chip vchip'+(sel?' on':''),vrow); b.innerHTML=esc(vShort(t))+(ecu?'<span class="ecu">● ECU</span>':''); b.title=t.name+(ecu?' · the ECU is using this table now':''); b.onclick=()=>{ T.sel[g]=t.id; save(); build(); }; });
       if(ref.length){ const sl=mk('select','sel sm vref'+(ref.some(t=>cur&&cur.id===t.id)?' on':''),vrow); sl.innerHTML='<option value="">Reference tables ▾</option>'+ref.map(t=>`<option value="${esc(t.id)}"${cur&&cur.id===t.id?' selected':''}>${esc(vShort(t))}${live&&t._ids.includes(live)?' · ● ECU':''}</option>`).join(''); sl.onchange=()=>{ if(sl.value){ T.sel[g]=sl.value; save(); build(); } }; }
+      if(ST.logs.length>1){ const pc=mk('button','chip',vrow); pc.textContent=poolL(CX.L).length+' / '+ST.logs.length+' logs pooled'; pc.title='Logs pooled into the overlays on this table'; pc.onclick=()=>setPop(pc,['pool'],'Pooled logs'); }
       return; }
     list.forEach(t=>{ const b=mk('button','chip'+(!on&&cur&&cur.id===t.id?' on':'')+(on&&cur&&cur.id===t.id?' match':''),vrow); b.title=on&&cur&&cur.id===t.id?'Active variant (picked by Auto). Click to lock this one':'Lock to this variant'; b.textContent=t.name; b.onclick=()=>{ T.sel[g]=t.id; save(); build(); }; }); }
   // knock summary strip (timing / knock-advance groups), collapsible, channel switch for the heat layer
   function stripLive(L,i){ if(!L||i==null) return;
-    strip.querySelectorAll('[data-lv]').forEach(e=>{ const k=e.dataset.lv, a=L.c[k], v=a?a[i]:NaN; e.textContent=Number.isFinite(v)?(k==='iam'?v.toFixed(3):v.toFixed(2)+'°'):'—'; e.className=!Number.isFinite(v)?'':k==='iam'?(v<0.99?'bad':'ok'):(v<-0.005?'warn':'ok'); }); }
+    strip.querySelectorAll('[data-lv]').forEach(e=>{ const k=e.dataset.lv, a=L.c[k], v=a?a[i]:NaN; e.textContent=Number.isFinite(v)?(k==='iam'?v.toFixed(3):v.toFixed(2)+'°'):'—'; e.className=!Number.isFinite(v)?'':k==='iam'?(v<0.99?'bad':'ok'):(v<-0.005?'warn':'ok'); const kc=e.closest('.kcard'); if(kc){ const j=L.idx?L.idx[k]:-1, wt=j!=null&&j>=0&&Number.isFinite(v)?warnTier(L.fam[j],v):0; kc.classList.toggle('wl',wt>0); } }); }
   function renderStrip(){ const t=built; if(!knockTbl(t)||!CX.L){ strip.style.display='none'; return; } strip.style.display='';
     const k=CX.L.ksum||(CX.L.ksum=knockSummary(CX.L)); let h='';
     { for(const key of ['fbkc','flkc']){ const m=k[key]; if(!m) continue;
@@ -428,7 +432,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(t.vert){ const hw2=Math.max(64,Math.min(80,W*0.08)); ch=Math.max(24,Math.min(32,(H-26)/ny)); hh=26; const cw2=Math.max(96,Math.min(140,W*0.16));
       grid.style.gridTemplateColumns=hw2+'px '+cw2+'px'; grid.style.gridTemplateRows=hh+'px repeat('+ny+','+ch+'px)'; grid.style.fontSize=Math.min(18,ch*0.62)+'px';
       const GW=hw2+cw2, GH=hh+ch*ny, dpr=devicePixelRatio||1, chW=Math.max(160,W-GW-14); cv.width=GW*dpr; cv.height=GH*dpr; cv.style.width=GW+'px'; cv.style.height=GH+'px';
-      chart.width=chW*dpr; chart.height=GH*dpr; chart.style.width=chW+'px'; chart.style.height=GH+'px'; S.geo={hw:hw2,hh,cw:cw2,ch,nx:1,ny,GW,GH,chW,dpr}; draw(); return; }
+      const VH=Math.max(160,H); chart.width=chW*dpr; chart.height=VH*dpr; chart.style.width=chW+'px'; chart.style.height=VH+'px'; S.geo={hw:hw2,hh,cw:cw2,ch,nx:1,ny,GW,GH,chW,dpr,vh:VH}; draw(); return; }
     if(oneD){ ch=Math.max(18,Math.min(34,cw*0.7)); hh=ch; chH=Math.max(100,H-hh-ch-6); }
     else { ch=Math.max(11,Math.min(H/(ny+1),40*Math.max(1,S.zoom))); hh=Math.max(20,Math.min(ch,26)); ch=Math.max(11,Math.min(ch,(H-hh)/ny)); }
     grid.style.gridTemplateColumns=hw+'px repeat('+nx+','+cw+'px)'; grid.style.gridTemplateRows=hh+'px repeat('+ny+','+ch+'px)';
@@ -464,9 +468,9 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(T.opt.val){ const tx=fmtVal(t,v); c.font='800 15px system-ui,sans-serif'; c.textAlign='left'; const w=c.measureText(tx).width+10, h=24; let bx=x+10, by=y-h-8; if(bx+w>g.GW) bx=x-10-w; if(by<T0) by=y+8;
       c.fillStyle='rgba(0,0,0,.82)'; c.fillRect(bx,by,w,h); c.strokeStyle=red; c.lineWidth=1.5; c.strokeRect(bx,by,w,h); c.fillStyle='#fff'; c.fillText(tx,bx+5,by+h/2+0.5); } }
   // one-axis tables listed down the side: the graph beside them reads like EcuFlash (axis across, value up)
-  function drawV(t,g){ const c=chart.getContext('2d'); c.setTransform(g.dpr,0,0,g.dpr,0,0); c.clearRect(0,0,g.chW,g.GH); const d=uDisp(t), n=t.z.length, Wn=S.win||{r0:0,vy:n}, q0=Math.max(0,Wn.r0|0), q1=Math.max(q0+1,Math.min(n-1,(Wn.r0|0)+(Wn.vy|0)-1)), vis=r=>r>=q0&&r<=q1;
+  function drawV(t,g){ const c=chart.getContext('2d'); c.setTransform(g.dpr,0,0,g.dpr,0,0); c.clearRect(0,0,g.chW,g.GH); const d=uDisp(t), n=t.z.length, Wn=S.win||{r0:0,vy:n}, q0=0, q1=Math.max(0,n-1), vis=()=>true;
     let lo=Infinity, hi=-Infinity; for(let r=q0;r<=q1;r++){ const v=t.z[r][0]; if(Number.isFinite(v)){ lo=Math.min(lo,v); hi=Math.max(hi,v); } } if(!Number.isFinite(lo)){ lo=t.lo; hi=t.hi; } if(hi-lo<1e-9){ lo-=1; hi+=1; } const pad=(hi-lo)*0.08; lo-=pad; hi+=pad;
-    const ax=(t.y||[]).map(Number), a0=ax.length?ax[q0]:q0, a1=ax.length?ax[q1]:q1, VH=Math.min(g.GH,(chart.parentElement&&chart.parentElement.clientHeight)||g.GH), L0=46, R0=g.chW-12, T0=g.hh+10, B0=VH-26;
+    const ax=(t.y||[]).map(Number), a0=ax.length?ax[q0]:q0, a1=ax.length?ax[q1]:q1, VH=g.vh||Math.min(g.GH,(chart.parentElement&&chart.parentElement.clientHeight)||g.GH), L0=46, R0=g.chW-12, T0=g.hh+10, B0=VH-26;
     const X=r=>{ const v=ax.length?(r<=0?ax[0]:r>=n-1?ax[n-1]:ax[Math.floor(r)]+(ax[Math.ceil(r)]-ax[Math.floor(r)])*(r-Math.floor(r))):r; return L0+(R0-L0)*((v-a0)/((a1-a0)||1)); }, Y=v=>B0-(B0-T0)*(v-lo)/(hi-lo);
     c.strokeStyle=COL.grid; c.lineWidth=1; c.fillStyle=COL.lab; c.font='11px '+FONT_MONO; c.textBaseline='middle';
     for(let k=0;k<=4;k++){ const v=lo+(hi-lo)*k/4, y=Y(v); c.beginPath(); c.moveTo(L0,y); c.lineTo(R0,y); c.stroke(); const vv=v*d.k+(d.o||0); c.textAlign='right'; c.fillText(Math.abs((hi-lo)*d.k)<10?vv.toFixed(2):vv.toFixed(0),L0-6,y); }
@@ -532,7 +536,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
 function MafTableView(){
   let shown=false, liveBin=-1, revealKey=''; const root=mk('div','view mt'), bar=mk('div','vbar',root);
   mk('span','vlab',bar).textContent='OL calc'; const olSeg=seg(bar,[['afl','+AFL','OL = WB/FFB × (1+AFL)'],['raw','raw','OL = WB/FFB']],CFG.olAfl?'afl':'raw',v=>{ CFG.olAfl=v==='afl'; UI.cfg.olAfl=CFG.olAfl; save(); refinalize(); });
-  const srcChip=mk('span','chip ro',bar); const ipwChip=mk('span','chip ro',bar); const seamChip=mk('span','chip ro',bar); const chkChip=mk('span','chip ro',bar); const poolChip=mk('span','chip ro',bar); const OPEN=new Set();
+  const srcChip=mk('span','chip ro',bar); const ipwChip=mk('span','chip ro',bar); const seamChip=mk('span','chip ro',bar); const chkChip=mk('span','chip ro',bar); const poolChip=mk('button','chip',bar); poolChip.onclick=()=>setPop(poolChip,['pool'],'Pooled logs'); const OPEN=new Set();
   mk('span','vfill',bar); { const fg=mk('button','ibtn',bar); fg.innerHTML=SVG_GEAR; fg.title='MAF filters and data'; fg.onclick=()=>setPop(fg,['cov','flt'],'MAF data and filters'); }
   const now=mk('div','mt-now',root); now.style.display='none'; let nowSig='';
   const wrap=mk('div','ml',root), strip=mk('div','ml-strip',wrap), grid=mk('div','ml-grid',wrap), list=mk('div','ml-list',grid), side=mk('div','ml-side',grid); let narrow=false; let SELB=-1;
@@ -551,7 +555,7 @@ function MafTableView(){
     const sg=B&&seamGap(B); seamChip.style.display=sg?'':'none'; if(sg){ seamChip.textContent=`CL/OL seam ${(sg.gap*100>=0?'+':'')+(sg.gap*100).toFixed(1)}%`; seamChip.title='Mean OL − CL multiplier where both loops have data. Mostly the wideband vs front-O2 offset, not MAF.'; }
     const nk=R?R.kink.filter(v=>v!=null).length:0, nm=R?R.mono.filter(Boolean).length:0; chkChip.style.display=R?'':'none';
     chkChip.className='chip ro '+(nk||nm?'warn':'ok'); chkChip.textContent=nk||nm?`${nk} kink${nk!==1?'s':''} · ${nm} non-monotonic`:'Curve checks OK';
-    { const np=ST.logs.filter(pooled).length; poolChip.style.display=ST.logs.length>1?'':'none'; poolChip.textContent=np+' / '+ST.logs.length+' logs pooled'; poolChip.title='Choose pooled logs with the checkboxes in the drawer'; }
+    { const np=ST.logs.filter(pooled).length; poolChip.style.display=ST.logs.length>1?'':'none'; poolChip.textContent=np+' / '+ST.logs.length+' logs pooled'; poolChip.title='Choose which logs are pooled'; }
     list.innerHTML=''; strip.innerHTML=''; side.innerHTML=''; if(!B) return; if(SELB<0||!B[SELB]||!B[SELB].n){ SELB=B.findIndex(b=>b.n); }
     let mx=5; B.forEach((b,i)=>{ const d=dOf(i); if(d!=null) mx=Math.max(mx,Math.abs(d)); }); mx=Math.min(15,mx);
     strip.innerHTML=B.map((b,i)=>{ const f=R&&b.n?R.f[i]:null; return `<i role="button" tabindex="0" data-sb="${i}" class="${i===SELB?'pick':''}" style="background:${f!=null?mc(f):'#141418'}" title="${b.v.toFixed(3)} V${f!=null?' · ×'+f.toFixed(4):''}"></i>`; }).join('');
@@ -566,13 +570,13 @@ function MafTableView(){
           +`<span class="gs">${g0!=null?g0.toFixed(2):''}</span><span class="gs nw">${g1!=null?g1.toFixed(2):''}</span><span class="mm" style="color:${f!=null?mc(f):''}">${f!=null?'×'+f.toFixed(4):'—'}</span><span class="pc" style="color:${f!=null?mc(f):''}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}</span>`
           +`<span class="nn ${b.trust==='solid'?'n-ok':b.n?'n-prov':''}">${b.n?b.n.toFixed(0):''}</span><span class="src">${(()=>{ const k=b.v.toFixed(3), ov=(UI.mafSrc||{})[k]; return (b.nCL?`<em class="c${ov==='OL'?' dim':''}${ov==='CL'?' set':''}" role="button" tabindex="0" aria-pressed="${ov==='CL'}" data-st="${k}" data-s="CL" title="${ov==='CL'?'CL only · click for Auto':'Use CL only'}">CL</em>`:'')+(b.nOL?`<em class="o${ov==='CL'?' dim':''}${ov==='OL'?' set':''}" role="button" tabindex="0" aria-pressed="${ov==='OL'}" data-st="${k}" data-s="OL" title="${ov==='OL'?'OL only · click for Auto':'Use OL only'}">OL</em>`:''); })()}</span><span class="ckw">${[mo?['NM','b','non-monotonic']:null,kk?['KINK','w','slope kink']:null,b.lean>0?['LEAN','w','lean']:null,b.rich?['RICH','w','rich floor']:null,b.agree!=null&&Math.abs(b.agree)>0.05?['CL≠OL','w','CL and OL disagree']:null].filter(Boolean).map(([t,c,ti])=>`<em class="${c}" title="${ti}">${t}</em>`).join('')}</span></div>`; } });
     list.innerHTML='<div class="ml-h"><span></span><span style="text-align:left">Volts</span><span>Cur. g/s</span><span>New g/s</span><span>Multiplier</span><span>Change</span><span>n</span><span style="text-align:left">Source</span><span style="text-align:left">Checks</span></div>'+h; panel(); liveBin=-1; mark(); }
-  function panel(){ const B=ST.bins, R=ST.row, b=B&&B[SELB]; if(!b){ side.innerHTML=''; return; } const i=SELB, f=R&&b.n?R.f[i]:null, d=dOf(i), sc=TUNE&&TUNE.mafScale;
+  function panel(){ const B=ST.bins, R=ST.row, b=B&&B[SELB]; if(!b){ side.innerHTML=''; side._h=''; return; } const i=SELB, f=R&&b.n?R.f[i]:null, d=dOf(i), sc=TUNE&&TUNE.mafScale;
     const pts=B.map((x,j)=>[x,dOf(j)]).filter(p=>p[1]!=null), v0=BP[0], v1=BP[BP.length-1], sx=v=>4+(v-v0)/(v1-v0)*272; let my=5; pts.forEach(p=>my=Math.max(my,Math.abs(p[1]))); const sy=q=>36-q/my*30;
     const wbD=b.wb!=null?b.wb*lamK(UI.wbDisp):null, ffD=b.ff!=null?b.ff*lamK(UI.ffbDisp):null, kk=R&&R.kink[i]!=null, on=ST.fixes.has(i), chk=[];
     if(kk) chk.push(`<button class="kk${on?' on':''}" data-fix="${i}" title="Slope kink: correction ${R.raw[i].toFixed(3)} vs neighbours' ${R.kink[i].toFixed(3)}"><i></i>${on?'kink · smoothed':'kink'}</button>`);
     if(R&&R.mono[i]) chk.push('<span class="ck bad">non-monotonic</span>'); if(b.agree!=null&&Math.abs(b.agree)>0.05) chk.push(`<span class="ck warn">CL≠OL ${(b.agree*100).toFixed(0)}%</span>`); if(b.lean>0) chk.push('<span class="ck warn">lean</span>'); if(b.rich) chk.push('<span class="ck warn">rich floor</span>');
     const ovr=(UI.mafSrc||{})[b.v.toFixed(3)], srcTxt=ovr?ovr+' only (set)':b.src==='MIX'?'Auto · CL + OL weighted by samples':b.src?'Auto · '+b.src:'—', st=(l,v,c)=>`<div class="st"><em>${l}</em><b${c?` style="color:${c}"`:''}>${v}</b></div>`;
-    side.innerHTML=`<div class="sh"><div class="sv">${b.v.toFixed(3)} V <span>· bin ${i+1}</span></div>${narrow?'<button class="ibtn" data-sx title="Close" aria-label="Close">✕</button>':''}</div><div class="smul" style="color:${f!=null?mc(f):'var(--mut)'}">${f!=null?'×'+f.toFixed(4):'no data'}</div><div class="sd" style="color:${f!=null?mc(f):'var(--mut)'}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}${b.n?' · n '+b.n.toFixed(0):''}</div>
+    const _h=`<div class="sh"><div class="sv">${b.v.toFixed(3)} V <span>· bin ${i+1}</span></div>${narrow?'<button class="ibtn" data-sx title="Close" aria-label="Close">✕</button>':''}</div><div class="smul" style="color:${f!=null?mc(f):'var(--mut)'}">${f!=null?'×'+f.toFixed(4):'no data'}</div><div class="sd" style="color:${f!=null?mc(f):'var(--mut)'}">${d!=null?(d>0?'+':'')+d.toFixed(2)+'%':''}${b.n?' · n '+b.n.toFixed(0):''}</div>
       <svg class="spark" viewBox="0 0 280 110" preserveAspectRatio="none"><line x1="0" x2="280" y1="55" y2="55" stroke="#33333b" stroke-dasharray="3 3"/>${pts.length?`<path d="${pts.map((p,k)=>(k?'L':'M')+sx(p[0].v).toFixed(1)+' '+(55+(sy(p[1])-36)*1.6).toFixed(1)).join(' ')}" fill="none" stroke="#e4aa28" stroke-width="1.8" vector-effect="non-scaling-stroke"/>`:''}${d!=null?`<circle cx="${sx(b.v)}" cy="${55+(sy(d)-36)*1.6}" r="5" fill="${mc(f)}" stroke="#000" stroke-width="1.5"/>`:''}<line class="sl" x1="-9" x2="-9" y1="0" y2="110" stroke="#ff1e1e" stroke-width="1.5"/></svg>
       ${b.n?`<div class="sgp"><h5>Source</h5><div class="srcl">${srcTxt}</div></div>
       <div class="sgp"><h5>Correction</h5><div class="sts">${st('CL ×',f2(b.cl,3))}${st('OL ×',f2(b.ol,3))}</div></div>
@@ -580,11 +584,12 @@ function MafTableView(){
       <div class="sgp"><h5>Fuelling</h5><div class="sts">${st('WB '+uLbl(UI.wbDisp),f2(wbD,dpOf(UI.wbDisp)))}${st('FFB '+uLbl(UI.ffbDisp),f2(ffD,dpOf(UI.ffbDisp)))}</div></div>
       <div class="sgp"><h5>Samples</h5><div class="sts">${st('CL',b.nCL.toFixed(0))}${st('OL',b.nOL.toFixed(0))}</div></div>
       ${sc&&R?`<div class="sgp"><h5>MAF scale</h5><div class="sts">${st('Cur. g/s',sc[i].toFixed(2))}${st('New g/s',R.nv[i].toFixed(2),f!=null?mc(f):'')}</div></div>`:''}`:''}
-      ${chk.length?`<div class="cks">${chk.join(' ')}</div>`:''}<div class="drow"><button class="btn sm" data-jc="${i}">Show on curve</button><button class="btn sm" data-jt="${i}">Open in Tables</button></div>`; }
+      ${chk.length?`<div class="cks">${chk.join(' ')}</div>`:''}<div class="drow"><button class="btn sm" data-jc="${i}">Show on curve</button><button class="btn sm" data-jt="${i}">Open in Tables</button></div>`; if(_h!==side._h){ side._h=_h; side.innerHTML=_h; } }
   function selBin(i,scroll){ SELB=i; list.querySelectorAll('.ml-r.pick').forEach(x=>x.classList.remove('pick')); const r=list.querySelector(`.ml-r[data-bin="${i}"]`); if(r){ r.classList.add('pick'); if(scroll) r.scrollIntoView({block:'center',behavior:'smooth'}); }
     strip.querySelectorAll('i.pick').forEach(x=>x.classList.remove('pick')); const c=strip.querySelector(`[data-sb="${i}"]`); if(c) c.classList.add('pick'); panel(); liveBin=-1; mark(); }
   strip.addEventListener('click',e=>{ const c=e.target.closest('[data-sb]'); if(!c) return; const i=+c.dataset.sb, b=ST.bins[i]; if(!b) return; const zi=zEdges().filter(z=>b.v>=z).length; if(UI.mafCol&&UI.mafCol[ZN[zi]]){ delete UI.mafCol[ZN[zi]]; save(); SELB=i; render(); selBin(i,true); } else selBin(i,true); });
-  root.addEventListener('click',e=>{ if(e.target.closest('[data-sx]')){ side.classList.remove('open'); return; }
+  side.addEventListener('pointerdown',e=>{ if(e.target.closest('[data-sx]')){ e.preventDefault(); e.stopPropagation(); side.classList.remove('open'); } });
+  root.addEventListener('click',e=>{ if(e.target.closest('[data-sx]')) return;
     const st=e.target.closest('[data-st]'); if(st){ const k=st.dataset.st, src=st.dataset.s, M=UI.mafSrc||(UI.mafSrc={}); if(M[k]===src) delete M[k]; else M[k]=src; save(); refinalize(); return; }
     const fx=e.target.closest('[data-fix]'); if(fx){ const i=+fx.dataset.fix; if(ST.fixes.has(i)) ST.fixes.delete(i); else ST.fixes.add(i); ST.row=scaleRow(ST.bins,ST.fixes); render(); RP.dirty=true; return; }
     const jc=e.target.closest('[data-jc]'); if(jc){ const vis=UI.panes.slice(0,paneCount()); if(!vis.includes('maf_curve')&&!vis.includes('maf_both')) mafMode('maf_curve'); MV.focusBin(+jc.dataset.jc); return; }
@@ -593,7 +598,7 @@ function MafTableView(){
     const zh=e.target.closest('.ml-z'); if(zh){ const n=ZN[+zh.dataset.z], c=UI.mafCol||(UI.mafCol={}); if(c[n]) delete c[n]; else c[n]=1; save(); render(); return; }
     const r=e.target.closest('.ml-r'); if(r){ selBin(+r.dataset.bin,false); if(narrow) side.classList.add('open'); } });
   // narrow pane (Both, splits): the bin panel becomes a drawer over the list
-  const lay=()=>{ const n=wrap.clientWidth>0&&wrap.clientWidth<980; if(n===narrow) return; narrow=n; root.classList.toggle('mlnarrow',n); if(n){ root.appendChild(side); side.classList.add('drw'); side.classList.remove('open'); } else { grid.appendChild(side); side.classList.remove('drw','open'); } panel(); };
+  const lay=()=>{ const n=wrap.clientWidth>0&&wrap.clientWidth<1120; if(n===narrow) return; narrow=n; root.classList.toggle('mlnarrow',n); if(n){ root.appendChild(side); side.classList.add('drw'); side.classList.remove('open'); } else { grid.appendChild(side); side.classList.remove('drw','open'); } panel(); };
   try{ new ResizeObserver(lay).observe(wrap); }catch(_){}
   root.addEventListener('keydown',e=>{ if(e.key==='Escape'&&side.classList.contains('open')){ e.stopPropagation(); side.classList.remove('open'); } });
   root.tabIndex=0; root.addEventListener('keydown',e=>{ if(!ST.bins||(e.key!=='ArrowDown'&&e.key!=='ArrowUp')||e.target.closest('input')) return; e.preventDefault(); e.stopPropagation(); const B=ST.bins; let i=SELB; do{ i+=e.key==='ArrowDown'?1:-1; }while(B[i]&&!B[i].n); if(B[i]) selBin(i,true); });

@@ -306,23 +306,26 @@ function injSugs(){ const out=[], notes=[], I=HLP.inj=injHelper(); if(!EDIT.T) r
   if(I.scale!=null&&TUNE&&TUNE.injFlow) notes.push(`Injectors: closed-loop trims sit at ${(-I.scale).toFixed(1)}% across pulse widths. Injector flow scaling ${TUNE.injFlow} → about ${Math.round(TUNE.injFlow*(1+I.scale/100))} (${I.scale>0?'+':''}${I.scale.toFixed(1)}%) would bring them near zero; change it in the injector setting card.`);
   return {out,notes}; }
 // ── Helpers rail: lives beside the table in edit mode; every change is previewed on the table before Apply ──
-const HR={open:false,cat:'Knock timing',data:null,sig:''}, HCATS=[['Knock timing','Knock timing'],['MAF scaling','MAF scaling'],['Fuel timing','Fuel & octane'],['Boost control','Boost control'],['Injectors','Injectors']];
+const HR={open:false,cat:'Knock timing',data:null,sig:'',done:[],doneRoot:null}, HCATS=[['Knock timing','Knock timing'],['MAF scaling','MAF scaling'],['Fuel timing','Fuel & octane'],['Boost control','Boost control'],['Injectors','Injectors']];
 function hrSig(){ return [REV.cur,ST.logs.map(L=>L.fp+':'+(UI.lrev[L.fp]||'')+':'+(typeof pooled==='function'&&pooled(L)?1:0)).join(','),edCount(),JSON.stringify(carNow()||0)].join('|'); }
 function hrData(){ if(!TUNE||!EDIT.T) return null; const s=hrSig(); if(HR.data&&HR.sig===s) return HR.data;
   const tr=f=>{ try{ return f(); }catch(_){ return {out:[],notes:[]}; } }, K=tr(knockSugs), F=tr(fuelSugs), Bo=tr(boostSugs), In=tr(injSugs); let M=[]; try{ M=mafSugs(); }catch(_){}
   const L=K.out.concat(M,F.out,Bo.out,In.out), key=x=>x.t.id+'|'+x.r+'|'+x.c+'|'+x.to, was=new Map(); if(HR.data) HR.data.L.forEach((x,k)=>was.set(key(x),HR.data.ON[k]));
-  const ON=L.map(x=>was.has(key(x))?was.get(key(x)):!x.off), G=new Map(); L.forEach((x,k)=>{ const g=G.get(x.grp)||{id:x.grp,cat:x.g,items:[]}; g.items.push(k); G.set(x.grp,g); });
+  { const rt=REV.nodes&&REV.nodes[0]&&REV.nodes[0].id; if(HR.doneRoot!==rt){ HR.done=[]; HR.doneRoot=rt; } const lk=new Set(L.map(x=>x.t.id+'|'+x.r+'|'+x.c)); HR.done.forEach(d=>{ if(!lk.has(d.tid+'|'+d.r+'|'+d.c)) L.push(d); }); }
+  const ON=L.map(x=>x.done?false:was.has(key(x))?was.get(key(x)):!x.off), G=new Map(); L.forEach((x,k)=>{ const g=G.get(x.grp)||{id:x.grp,cat:x.g,items:[]}; g.items.push(k); G.set(x.grp,g); });
   if(HR.data) for(const g of G.values()){ const o=HR.data.G.get(g.id); if(o) g.open=o.open; }
   HR.data={L,ON,G,groups:[...G.values()],notes:{'Knock timing':K.notes,'Fuel timing':F.notes,'Boost control':Bo.notes,'Injectors':In.notes,'MAF scaling':[]}}; HR.sig=s; return HR.data; }
 function hrCount(){ const D=hrData(); return D?D.L.length:0; }
-function hrGroupN(g){ const D=HR.data; return D&&EDIT.on?D.L.filter(x=>x.t.group===g).length:0; }
+function hrGroupN(g){ const D=HR.data; return D&&EDIT.on?D.L.filter(x=>!x.done&&x.t.group===g).length:0; }
 function hrJump(){ const D=HR.data; if(!D) return; const k=D.L.findIndex(x=>x.g===HR.cat); if(k>=0&&TV.showTable) TV.showTable(D.L[k].t.id); }
 function hrOpen(cat,opt){ if(!TUNE) return; if(!EDIT.on) EDITOR.on(true); showView('table'); const D=hrData(); HR.open=true;
   if(!cat){ const f=HCATS.find(([c])=>D&&D.L.some(x=>x.g===c)); cat=f?f[0]:HR.cat; } HR.cat=cat;
   if(opt&&opt.maf&&D) D.L.forEach((x,k)=>{ if(x.g==='MAF scaling') D.ON[k]=x.t.x[x.c]>=opt.maf[0]-1e-9&&x.t.x[x.c]<opt.maf[1]-1e-9; });
   hrJump(); TV.edRefresh(); }
 function hrClose(){ HR.open=false; TV.edRefresh(); }
-function hrApply(){ const D=HR.data; if(!D) return; const by=new Map(); D.L.forEach((x,k)=>{ if(!D.ON[k]) return; const z=by.get(x.t)||x.t.z.map(r=>r.slice()); z[x.r][x.c]=x.to; by.set(x.t,z); });
+function hrApply(){ const D=HR.data; if(!D) return; const rt=REV.nodes&&REV.nodes[0]&&REV.nodes[0].id; if(HR.doneRoot!==rt){ HR.done=[]; HR.doneRoot=rt; }
+  D.L.forEach((x,k)=>{ if(!D.ON[k]||x.done) return; const id=x.t.id+'|'+x.r+'|'+x.c; HR.done=HR.done.filter(d=>d.tid+'|'+d.r+'|'+d.c!==id); HR.done.push(Object.assign({},x,{done:true,from:x.t.z[x.r][x.c],tid:x.t.id,grp:'done:'+x.grp})); });
+  const by=new Map(); D.L.forEach((x,k)=>{ if(!D.ON[k]||x.done) return; const z=by.get(x.t)||x.t.z.map(r=>r.slice()); z[x.r][x.c]=x.to; by.set(x.t,z); });
   const items=[]; for(const [t,z] of by) if(edGuard(t,z)) items.push({t,k:'z',after:z}); if(items.length){ edCommit(items,'apply helpers'); toast(`Applied to ${items.length} table${items.length!==1?'s':''}`); } TV.edRefresh(); }
 function hrEvidence(cat,D){ const fu=f=>f?`${esc(f.brand||'')} ${esc(String(f.octane||''))}${f.eth?' · E'+esc(String(f.eth)):''}`.trim():'—', notes=(D.notes[cat]||[]).map(n=>`<p class="hm">${esc(n)}</p>`).join('');
   if(cat==='Fuel timing'){ const F=HLP.fuel||{}; if(!F.car) return `<div class="hc"><button class="btn sm" data-h="car">Create car profile</button></div>`;
@@ -344,18 +347,18 @@ function hrGroup(g,D,kn,nK){ const L=D.L, ON=D.ON, x0=L[g.items[0]], open=g.open
   else if(x0.gtitle){ title=x0.gtitle; meta=`${esc(tName(x0.t))} · ${g.items.length} cell${g.items.length>1?'s':''}${x0.gmeta?' · '+esc(x0.gmeta):''}`; }
   else { title='MAF · '+x0.zone+' zone'; meta=`${esc(tName(x0.t))} · ${g.items.length} bin${g.items.length>1?'s':''}`; let sw=0,sn=0; const lp=new Set(); g.items.forEach(k=>{ const q=L[k]; sw+=(q.to/q.t.z[0][q.c]-1)*100*q.bin.n; sn+=q.bin.n; if(q.bin.src) lp.add(q.bin.src); });
     chips=chip('avg '+sgn((sw/sn).toFixed(2))+'%')+chip('n '+Math.round(sn).toLocaleString())+(lp.size?chip([...lp].join(' + ')):''); }
-  const rows=g.items.map((k,j)=>{ const x=L[k], d=edDisp(x.t), a=toD(d,x.t.z[x.r][x.c]), b=toD(d,x.to), u=d.u==='deg'?'°':'';
-    return `<div class="sgi${j>=4&&!open?' fold':''}" data-j="${k}" title="${esc(x.why)}"><span>${esc(x.lbl)}</span><span class="sga">${a.toFixed(d.dp)}${u}</span><span class="sgar">→</span><span class="sgb">${b.toFixed(d.dp)}${u}</span><button class="sw${ON[k]?' on':''}" data-k="${k}"></button></div>`; }).join('');
-  return `<div class="sgg"><div class="sggh"><button class="sw${g.items.every(k=>ON[k])?' on':''}" data-gs="${esc(g.id)}"></button><b>${esc(title)}</b></div><div class="sgm">${meta}</div>${chips?`<div class="sgch">${chips}</div>`:''}${rows}${g.items.length>4?`<div class="sgmore" data-more="${esc(g.id)}">${open?'▾ fewer':'▸ '+(g.items.length-4)+' more'}</div>`:''}</div>`; }
+  const rows=g.items.map((k,j)=>{ const x=L[k], d=edDisp(x.t), a=toD(d,x.done?x.from:x.t.z[x.r][x.c]), b=toD(d,x.to), u=d.u==='deg'?'°':'';
+    return `<div class="sgi${x.done?' dn':''}${j>=4&&!open?' fold':''}" data-j="${k}" title="${esc(x.why)}"><span>${esc(x.lbl)}</span><span class="sga">${a.toFixed(d.dp)}${u}</span><span class="sgar">→</span><span class="sgb">${b.toFixed(d.dp)}${u}</span>${x.done?'<span class="sgd">Done</span>':`<button class="sw${ON[k]?' on':''}" data-k="${k}"></button>`}</div>`; }).join('');
+  return `<div class="sgg"><div class="sggh${x0.done?' dn':''}">${x0.done?'<span class="sgd">Done</span>':`<button class="sw${g.items.every(k=>ON[k])?' on':''}" data-gs="${esc(g.id)}"></button>`}<b>${esc(title)}</b></div><div class="sgm">${meta}</div>${chips?`<div class="sgch">${chips}</div>`:''}${rows}${g.items.length>4?`<div class="sgmore" data-more="${esc(g.id)}">${open?'▾ fewer':'▸ '+(g.items.length-4)+' more'}</div>`:''}</div>`; }
 function hrPaint(el){ const D=hrData(); if(!D){ el.innerHTML=''; el._k=''; return; } const key=HR.sig+HR.cat+D.ON.join('')+D.groups.map(g=>g.open?1:0).join(''); if(el._k===key) return; el._k=key;
-  const bd=el.querySelector('.hrbd'), top=bd?bd.scrollTop:0, cat=HR.cat, gs=D.groups.filter(g=>g.cat===cat), nK=gs.length, sel=D.L.filter((x,k)=>D.ON[k]), tb=new Set(sel.map(x=>x.t.id)).size;
-  let h=`<div class="hrh"><b>Helpers</b><button class="ibtn" data-hx title="Close">✕</button></div><div class="hrc">`+HCATS.map(([c,l])=>{ const n=D.L.filter(x=>x.g===c).length, on=D.L.filter((x,k)=>x.g===c&&D.ON[k]).length; return `<button class="hrb${c===cat?' on':''}${n?'':' z'}" data-hc="${c}"><span>${l}</span><i>${n?on+' / '+n:'—'}</i></button>`; }).join('')+'</div><div class="hrbd">';
-  h+=hrEvidence(cat,D); if(gs.length) h+=`<div class="sgcat"><span>${gs.length} group${gs.length>1?'s':''}</span><button class="btn sm ghost" data-ca>All</button><button class="btn sm ghost" data-cn>None</button></div>`+gs.map((g,i)=>hrGroup(g,D,i+1,nK)).join('');
+  const bd=el.querySelector('.hrbd'), top=bd?bd.scrollTop:0, cat=HR.cat, gs=D.groups.filter(g=>g.cat===cat), nK=gs.length, sel=D.L.filter((x,k)=>D.ON[k]&&!x.done), tb=new Set(sel.map(x=>x.t.id)).size;
+  let h=`<div class="hrh"><b>Helpers</b><button class="ibtn" data-hx title="Close">✕</button></div><div class="hrc">`+HCATS.map(([c,l])=>{ const n=D.L.filter(x=>x.g===c&&!x.done).length, on=D.L.filter((x,k)=>x.g===c&&D.ON[k]&&!x.done).length; return `<button class="hrb${c===cat?' on':''}${n?'':' z'}" data-hc="${c}"><span>${l}</span><i>${n?on+' / '+n:'—'}</i></button>`; }).join('')+'</div><div class="hrbd">';
+  h+=hrEvidence(cat,D); if(gs.length) h+=`<div class="sgcat"><span>${gs.length} group${gs.length>1?'s':''}</span><button class="btn sm ghost" data-ca>All</button><button class="btn sm ghost" data-cn>None</button>${HR.done.length?'<button class="btn sm ghost" data-dclr>Clear done</button>':''}</div>`+gs.map((g,i)=>hrGroup(g,D,i+1,nK)).join('');
   h+=`</div><div class="hrft"><span>${sel.length} change${sel.length!==1?'s':''} · ${tb} table${tb!==1?'s':''}</span><button class="btn sm acc" data-ok${sel.length?'':' disabled'}>Apply</button></div>`;
   el.innerHTML=h; const nb=el.querySelector('.hrbd'); if(nb) nb.scrollTop=top;
   el.onchange=e=>{ const k=e.target.dataset.icfg; if(!k) return; const x=parseFloat(e.target.value); if(!Number.isFinite(x)) return; CFG[k]=x; UI.cfg[k]=x; save(); recompute(true); el._k=''; TV.edRefresh(); };
   el.onclick=e=>{ const t=e.target, D=HR.data; if(!D) return; const r=()=>TV.edRefresh();
-    if(t.closest('[data-hx]')) return hrClose(); if(t.closest('[data-ok]')) return hrApply();
+    if(t.closest('[data-hx]')) return hrClose(); if(t.closest('[data-ok]')) return hrApply(); if(t.closest('[data-dclr]')){ HR.done=[]; HR.sig=''; el._k=''; return r(); }
     const hc=t.closest('[data-hc]'); if(hc){ HR.cat=hc.dataset.hc; hrJump(); return r(); }
     const hb=t.closest('[data-h]'); if(hb) return carDialog(hb.dataset.h==='car'?null:UI.car,hb.dataset.h==='fuel'?'fuel':null);
     const k=t.closest('[data-k]'); if(k){ D.ON[+k.dataset.k]=!D.ON[+k.dataset.k]; return r(); }
@@ -365,8 +368,8 @@ function hrPaint(el){ const D=hrData(); if(!D){ el.innerHTML=''; el._k=''; retur
     const j=t.closest('[data-j]'); if(j){ const x=D.L[+j.dataset.j]; TV.showTable(x.t.id,x.r,x.c); } }; }
 // table overlay: amber corner on every pending cell; with the rail open, ticked cells show the new value over the old one, unticked get a dashed outline
 function hrDraw(c,g,t,W){ const D=HR.data; if(!D||!EDIT.on) return; const id=(t.__src||t).id, d=edDisp(t), A='#e4aa28';
-  D.L.forEach((x,k)=>{ if(x.t.id!==id&&x.t.id!==t.id) return; const R=t.vert?x.c:x.r, Cc=t.vert?0:x.c; if(R<W.r0||R>=W.r0+W.vy||Cc<W.c0||Cc>=W.c0+W.vx) return; const x0=g.hw+(Cc-W.c0)*g.cw, y0=g.hh+(R-W.r0)*g.ch, cw=g.cw, ch=g.ch;
-    if(!HR.open){ c.fillStyle=A; c.beginPath(); c.moveTo(x0+2,y0+2); c.lineTo(x0+2+Math.min(9,cw*.3),y0+2); c.lineTo(x0+2,y0+2+Math.min(9,ch*.45)); c.fill(); return; }
+  D.L.forEach((x,k)=>{ if(x.done||(x.t.id!==id&&x.t.id!==t.id)) return; const R=t.vert?x.c:x.r, Cc=t.vert?0:x.c; if(R<W.r0||R>=W.r0+W.vy||Cc<W.c0||Cc>=W.c0+W.vx) return; const x0=g.hw+(Cc-W.c0)*g.cw, y0=g.hh+(R-W.r0)*g.ch, cw=g.cw, ch=g.ch;
+    if(!HR.open){ c.fillStyle=A; c.beginPath(); const s1=Math.min(9,cw*.3), s2=Math.min(9,ch*.45); c.moveTo(x0+cw-2,y0+2); c.lineTo(x0+cw-2-s1,y0+2); c.lineTo(x0+cw-2,y0+2+s2); c.fill(); return; }
     if(!D.ON[k]){ if(x.g!==HR.cat) return; c.setLineDash([3,3]); c.strokeStyle=A; c.lineWidth=1.4; c.strokeRect(x0+2,y0+2,cw-4,ch-4); c.setLineDash([]); return; }
     c.fillStyle='#1a1306'; c.fillRect(x0+1,y0+1,cw-2,ch-2); c.strokeStyle=A; c.lineWidth=1.5; c.strokeRect(x0+1.5,y0+1.5,cw-3,ch-3);
     const nv=toD(d,x.to).toFixed(d.dp), ov=toD(d,x.t.z[x.r][x.c]).toFixed(d.dp); c.textAlign='center'; c.textBaseline='middle';
