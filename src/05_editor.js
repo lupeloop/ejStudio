@@ -373,7 +373,7 @@ function hrDraw(c,g,t,W){ const D=HR.data; if(!D||!EDIT.on) return; const id=(t.
     if(!D.ON[k]){ if(x.g!==HR.cat) return; c.setLineDash([3,3]); c.strokeStyle=A; c.lineWidth=1.4; c.strokeRect(x0+2,y0+2,cw-4,ch-4); c.setLineDash([]); return; }
     c.fillStyle='#1a1306'; c.fillRect(x0+1,y0+1,cw-2,ch-2); c.strokeStyle=A; c.lineWidth=1.5; c.strokeRect(x0+1.5,y0+1.5,cw-3,ch-3);
     const nv=toD(d,x.to).toFixed(d.dp), ov=toD(d,x.t.z[x.r][x.c]).toFixed(d.dp); c.textAlign='center'; c.textBaseline='middle';
-    if(ch>=30){ c.font='600 '+Math.min(10,ch*.28)+'px system-ui,sans-serif'; c.fillStyle='#8a8a92'; const oy=y0+ch*.3, ow=c.measureText(ov).width; c.fillText(ov,x0+cw/2,oy); c.strokeStyle='#8a8a92'; c.lineWidth=1; c.beginPath(); c.moveTo(x0+cw/2-ow/2-1,oy); c.lineTo(x0+cw/2+ow/2+1,oy); c.stroke();
+    if(ch>=30){ c.font='600 '+Math.min(10,ch*.28)+'px system-ui,sans-serif'; c.fillStyle=COL.lab; const oy=y0+ch*.3, ow=c.measureText(ov).width; c.fillText(ov,x0+cw/2,oy); c.strokeStyle=COL.lab; c.lineWidth=1; c.beginPath(); c.moveTo(x0+cw/2-ow/2-1,oy); c.lineTo(x0+cw/2+ow/2+1,oy); c.stroke();
       c.font='800 '+Math.min(13,ch*.36)+'px system-ui,sans-serif'; c.fillStyle=A; c.fillText(nv,x0+cw/2,y0+ch*.66); }
     else { c.font='800 '+Math.max(8,Math.min(12,ch*.62))+'px system-ui,sans-serif'; c.fillStyle=A; c.fillText(nv,x0+cw/2,y0+ch/2+.5); } }); }
 // ── car profiles: several cars, each with its fuel history; sessions are kept per car ──

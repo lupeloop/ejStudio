@@ -227,7 +227,7 @@ function drawTL(cv,big){ const z=sizeCanvas(cv); if(!z) return; const {c,W,H}=z,
   if(L._tlIn==null) L._tlIn=matchMedia('(prefers-reduced-motion:reduce)').matches?0:performance.now(); const tp=L._tlIn?Math.min(1,(performance.now()-L._tlIn)/520):1, te=1-Math.pow(1-tp,3); if(te<1){ const cw=RP[ck].width; c.drawImage(RP[ck],0,0,cw*te,RP[ck].height,0,0,W*te,H); requestAnimationFrame(()=>drawTL(cv,big)); } else c.drawImage(RP[ck],0,0,W,H); const X=t=>t/L.dur*W;
   { const x=trimOf(L); if(x){ c.fillStyle='rgba(0,0,0,.68)'; if(x.a!=null) c.fillRect(0,0,X(x.a),H); if(x.b!=null) c.fillRect(X(x.b),0,W-X(x.b),H); c.fillStyle='#ff6b6b'; for(const t of [x.a,x.b]) if(t!=null) c.fillRect(X(t)-1,0,2,H); } if(RP.flagA!=null){ c.fillStyle='#5ad1e6'; c.fillRect(X(RP.flagA)-1,0,2,H); } }
   if(RP.a!=null&&RP.b!=null){ const xa=X(Math.min(RP.a,RP.b)), xb=X(Math.max(RP.a,RP.b)); c.fillStyle='rgba(228,170,40,.14)'; c.fillRect(xa,0,xb-xa,H); }
-  c.fillStyle='#e4aa28'; for(const t of [RP.a,RP.b]) if(t!=null) c.fillRect(X(t)-1,0,2,H);
+  c.fillStyle=COL.acc; for(const t of [RP.a,RP.b]) if(t!=null) c.fillRect(X(t)-1,0,2,H);
   if(RP.drag&&RP.drag.big===big&&RP.drag.ab){ const xa=X(Math.min(RP.drag.t0,RP.drag.t1)), xb=X(Math.max(RP.drag.t0,RP.drag.t1)); c.fillStyle='rgba(228,170,40,.25)'; c.fillRect(xa,0,xb-xa,H); }
   const now=performance.now(); for(const f of RP.flashes){ const a=1-(now-f.s)/600; c.fillStyle=`rgba(255,40,40,${(a*0.8).toFixed(2)})`; c.fillRect(X(f.t)-3,0,6,H); }
   c.fillStyle='#fff'; c.fillRect(X(RP.playT)-1,0,2,H);
@@ -548,7 +548,7 @@ function metaHtml(L){ const m=metaOf(L), fd=fileDate(L.name), d=m.date||(fd?toLo
    +(m.custom||[]).map((c,k)=>`<div class="drow"><input class="num" style="width:110px;text-align:left" data-cf="${k}" data-part="k" value="${esc(c.k)}" placeholder="Field"><input class="num" style="width:130px;text-align:left" data-cf="${k}" data-part="v" value="${esc(c.v)}" placeholder="Value"><button class="lx" data-cfdel="${k}" title="Remove field">×</button></div>`).join('')
    +`<div class="drow"><button class="btn sm" data-act="cfadd">Add field</button></div>`; }
 // ── two-log compare (overlay): log B with its own scrubber, optional link ────
-function logC(k){ return (UI.logCol&&UI.logCol[k])||({a:'#e4aa28',b:'#5ad1e6'})[k]; }
+function logC(k){ return (UI.logCol&&UI.logCol[k])||({a:COL.acc,b:'#5ad1e6'})[k]; }
 function rpIdxL(L,t){ const T=L.t; if(!L.N) return 0; if(t<=T[0]) return 0; let lo=0,hi=L.N-1; if(t>=T[hi]) return hi; while(hi-lo>1){ const m=(lo+hi)>>1; if(T[m]<=t) lo=m; else hi=m; } return lo; }
 function setB(t){ const B=RP.B; if(!B) return; RP.bT=Math.max(0,Math.min(B.dur,t)); RP.bI=rpIdxL(B,RP.bT); if(UI.link) RP.bOff=RP.bT-RP.playT; RP.dirty=true; }
 function setCompare(L){ if(!L||L===RP.L) RP.B=null; else { RP.B=L; RP.bT=Math.min(RP.playT,L.dur); RP.bI=rpIdxL(L,RP.bT); RP.bOff=RP.bT-RP.playT; }
