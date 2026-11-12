@@ -240,7 +240,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   const body=mk('div','tt-body',root), rail=mk('div','tt-rail',body), main=mk('div','tt-main',body), hrail=side==='b'?null:mk('div','hrail',body); if(hrail) hrail.style.display='none';
   const q=mk('input','tt-q',rail); q.type='search'; q.placeholder='Search tables'; const rlist=mk('div','tt-list',rail);
   const kwrap=mk('div','kwrap',main), strip=mk('div','kstrip',kwrap), bstrip=mk('div','kstrip bstrip',kwrap), kdet=mk('button','chip kdet',kwrap); kdet.onclick=()=>{ UI.ttDet=!UI.ttDet; save(); syncCmp(); requestAnimationFrame(layout); };
-  function syncCmp(){ const on=!!knockTbl(built)&&!!CX.L; kdet.style.display=on?'':'none'; root.classList.toggle('kcmp',on&&!UI.ttDet); kdet.textContent=UI.ttDet?'Less':'Details'; } const msg=mk('div','tt-msg',main); msg.style.display='none';
+  function syncCmp(){ const on=!!knockTbl(built)&&!!CX.L; kdet.style.display=on?'':'none'; root.classList.toggle('kcmp',on&&!UI.ttDet); kdet.textContent=UI.ttDet?'Less':'Details'; kdet.classList.toggle('up',!!UI.ttDet); } const msg=mk('div','tt-msg',main); msg.style.display='none';
   const cards=mk('div','tt-cards',main); cards.style.display='none'; cards.onclick=e=>{ const el=e.target.closest('[data-card]'); if(!el) return; const id=el.dataset.card;
     if(e.target.closest('[data-cx]')){ S.cardEd=null; renderCards(); return; }
     if(e.target.closest('[data-cs]')){ const c=TT().cards.find(q=>q.id===id), rows=c.v.map(r=>r.slice()); el.querySelectorAll('[data-cv]').forEach(inp=>{ const [i,j]=inp.dataset.cv.split(',').map(Number); rows[i][j]=parseFloat(String(inp.value).replace(',','.')); });
