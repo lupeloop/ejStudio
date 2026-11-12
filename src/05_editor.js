@@ -33,7 +33,7 @@ function edGuard(t,z){ [t,z]=unV(t,z); if(isCareful(t)&&!careOK(t.id,t.gname,t.c
     if(n&&!confirm(`${n} cell${n>1?'s':''} in ${t.gname} would change by more than ${rl.txt} from the loaded tune (largest ${rl.f(w)}).\n\nApply anyway?`)) return false; }
   if(t.group==='maf'&&z[0].some((v,i)=>i&&v<=z[0][i-1])&&!confirm('MAF scaling would no longer increase at every step.\n\nApply anyway?')) return false; return true; }
 function snap(t,k){ return k==='z'?t.z.map(r=>r.slice()):t[k].slice(); }
-function edCommit(items,label){ items=items.map(it=>{ if(!it.t||!it.t.__src||it.card) return it; const [t,after,k]=unV(it.t,it.after,it.k); return {...it,t,after,k}; }).filter(it=>it.k!=='x'||!it.t.__src); const u=items.map(it=>({id:it.t.id,card:!!it.card,k:it.k,before:it.card?JSON.parse(JSON.stringify(it.t.v)):snap(it.t,it.k),after:it.after}));
+function edCommit(items,label){ EDIT.lastAt=performance.now(); items=items.map(it=>{ if(!it.t||!it.t.__src||it.card) return it; const [t,after,k]=unV(it.t,it.after,it.k); return {...it,t,after,k}; }).filter(it=>it.k!=='x'||!it.t.__src); const u=items.map(it=>({id:it.t.id,card:!!it.card,k:it.k,before:it.card?JSON.parse(JSON.stringify(it.t.v)):snap(it.t,it.k),after:it.after}));
   EDIT.undo.push({label,u}); if(EDIT.undo.length>500) EDIT.undo.shift(); EDIT.redo=[]; edApply(u,'after'); }
 function edApply(u,w){ const E=EDIT.T; for(const x of u){ const v=x[w];
     if(x.card){ const c=E.cards.find(q=>q.id===x.id); if(c){ c.v=JSON.parse(JSON.stringify(v)); E.m[x.id]=JSON.parse(JSON.stringify(v)); } continue; }
@@ -159,7 +159,7 @@ window.__build=async()=>{ if(!TUNE||!EDIT.T){ toast('Nothing to build'); return;
   let txt; try{ txt=tuneText(); JSON.parse(txt); }catch(e){ elog('build '+(e&&e.stack||e)); toast('Build failed'); return; }
   const sum=window.__tuneChanges().slice(1).map(x=>x.trim()), node={id:nid(),rev:next,parent:REV.cur,file,note:note.trim(),time:Date.now(),src:txt,sum};
   dl(new Blob([txt],{type:'application/json'}),file); try{ if(window.rrlab&&window.rrlab.backup) window.rrlab.backup(TUNE.car||'tune',file,txt); }catch(_){} REV.nodes.push(node); REV.cur=node.id; const on=EDIT.on;
-  window.__treeSwitch=1; await loadTuneText(txt,file); window.__treeSwitch=0; if(on){ EDIT.on=true; EDIT.T=structuredClone(TUNE); } revSave(); TV.edRefresh(); drawerRefresh(); toast(`Built ${file} · open it in Lambda, run Test Write, then Write`); };
+  window.__treeSwitch=1; await loadTuneText(txt,file); window.__treeSwitch=0; if(on){ EDIT.on=true; EDIT.T=structuredClone(TUNE); } revSave(); TV.edRefresh(); drawerRefresh(); toast(`Built ${file} · open it in Lambda, run Test Write, then Write`); const pv=(REV.nodes.find(x=>x.id===node.parent)||{}).rev, te=document.querySelector('.toast'); if(te&&pv!=null) te.innerHTML=`Built ${esc(revBase())}_rev<span class="odo"><span><i>${pv}</i><i>${next}</i></span></span>.tune · open it in Lambda, run Test Write, then Write`; };
 function revDiff(){ const cur=curNode(), others=REV.nodes.filter(n=>n!==cur&&n.src); if(!cur){ toast('Load a tune'); return; }
   const d=mk('div','',document.body); d.id='mapdlg'; const done=()=>{ document.removeEventListener('keydown',kd,true); d.remove(); }, kd=e=>{ if(e.key==='Escape'){ e.stopPropagation(); done(); } }; document.addEventListener('keydown',kd,true);
   const show=id=>{ const o=REV.nodes.find(n=>n.id===id); let A, B=TUNE; try{ A=parseTune(o.src,o.file); }catch(_){ toast('Could not read that revision'); return; } const rows=[];

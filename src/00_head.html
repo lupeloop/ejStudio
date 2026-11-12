@@ -84,7 +84,10 @@ button{font:inherit;color:inherit}
 /* ── app shell ── */
 #app{position:fixed;inset:0;display:flex;flex-direction:column}
 .top{display:flex;align-items:center;gap:.8rem;padding:.4rem .8rem;border-bottom:1px solid var(--acc-d);flex:none}
-.tabs{display:flex;gap:2px;margin-left:.6rem}
+.tabs{display:flex;gap:2px;margin-left:.6rem;position:relative}.tind{position:absolute;left:0;bottom:0;height:2px;background:var(--acc);pointer-events:none;transition:transform .22s cubic-bezier(.16,1,.3,1),width .22s cubic-bezier(.16,1,.3,1),opacity .15s}.tabs button.foc{border-bottom-color:transparent!important}
+.odo{display:inline-block;height:1.25em;line-height:1.25em;overflow:hidden;vertical-align:bottom}.odo>span{display:flex;flex-direction:column;animation:odo .55s .2s cubic-bezier(.16,1,.3,1) both}.odo i{font-style:normal;color:var(--acc)}@keyframes odo{to{transform:translateY(-50%)}}
+.cleanchip{align-self:center;font:600 11.5px var(--sans);color:var(--green);border:1px solid color-mix(in srgb,var(--green) 45%,transparent);border-radius:999px;padding:2px 9px;margin-right:6px;animation:chipin .3s cubic-bezier(.16,1,.3,1)}.cleanchip[hidden]{display:none}@keyframes chipin{from{opacity:0;transform:scale(.85)}}
+.lside .mark{position:relative}.lside .mark::before{content:'';position:absolute;left:0;top:50%;width:1.3em;height:1.3em;margin-top:-.65em;border:2px solid var(--acc);border-radius:50%;opacity:0;pointer-events:none;animation:lockon .8s .15s cubic-bezier(.16,1,.3,1) both}.lside .mk-ic{animation:lockic .8s .15s cubic-bezier(.16,1,.3,1) both}@keyframes lockon{0%{opacity:0;transform:scale(2.6)}45%{opacity:.85}100%{opacity:0;transform:scale(1)}}@keyframes lockic{0%,40%{filter:brightness(.6)}70%{filter:brightness(1.5) drop-shadow(0 0 6px var(--acc))}100%{filter:none}}
 .tabs button{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--mut2);padding:.45rem .8rem .35rem;font-size:12.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
 .tabs button:hover{color:var(--tx)}.tabs button.on{color:var(--tx)}.tabs button.foc{color:var(--acc);border-bottom-color:var(--acc)}
 .fill{flex:1}
@@ -116,7 +119,7 @@ button{font:inherit;color:inherit}
 #t-ev{max-width:240px}
 
 /* ── drawer ── */
-#drawer{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:92vw;background:#000;border-left:1px solid var(--card-b);z-index:100;transform:translateX(100%);transition:transform .18s ease;display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.6)}
+#drawer{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:92vw;background:#000;border-left:1px solid var(--card-b);z-index:100;transform:translateX(100%);transition:transform .26s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.6)}
 #drawer.open{transform:none}
 body.dpin #app{right:360px}body.dpin #drawer{box-shadow:none}
 .dhd{display:flex;align-items:center;gap:.5rem;padding:.55rem .8rem;border-bottom:1px solid var(--card-b)}
@@ -390,7 +393,7 @@ body.desk #drawer{top:38px}
     <button class="ibtn" id="t-a" title="Loop start (A)">A</button>
     <button class="ibtn" id="t-b" title="Loop end (B)">B</button>
     <button class="ibtn" id="t-abx" title="Clear loop">✕</button><button class="ibtn" id="t-flag" title="Add flag at playhead · Shift+click: range start / end">⚑</button><button class="ibtn" id="t-trim" title="Trim start at playhead · Shift+click: trim end · Alt+click: clear trim">✂</button><button class="ibtn" id="t-set" title="Replay settings"></button>
-    <select class="sel" id="t-ev" hidden><option value="">Jump to event…</option></select><button class="evbtn" id="t-evb" title="Jump to an event in this log"><span>Jump to event</span><i>▾</i></button>
+    <select class="sel" id="t-ev" hidden><option value="">Jump to event…</option></select><span class="cleanchip" id="t-clean" hidden title="No knock or IAM events in this log">Clean</span><button class="evbtn" id="t-evb" title="Jump to an event in this log"><span>Jump to event</span><i>▾</i></button>
     <div id="tlpop" class="hidden"><canvas id="tlpop-cv"></canvas><button class="ibtn" id="tlpop-x" title="Close (Esc)">✕</button></div>
   </footer>
   <div class="bbar hidden" id="bbar"><span class="bchip" id="b-name"></span><button class="ibtn" id="b-link" title="Link scrubbers: B follows A at the current offset (L)">⛓</button><canvas id="tlb"></canvas><span class="ttime" id="b-time"></span><button class="ibtn" id="b-x" title="End compare">✕</button></div>
