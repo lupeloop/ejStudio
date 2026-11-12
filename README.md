@@ -75,20 +75,20 @@ A Subaru SSM logger, in-car cluster and log manager. Logs are standard CSV.
 
 ![Designer](docs/img/logger_designer.png)
 
-## Car PC mode
+## Car mode
 ![ejLogger car cluster](docs/img/logger_cluster.png)
 
-Turn on **Config → This PC → Car mode** and the car PC boots into a full-screen cluster, connects on its own and records every drive.
+**Config → This PC → Car mode** opens ejLogger straight into a full-screen touch cluster that connects on its own and records every drive. Useful on a laptop or tablet that stays in the car.
 
 ## USB stick
 ![USB stick in car mode](docs/img/usb_stick.png)
 
-Plug in a stick to sync logs, load the newest tune, update ejStudio and apply a car setup. Set up profiles and the cluster at the desk, export them from **Config → Car setup**, and the car reviews the changes before applying them, with Undo.
+Plug in a stick to copy logs, load the newest tune or install an update. To move a setup between two PCs, export profiles and cluster layouts from **Config → Car setup**; the other PC shows what changed before applying it, with Undo.
 
 ## Phone panel
 ![Phone panel](docs/img/phone_panel.png)
 
-Open **`ejlogger.local`** on a phone on the car PC's Wi-Fi: the full ejLogger behind a passcode, or a live cluster for passengers.
+Open **`ejlogger.local`** on a phone on the same Wi-Fi as ejLogger: the full ejLogger behind a passcode, or a live cluster for passengers.
 
 ---
 
@@ -101,7 +101,7 @@ Open **`ejlogger.local`** on a phone on the car PC's Wi-Fi: the full ejLogger be
 |---|---|
 | `.tune` | Project Lambda tune: tables, editing, revisions |
 | `.ejsp` | ejStudio project |
-| `.ejlp` | ejLogger car setup |
+| `.ejlp` | ejLogger setup |
 | `.csv` | Logs from ejLogger, Project Lambda and other SSM loggers |
 
 | | |
