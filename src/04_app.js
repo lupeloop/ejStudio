@@ -151,7 +151,7 @@ ${rec.length?`<div class="qrec">${rec.map(x=>`<button data-q="rp:${rp.indexOf(x)
 <div class="qr"><span>Table colours</span><select class="sel sm" data-qpal>${TPALS.map(p=>`<option value="${p[0]}"${(UI.tpal||'classic')===p[0]?' selected':''}>${p[1]}</option>`).join('')}</select></div>
 ${cars.length?`<div class="qr"><span>Car</span><select class="sel sm" data-qcar>${cars.map(c=>`<option value="${esc(c.id)}"${c.id===UI.car?' selected':''}>${esc(c.name)}</option>`).join('')}</select></div>`:''}
 <button class="qi" data-q="go:settings:keys">Shortcuts<span>›</span></button>
-<hr><button class="qi" data-q="go:settings:">Settings<span>›</span></button><button class="qi" data-act="news">What's new</button><div class="qr2"><button class="qi" data-act="updchk">Check for updates</button><button class="qi" data-act="bug">Bug report</button></div>
+<hr><button class="qi" data-q="go:settings:">Settings<span>›</span></button><button class="qi" data-act="news">What's new</button><button class="qi" data-act="updchk">Check for updates</button><button class="qi" data-act="bug">Bug report</button>
 <button class="qall" data-q="all">Show all</button>`; }
 function qAct(q){ const m=$('qmenu'), x=()=>m&&m.remove(); if(q==='save'){ x(); saveProject(false); } else if(q==='saveas'){ x(); saveProject(true); } else if(q==='open'){ x(); openProject(); }
   else if(q.startsWith('rp:')){ x(); const r=projRecent()[+q.slice(3)]; if(r) openProject(r.path); } else if(q==='all'){ x(); drawer(true); } else if(q.startsWith('go:')){ const [,tab,id]=q.split(':'); x(); drawerAt(tab,id); } }
@@ -190,7 +190,7 @@ function evMenu(){ const old=$('evpop'); if(old){ old.remove(); return; } const 
   const close=()=>{ d.remove(); document.removeEventListener('pointerdown',out,true); document.removeEventListener('keydown',kd,true); }, out=e=>{ if(!e.target.closest('#evpop,#t-evb')) close(); }, kd=e=>{ if(e.key==='Escape'){ e.stopPropagation(); close(); } };
   setTimeout(()=>{ document.addEventListener('pointerdown',out,true); document.addEventListener('keydown',kd,true); },0); q.oninput=draw;
   d.onclick=e=>{ const it=e.target.closest('[data-i]'); if(it){ const ev=L.allEv[+it.dataset.i]; close(); rpPlay(false); rpGlide(ev.t); return; } const gh=e.target.closest('.evg[data-k]'); if(gh&&!q.value){ const k=gh.dataset.k; open[k]=open[k]===false; save(); draw(); } }; }
-function fillEvents(){ const s=$('t-ev'), L=RP.L, g={}; const cl=$('t-clean'); if(cl) cl.hidden=!L||L.events.some(e=>e.kind==='Knock'||e.kind==='IAM'); if(!L){ s.innerHTML='<option value="">Jump to event…</option>'; return; }
+function fillEvents(){ const s=document.createElement('select'), L=RP.L, g={}; const cl=$('t-clean'); if(cl) cl.hidden=!L||L.events.some(e=>e.kind==='Knock'||e.kind==='IAM'); if(!L){ s.innerHTML='<option value="">Jump to event…</option>'; return; }
   L.allEv=L.events.concat(warnCrossings(L),userFlags(L)).filter(e=>(e.kind==='Flag'||inTrim(L,e.t))&&diagShown(e)).sort((a,b)=>a.t-b.t); L.allEv.forEach(e=>{ if(!e.sev) e.sev=sevOf(e); });
   L.allEv.forEach((e,i)=>{ (g[e.kind]=g[e.kind]||[]).push(`<option value="${i}">${fmtT(e.t)} · ${esc(e.label)}</option>`); });
   s.innerHTML='<option value="">Jump to event…</option>'+Object.keys(g).map(k=>`<optgroup label="${k} (${g[k].length})">${g[k].join('')}</optgroup>`).join(''); RP.tlKey=null; }
@@ -359,7 +359,7 @@ function drawerRefresh(){ const d=$('drawer-bd'); if(!d) return; const L=RP.L, T
   const sg=(key,opts)=>`<div class="seg" data-u="${key}">${opts.map(([v,l])=>`<button data-v="${v}" class="${UI[key]===v?'on':''}">${l}</button>`).join('')}</div>`;
   const row=(lab,html,tip)=>`<div class="drow"${tip?` title="${tip}"`:''}><span>${lab}</span>${html}</div>`;
   const q=UI.dq||'', ae=document.activeElement, refocus=ae&&ae.dataset&&ae.dataset.dsearch!=null, tabs=[['session','Session'],['settings','Settings'],['about','About'+(ERRS.length?'<i class="errdot"></i>':'')]]; if(UI.dtab==='analysis') UI.dtab='session';
-  const tuneB=T?`<div class="kv"><span>CAL</span><b>${esc(T.cal)}</b><span>ROM</span><b>${esc(T.rom)}</b><span>Read</span><b>${esc(T.read)}</b><span>File</span><b>${esc(T.name)}</b></div><button class="btn sm" data-act="tune">Replace tune</button>`:'<button class="btn acc sm" data-act="tune">Load tune</button>';
+  const tuneB=T?`<div class="kv"><span>CAL</span><b>${esc(T.cal)}</b><span>ROM</span><b>${esc(T.rom)}</b><span>Read</span><b title="${esc(T.read)}">${esc(String(T.read||'').replace(/:\d\d(\s+[A-Za-z].*)?$/,''))}</b><span>File</span><b>${esc(T.name)}</b></div><button class="btn sm" data-act="tune">Replace tune</button>`:'<button class="btn acc sm" data-act="tune">Load tune</button>';
   const logsB=ST.logs.map((x,i)=>`<div class="lrow${x===L?' on':''}"><input type="checkbox" data-pool="${i}"${pooled(x)?' checked':''} title="Pool into MAF scaling"><button class="lplay" data-log="${i}" title="Replay this log">${x===L?'▶':'▷'}</button><span class="lname" title="${esc(x.name)}">${esc(x.name)}</span><span class="lmeta">${x.N.toLocaleString()}</span><button class="lplay${x===RP.B?' on':''}" data-cmp="${i}" title="${x===RP.B?'End compare':'Compare as log B'}"${x===RP.B?` style="color:${logC('b')};border-color:${logC('b')}"`:''}${x===L?' disabled':''}>B</button><button class="lx" data-rm="${i}" title="Remove">×</button></div>${typeof logRevHtml==='function'?logRevHtml(x,i):''}`).join('')
     +`<div class="drow"><button class="btn sm" data-act="logs" title="CSV logs or an .ejstudio session">Add logs</button><button class="btn sm" data-act="sess" title="Tune, revisions, logs, layout, notes and car in one .ejsp file">Save project</button></div>`;
   const covB=`${cov}<div class="achips">${chip(agg.nowb,'no wideband')}${chip(agg.notgt,'no target λ')}${chip(agg.notrim,'no trims')}${chip(agg.warmup,'warmup')}${chip(agg.cut,'fuel cut')}${chip(agg.recover,'cut recovery')}${chip(agg.overrun,'OL overrun')}${chip(agg.trans,'transient')}${chip(agg.rail,'WB rail')}${chip(agg.idle,'idle/crank')}${chip(agg.nan,'unreadable')}${chip(agg.bad,'malformed')}</div>`
@@ -381,7 +381,7 @@ function drawerRefresh(){ const d=$('drawer-bd'); if(!d) return; const L=RP.L, T
    +S('session','logs','Logs',logsB,`<em>${agg.total.toLocaleString()} frames</em>`)
    +(DESK?S('session','watch','Log folder',DESK.section(),DESK.st.folder?`<em>${DESK.st.auto?'watching':'manual'}</em>`:''):'')
       +(L?S('session','meta','Session notes',metaHtml(L)):'')+(L?S('session','pf','Flags · trim',pfHtml(L)):'')
-   +((DSEC.pull=(thr('pullThr','Throttle ≥',CFG.pullThr,1,'%')+thr('pullDur','Min length',CFG.pullDur,0.1,'s')+thr('pullSpan','Min RPM sweep',CFG.pullSpan,50,'rpm'))),'')
+   +((DSEC.pull=('<div class="vlab" style="margin-top:.5rem">Pull detection</div>'+thr('pullThr','Throttle ≥',CFG.pullThr,1,'%')+thr('pullDur','Min length',CFG.pullDur,0.1,'s')+thr('pullSpan','Min RPM sweep',CFG.pullSpan,50,'rpm'))),'')
    
    +S('session','lim','Warning limits',fams.length?lim:'<div class="note">Load a log to set limits</div>')+(L?S('session','cols','Column mapping',colsB,MAPS[L.sig]?'<em>saved</em>':''):'')
    +S('settings','disp','UI scale',`<div class="drow">${SCALES.map(f=>`<button class="btn sm${(UI.scale||1)===f?' acc':''}" data-act="sc${Math.round(f*100)}" title="Ctrl+= / Ctrl+− to step · Ctrl+0 resets">${Math.round(f*100)}%</button>`).join('')}</div>`)+S('settings','units','Units',unitsB)+S('settings','colours','Colours',colB)
@@ -389,7 +389,7 @@ function drawerRefresh(){ const d=$('drawer-bd'); if(!d) return; const L=RP.L, T
    +S('settings','reset','Reset','<button class="btn sm danger" data-act="reset">Reset everything</button>')
    +S('about','about','ejStudio',aboutHtml())+S('about','upd','Updates & bug reports',updHtml());
   dApply(); if(refocus){ const e=d.querySelector('[data-dsearch]'); e.focus(); e.setSelectionRange(q.length,q.length); } }
-function dApply(){ const d=$('drawer-bd'), q=(UI.dq||'').trim().toLowerCase(), t=UI.dtab||'session';
+function dApply(){ const d=$('drawer-bd'), q=(UI.dq||'').trim().toLowerCase(), t=UI.dtab||'session'; const dc=d.querySelector('.dcar'); if(dc) dc.style.display=(!q&&t==='session')?'':'none';
   d.querySelectorAll('.dtabs button').forEach(b=>b.classList.toggle('on',!q&&b.dataset.dtab===t));
   d.querySelectorAll('.dsec[data-tab]').forEach(x=>{ const hit=q&&(x.textContent.toLowerCase().includes(q)||[...x.querySelectorAll('input')].some(i=>(i.placeholder||'').toLowerCase().includes(q)));
     x.style.display=(q?hit:x.dataset.tab===t)?'':'none'; if(hit) x.open=true; }); }
@@ -506,7 +506,7 @@ function sessionObj(){ const fps=ST.logs.map(L=>L.fp), pick=o=>{ const r={}; for
   return {app:'ejStudio',v:2,tnotes:UI.tnotes||{},names:UI.names||{},saved:new Date().toISOString(),tune,logs:ST.logs.map(L=>({name:L.name,text:L.src,fp:L.fp})),active:RP.L?RP.L.fp:null,playT:RP.playT,
     ui:JSON.parse(JSON.stringify({layout:UI.layout,panes:UI.panes,sizes:UI.sizes,g:UI.g,tt:UI.tt,m:UI.m,sc:UI.sc})),trims:pick(UI.trims),flags:pick(UI.flags),meta:pick(UI.meta),lrev:pick(UI.lrev),profile:profNow(),rev:REV,edits:edSnapshot()}; }
 async function saveSession(){ if(window.rrlab&&rrlab.proj) return saveProject(false); return saveSessionDL(); }
-async function saveSessionDL(){ if(!ST.logs.length){ toast('Nothing to save'); return; } busy(true,'Saving session',''); await sleep(30);
+async function saveSessionDL(){ if(!ST.logs.length){ toast('Nothing to save'); return; } busy(true,'Saving project',''); await sleep(30);
   try{ const txt=JSON.stringify({format:'ejstudio',v:1,gz:await gzB64(JSON.stringify(sessionObj()))}); if(txt.length>50e6) toast('Large session: '+(txt.length/1e6).toFixed(0)+' MB');
     const a=mk('a','',document.body); a.href=URL.createObjectURL(new Blob([txt],{type:'application/octet-stream'})); a.download=(RP.L?RP.L.name.replace(/\.csv$/i,''):'session')+'.ejsp'; a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },3000); }
   catch(e){ toast('Save failed'); } busy(false); }

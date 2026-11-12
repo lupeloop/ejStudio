@@ -123,7 +123,7 @@ body.dragging .ldrop{animation:dropb 1.4s ease-in-out infinite}@keyframes dropb{
 #tlpop-cv{width:100%;height:100%;display:block;border-radius:8px;cursor:crosshair}
 #tlpop-x{position:absolute;top:6px;right:6px}
 #tltip{position:fixed;z-index:60;pointer-events:none;background:var(--acc-d);color:var(--acc);border:1px solid var(--acc-b);border-radius:6px;padding:.1rem .45rem;font:12px var(--mono)}
-#t-ev{max-width:240px}
+
 
 /* ── drawer ── */
 #drawer{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:92vw;background:#000;border-left:1px solid var(--card-b);z-index:100;transform:translateX(100%);transition:transform .26s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.6)}
@@ -171,7 +171,7 @@ body.dpin #app{right:360px}body.dpin #drawer{box-shadow:none}
 .kcard.wl{border-color:var(--red-b);background:var(--red-d)}.kcard.wl b{color:var(--red)}
 .kwrap{display:grid;grid-template-columns:minmax(0,1fr) auto;flex:none}.kwrap>.kstrip{grid-column:1}.kwrap>.kdet{grid-column:2;grid-row:1;align-self:center;margin:0 .7rem 0 0}.kwrap:not(.kcmp .kwrap)>.kdet{align-self:stretch;margin:.45rem .7rem .45rem 0;min-width:58px;padding:0 .6rem;border-radius:10px;border:1px solid var(--card-b);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:12px;color:var(--mut2);transition:border-color .15s,color .15s}.kwrap:not(.kcmp .kwrap)>.kdet:hover{border-color:var(--acc-b);color:var(--acc)}.kwrap:not(.kcmp .kwrap)>.kdet::before{content:'';width:6px;height:6px;border-left:1.6px solid currentColor;border-top:1.6px solid currentColor;transform:translateY(2px) rotate(-135deg)}.kwrap:not(.kcmp .kwrap)>.kdet.up::before{transform:translateY(2px) rotate(45deg)}.kwrap>.bstrip{grid-column:1/-1}
 .kcmp .kwrap{display:flex}.kcmp .kwrap>.kstrip{flex:0 1 auto;min-width:0}.kcmp .kwrap>.kdet{order:1;grid-row:auto}.kcmp .kwrap>.bstrip{order:2;flex:1 1 100%}.kcmp .kwrap .kstrip{row-gap:6px}
-.kcmp .kwrap{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 18px;padding:.35rem .7rem;border-bottom:1px solid var(--card-b)}.kcmp .kwrap>.kdet{margin:0 0 0 auto;align-self:center}
+.kcmp .kwrap{flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 18px;padding:.35rem .7rem;border-bottom:1px solid var(--card-b)}.kcmp .kwrap>.kdet{margin:0 0 0 auto;align-self:center}.kcmp .kwrap{position:relative;padding-right:6rem}.kcmp .kwrap>.kdet{position:absolute;top:.3rem;right:.7rem;margin:0}
 .kcmp .kstrip{border:0;padding:0;gap:16px;flex-wrap:wrap;align-items:baseline}.kcmp .kcard{flex:0 0 auto;min-width:0;flex-direction:row;align-items:baseline;gap:6px;background:none;border:0;padding:0;border-radius:0;box-shadow:none}.kcmp .kcard u{display:none}.kcmp .kwrap .kcard,.kcmp .kwrap .kcard.on,.kcmp .kwrap .kcard.hi{flex:0 0 auto;min-width:0;max-width:none;overflow:visible;background:none;border:0;box-shadow:none;padding:0}.kcmp .kwrap .kcard.hi b,.kcmp .kwrap .kcard.on b{color:var(--acc)}.tt-ebar{order:100}.view.mt{overflow:hidden}.ml-side.drw:not(.open){visibility:hidden;transition:transform .18s ease,visibility 0s .18s}.kcmp .kcard b{font-size:14px}.kcmp .kcard.on i,.kcmp .kcard.hi b{color:var(--acc)}
 .spx{padding:.55rem .7rem;border-bottom:1px solid var(--card-b);display:flex;flex-direction:column;gap:8px}.spx .spr{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .sgi.dn{opacity:.6}.dnew{animation:dnin .45s cubic-bezier(.16,1,.3,1)}@keyframes dnin{from{opacity:1;transform:translateX(-8px);background:color-mix(in srgb,var(--green) 16%,transparent)}}#ed-top.on{background-image:linear-gradient(100deg,transparent 30%,color-mix(in srgb,var(--acc) 45%,transparent) 50%,transparent 70%);background-size:250% 100%;background-repeat:no-repeat;background-position:-50% 0;animation:edsw .6s cubic-bezier(.16,1,.3,1) forwards}@keyframes edsw{from{background-position:150% 0}to{background-position:-50% 0}}.sgi.dn .sgb{color:var(--green)}.sggh.dn b{color:var(--mut2)}.sgd{margin-left:auto;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--green)}.sggh .sgd{margin:0 8px 0 0}
@@ -261,7 +261,7 @@ input.num.tl{color:var(--amber)}
 @container (max-width:640px){.tt-rail{width:150px}}
 /* round 2 */
 .ttk{position:relative;font-size:11px!important;line-height:1.05;color:var(--mut2)}.ttk .axx{position:absolute;top:2px;right:4px;white-space:nowrap}.ttk .axy{position:absolute;bottom:2px;left:4px;white-space:nowrap}
-.tt-opts{display:flex;flex-wrap:wrap;gap:.35rem .9rem;padding:.4rem .6rem!important}.tt-or{display:flex;align-items:center;gap:.4rem;margin:0!important}
+.tt-opts{display:flex;flex-wrap:wrap;gap:.35rem .9rem;padding:.4rem .6rem!important}.tt-opts.ttpop{position:fixed;z-index:630;flex-direction:column;flex-wrap:nowrap;gap:0;width:360px;max-height:70vh;overflow:auto;background:#000;border:1px solid var(--card-b);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.8);padding:6px 14px!important}.ttpop .tt-or{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:5px 0;border-bottom:1px solid #111116}.ttpop .tt-or{flex-wrap:wrap}.ttpop .tt-or:last-child{border-bottom:0}.ttpop .tt-or .vlab{letter-spacing:.06em}.tt-or{display:flex;align-items:center;gap:.4rem;margin:0!important}
 .tt-or .kwleg{flex-direction:row;gap:.7rem;padding-left:.3rem}
 .bstrip{flex-wrap:wrap;overflow:visible}.bstrip .kcard{min-width:88px;flex:1 1 88px}
 #tlpop{opacity:var(--tlop,.7)}
@@ -408,8 +408,8 @@ body.desk #drawer{top:38px}
     <canvas id="tl"></canvas>
     <button class="ibtn" id="t-a" title="Loop start (A)">A</button>
     <button class="ibtn" id="t-b" title="Loop end (B)">B</button>
-    <button class="ibtn" id="t-abx" title="Clear loop">✕</button><button class="ibtn" id="t-flag" title="Add flag at playhead · Shift+click: range start / end">⚑</button><button class="ibtn" id="t-trim" title="Trim start at playhead · Shift+click: trim end · Alt+click: clear trim">✂</button><button class="ibtn" id="t-set" title="Replay settings"></button>
-    <select class="sel" id="t-ev" hidden><option value="">Jump to event…</option></select><span class="cleanchip" id="t-clean" hidden title="No knock or IAM events in this log">Clean</span><button class="evbtn" id="t-evb" title="Jump to an event in this log"><span>Jump to event</span><i>▾</i></button>
+    <button class="ibtn" id="t-abx" title="Clear loop">✕</button><button class="ibtn" id="t-flag" title="Add flag at playhead · Shift+click: range start / end">⚑</button><button class="ibtn" id="t-trim" title="Trim start at playhead · Shift+click: trim end · Alt+click: clear trim">✂</button>
+    <span class="cleanchip" id="t-clean" hidden title="No knock or IAM events in this log">Clean</span><button class="evbtn" id="t-evb" title="Jump to an event in this log"><span>Jump to event</span><i>▾</i></button>
     <div id="tlpop" class="hidden"><canvas id="tlpop-cv"></canvas><button class="ibtn" id="tlpop-x" title="Close (Esc)">✕</button></div>
   </footer>
   <div class="bbar hidden" id="bbar"><span class="bchip" id="b-name"></span><button class="ibtn" id="b-link" title="Link scrubbers: B follows A at the current offset (L)">⛓</button><canvas id="tlb"></canvas><span class="ttime" id="b-time"></span><button class="ibtn" id="b-x" title="End compare">✕</button></div>

@@ -67,7 +67,7 @@ function GraphView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   full.onclick=()=>{ G.full=true; save(); dirty(); };
   mk('span','vlab',bar).textContent='Playhead'; seg(bar,[['right','Right'],['center','Centre']],G.mode,v=>{ G.mode=v; save(); dirty(); });
   mk('span','vfill',bar); if(side!=='b'&&side!=='2'){ const gm=mk('div','seg',bar); gm.innerHTML='<button class="on">Lanes</button><button>Scatter</button>'; gm.lastChild.onclick=()=>grMode('scatter');
-    const pg=mk('button','ibtn',bar); pg.innerHTML=SVG_GEAR; pg.title='Pull detection'; pg.onclick=()=>setPop(pg,['pull'],'Pull detection'); } const wt=WarnTiles(root);
+    const pg=mk('button','ibtn',bar); pg.innerHTML=SVG_GEAR; pg.title='Graph options'; pg.onclick=()=>setPop(pg,['rp','pull'],'Graph'); } const wt=WarnTiles(root);
   const box=mk('div','gv-lanes',root), lanes=[];
   const V=[['v:wbffb','Wideband vs FFB target'],['v:wb','Wideband'],['v:idc','Injector duty (IDC)'],['v:avcsi','AVCS intake: actual vs target'],['v:avcse','AVCS exhaust: actual vs target'],['v:dthr','Throttle rate'],['v:aerr','AFR error vs target'],['v:rb_boost','Boost target: rebuilt vs logged'],['v:rb_map','Boost: actual vs target'],['v:rb_wg','WG duty: rebuilt vs logged'],['v:rb_tim','Total timing: rebuilt vs logged'],['v:rb_tq','Requested torque: table vs logged'],['v:rb_thr','Target throttle: table vs logged']];
   const vOK=(L,v)=>{ if(!L) return true; const rb=L.rb||{}; if(v==='v:idc') return !!idcOf(L); if(v==='v:avcsi'||v==='v:avcse') return !!(L.c[v.slice(2)]&&avcsTgt(L,v.slice(2))); if(v==='v:dthr') return !!dThr(L); if(v==='v:aerr') return !!afrErr(L); if(v==='v:wb') return !!L.c.wb; if(v==='v:wbffb') return !!(L.c.wb&&L.ffbSrc);
@@ -201,10 +201,10 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   const TT=()=>side==='b'?((CX.L&&CX.L.tuneT)||TUNE):(EDIT.on&&EDIT.T?EDIT.T:TUNE), ED=()=>side!=='b'&&EDIT.on, SEL={r0:null,r1:null,c0:null,c1:null,drag:false};
   const T=UI.tt, S={pick:null,fuel:'normal',zoom:1,follow:true,win:{c0:0,r0:0,vx:1,vy:1},live:null,tx:null,ty:null,px:null,py:null,geo:null,shown:false,heat:null,heatKey:'',heatT0:0};
   const root=mk('div','view tt'), bar=mk('div','vbar',root);
-  const railBtn=mk('button','ibtn',bar); railBtn.innerHTML='☰'; railBtn.title='Show / hide the table list'; const ttl=mk('span','tt-ttl',bar), vrow=mk('div','tt-var',bar), needChip=mk('span','chip ro tt-need',bar); mk('span','vfill',bar);
+  const railBtn=mk('button','ibtn',bar); railBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>'; railBtn.title='Show / hide the table list'; const ttl=mk('span','tt-ttl',bar), vrow=mk('div','tt-var',bar), needChip=mk('span','chip ro tt-need',bar); mk('span','vfill',bar);
   const edB=mk('button','btn sm',bar); edB.textContent='Edit'; edB.title='Edit this tune'; if(side==='b') edB.style.display='none'; edB.onclick=()=>EDITOR.on(!EDIT.on);
   const zo=mk('button','ibtn',bar), zi=mk('button','ibtn',bar), zf=mk('button','ibtn',bar), gear=mk('button','ibtn',bar);
-  zo.textContent='−'; zi.textContent='+'; zf.innerHTML=SVG_TARGET; gear.innerHTML=SVG_GEAR; zo.title='Zoom out'; zi.title='Zoom in'; zf.title='Follow crosshair'; gear.title='Table options';
+  zo.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg>'; zi.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>'; zf.innerHTML=SVG_TARGET; gear.innerHTML=SVG_GEAR; zo.title='Zoom out'; zi.title='Zoom in'; zf.title='Follow crosshair'; gear.title='Table options';
   const opts=mk('div','tt-opts',root); opts.style.display='none';
   const ebar=mk('div','tt-ebar',bar); ebar.style.display='none';
   ebar.onclick=e=>{ const b=e.target.closest('[data-e]'); if(!b||b.disabled) return; const a=b.dataset.e; if(a==='ov'){ EDIT.overlays=!EDIT.overlays; draw(); syncEd(); } else if(a==='only'){ EDIT.onlyEd=!EDIT.onlyEd; renderRail(); syncEd(); } else EDITOR.act(a); };
@@ -254,7 +254,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   const wt=WarnTiles(root);
   zo.onclick=()=>setZoom(S.zoom/1.5); zi.onclick=()=>setZoom(S.zoom*1.5);
   zf.onclick=()=>{ S.follow=!S.follow; syncZ(); if(S.follow) follow(true); };
-  gear.onclick=()=>{ opts.style.display=opts.style.display==='none'?'':'none'; requestAnimationFrame(layout); };
+  opts.classList.add('ttpop'); gear.onclick=()=>{ if(opts.style.display!=='none'){ opts.style.display='none'; return; } const r=gear.getBoundingClientRect(); opts.style.display=''; opts.style.top=(r.bottom+6)+'px'; opts.style.right=Math.max(8,innerWidth-r.right)+'px'; setTimeout(()=>{ const off=e=>{ if(opts.style.display==='none'){ removeEventListener('pointerdown',off,true); return; } if(!opts.contains(e.target)&&!gear.contains(e.target)&&!e.target.closest('select,option')){ opts.style.display='none'; removeEventListener('pointerdown',off,true); } }; addEventListener('pointerdown',off,true); },0); };
   const OROWS=[];
   function optRow(lab,key,vals,tip,when,extra){ const r=mk('div','tt-or',opts), l=mk('span','vlab',r); l.textContent=lab; l.title=tip; r.title=tip; seg(r,vals,T.opt[key],v=>{ T.opt[key]=typeof vals[0][0]==='number'?+v:v; save(); renderBar(); renderStrip(); draw(); }); if(extra) extra(r); OROWS.push([r,when]); return r; }
   const isKT=()=>knockTbl(built), grpIs=(...g)=>()=>!!built&&g.includes(built.group);
@@ -265,7 +265,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   optRow('Knock heat','kmH',[[1,'On'],[0,'Off']],'Outline every cell where knock occurred while the ECU was using this table (pooled logs on this revision), coloured by the worst value',isKT);
   optRow('Knock mark','kmL',[[1,'On'],[0,'Off']],'An × on every cell where FBKC pulled timing while the ECU was using this table (pooled logs on this revision)',isKT);
   optRow('Follow CL/OL','fol',[[0,'Off'],[1,'On']],'Switch to Open loop fuel when the ECU enters open loop and back to Base timing in closed loop',grpIs('fuel'));
-  optRow('Auto timing VVT','vvt',[['off','Off · primary'],['on','On · reference']],'Which VVT variant Auto uses (the TGV state is picked from the log)',grpIs('timing'));
+  optRow('Auto VVT table','vvt',[['off','Primary'],['on','Reference']],'Which VVT variant Auto uses (the TGV state is picked from the log)',grpIs('timing'));
   optRow('Visited cells','dim',[[0,'Off'],[1,'Dim unvisited']],'Darken cells the pooled logs on this revision never reached; hover a cell for dwell time',()=>!!built&&!!built.yin&&!!CX.L);
   optRow('Fuel cut','fc',[[0,'Off'],[1,'On']],'Mark cells where the ECU was in fuel cut in the pooled logs (purple corner and dashed outline)',()=>!!built&&!!built.yin&&!!CX.L);
   const kwRow=optRow('Knock windows','kw',[[1,'On'],[0,'Off']],'Dashed outlines where FBKC is active, where FLKC can learn and where IAM can learn (from the tune)',isKT);
@@ -335,7 +335,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     const show=(c,html)=>{ bstrip.style.display=html?'':'none'; if(html) bstrip.innerHTML=html; };
     if(!rb||i<0||i>=L.N) return show(0,'');
     const P=pDisp('abs'), D=pDisp('rel'), card=(lab,val,sub,cls)=>`<div class="kcard${cls?' '+cls:''}" title="${esc([BTIP[lab.split(' · ')[0]],sub].filter(Boolean).join('\n'))}"><i>${lab}</i><b>${val}</b></div>`, ok=v=>Number.isFinite(v);
-    const fx=(v,d,u,sg)=>ok(v)?(sg&&v>0?'+':'')+v.toFixed(d)+u:'—', pc=v=>ok(v)?(v>0?'+':'')+v.toFixed(1)+' %':'—', pa=v=>ok(v)?dv(P,v):'—', pr=v=>ok(v)?(v>0?'+':'')+dv(D,v):'—', dg=v=>ok(v)?(v>0?'+':'')+v.toFixed(1)+' deg':'—';
+    const fx=(v,d,u,sg)=>ok(v)?(sg&&v>0?'+':'')+v.toFixed(d)+u:'—', pc=v=>ok(v)?(v>0?'+':'')+v.toFixed(1)+' %':'—', pa=v=>ok(v)?dv(P,v):'—', pr=v=>ok(v)?(v>0?'+':'')+dv(D,v):'—', dg=v=>ok(v)?(v>0?'+':'')+v.toFixed(1)+'°':'—';
     const big=(arr)=>{ let m=-1,k=-1; arr.forEach((v,j)=>{ if(ok(v)&&Math.abs(v)>m+1e-9&&Math.abs(v)>0.05){ m=Math.abs(v); k=j; } }); return k; };
     const delta=(lg,rv,thr,f)=>ok(lg)&&ok(rv)?card('Calc vs logged',f(lg-rv),'',Math.abs(lg-rv)>thr?'warn':'ok'):'';
     if(cat==='Boost'&&rb.boost){ const B=rb.boost, cs=[B.ci[i],B.ce[i],B.cb[i]], k=big(cs);
@@ -345,8 +345,8 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
       return show(1,card('Base + comps',fx(W.base[i],1,' %'),'',k===0?'hi':'')+card('P · boost error',fx(W.P[i],2,' %',1),ok(W.err[i])?pr(W.err[i]):'off',k===1?'hi':'')+card('I · integral',fx(W.I[i],2,' %',1),'',k===2?'hi':'')
         +card('Max',fx(W.max[i],1,' %'))+card('Calculated duty',ok(W.dc[i])?W.dc[i].toFixed(1)+' %':'—','modelled P/I','on')+(W.log?card('Logged duty',fx(W.log[i],1,' %')):'')+delta(W.log&&W.log[i],W.dc[i],5,v=>(v>0?'+':'')+v.toFixed(1)+' %')); }
     if(cat==='Timing'&&rb.tim){ const M=rb.tim, cs=[M.kca[i],M.knIn?0:M.kn[i],M.ce[i],M.ci[i]], k=big(cs), pk=L.pick&&L.pick[i]&&TT().byId[L.pick[i]];
-      return show(1,card(pk?'Base ('+esc(vTiny(pk))+')':'Base',fx(M.base[i],1,' deg'),pk?'':'no TGV pick')+card('KCA',dg(M.kca[i]),M.knIn?'logged':'IAM × max',k===0?'hi':'')+card('Knock pull',dg(M.kn[i]),'FBKC + FLKC'+(M.knIn?' · inside KCA':''),k===1?'hi':'')+card('ECT comp',dg(M.ce[i]),'',k===2?'hi':'')+card('IAT comp',dg(M.ci[i]),'',k===3?'hi':'')
-        +card('Calculated total',fx(M.tot[i],1,' deg'),'','on')+(M.log?card('Logged total',fx(M.log[i],1,' deg')):'')+delta(M.log&&M.log[i],M.tot[i],2,dg)); }
+      return show(1,card(pk?'Base ('+esc(vTiny(pk))+')':'Base',fx(M.base[i],1,'°'),pk?'':'no TGV pick')+card('KCA',dg(M.kca[i]),M.knIn?'logged':'IAM × max',k===0?'hi':'')+card('Knock pull',dg(M.kn[i]),'FBKC + FLKC'+(M.knIn?' · inside KCA':''),k===1?'hi':'')+card('ECT comp',dg(M.ce[i]),'',k===2?'hi':'')+card('IAT comp',dg(M.ci[i]),'',k===3?'hi':'')
+        +card('Calculated total',fx(M.tot[i],1,'°'),'','on')+(M.log?card('Logged total',fx(M.log[i],1,'°')):'')+delta(M.log&&M.log[i],M.tot[i],2,dg)); }
     if(cat==='Throttle/Torque'&&(rb.tq||rb.thr)){ let h='';
       if(rb.tq){ const Q=rb.tq; h+=card('Torque table · '+esc(Q.name),fx(Q.pred[i],0,' Nm'),'','on')+(Q.log?card('Logged torque',fx(Q.log[i],0,' Nm')):'')+delta(Q.log&&Q.log[i],Q.pred[i],8,v=>(v>0?'+':'')+v.toFixed(0)+' Nm'); }
       if(rb.thr){ const H=rb.thr; h+=card('Throttle table · '+esc(H.name),fx(H.pred[i],1,' %'),'','on')+(H.log?card('Logged target',fx(H.log[i],1,' %')):'')+delta(H.log&&H.log[i],H.pred[i],8,v=>(v>0?'+':'')+v.toFixed(1)+' %'); }
@@ -364,7 +364,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(auto){ const a=mk('button','chip'+(on?' on':''),vrow); a.title='Follow the table the ECU is using, picked from the log'; a.textContent='Auto'; a.onclick=()=>{ T.sel[g]='auto'; save(); build(); }; }
     if(g==='timing'){ const live=S.pick, isRef=t=>/VVT On/i.test(t.name), prim=list.filter(t=>!isRef(t)), ref=list.filter(isRef);
       prim.forEach(t=>{ const sel=cur&&cur.id===t.id, ecu=live&&t._ids.includes(live), b=mk('button','chip vchip'+(sel?' on':''),vrow); b.innerHTML=esc(vShort(t))+(ecu?'<span class="ecu">● ECU</span>':''); b.title=t.name+(ecu?' · the ECU is using this table now':''); b.onclick=()=>{ T.sel[g]=t.id; save(); build(); }; });
-      if(ref.length){ const sl=mk('select','sel sm vref'+(ref.some(t=>cur&&cur.id===t.id)?' on':''),vrow); sl.innerHTML='<option value="">Reference tables ▾</option>'+ref.map(t=>`<option value="${esc(t.id)}"${cur&&cur.id===t.id?' selected':''}>${esc(vShort(t))}${live&&t._ids.includes(live)?' · ● ECU':''}</option>`).join(''); sl.onchange=()=>{ if(sl.value){ T.sel[g]=sl.value; save(); build(); } }; }
+      if(ref.length){ const sl=mk('select','sel sm vref'+(ref.some(t=>cur&&cur.id===t.id)?' on':''),vrow); sl.innerHTML='<option value="">Reference tables</option>'+ref.map(t=>`<option value="${esc(t.id)}"${cur&&cur.id===t.id?' selected':''}>${esc(vShort(t))}${live&&t._ids.includes(live)?' · ● ECU':''}</option>`).join(''); sl.onchange=()=>{ if(sl.value){ T.sel[g]=sl.value; save(); build(); } }; }
       if(ST.logs.length>1){ const pc=mk('button','chip',vrow); pc.textContent=poolL(CX.L).length+' / '+ST.logs.length+' logs pooled'; pc.title='Logs pooled into the overlays on this table'; pc.onclick=()=>setPop(pc,['pool'],'Pooled logs'); }
       return; }
     list.forEach(t=>{ const b=mk('button','chip'+(!on&&cur&&cur.id===t.id?' on':'')+(on&&cur&&cur.id===t.id?' match':''),vrow); b.title=on&&cur&&cur.id===t.id?'Active variant (picked by Auto). Click to lock this one':'Lock to this variant'; b.textContent=t.name; b.onclick=()=>{ T.sel[g]=t.id; save(); build(); }; }); }

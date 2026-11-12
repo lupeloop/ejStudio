@@ -397,7 +397,7 @@ function carDialog(id,focus){ const cars=UI.cars||(UI.cars=[]), c=cars.find(x=>x
     if(!c) cars.push(o); UI.car=o.id; save(); d.remove(); carChanged(); toast('Saved '+name); }; }
 function carChanged(){ try{ profApply(); recompute(true); }catch(_){} try{ if(typeof landRefresh==='function') landRefresh(); }catch(_){} try{ if(EDIT.on) TV.edRefresh(); }catch(_){} try{ drawerRefresh(); }catch(_){} }
 // drawer: car switcher at the top
-{ const _dr=drawerRefresh; drawerRefresh=function(){ _dr.apply(this,arguments); const d=$('drawer-bd'); if(!d) return; const cars=UI.cars||[]; let row=d.querySelector('.dcar'); if(!row){ row=document.createElement('div'); row.className='dcar'; d.prepend(row); }
+{ const _dr=drawerRefresh; drawerRefresh=function(){ _dr.apply(this,arguments); const d=$('drawer-bd'); if(!d) return; const cars=UI.cars||[]; let row=d.querySelector('.dcar'); if(!row){ row=document.createElement('div'); row.className='dcar'; } const f1=d.querySelector('.dsec[data-tab]'); if(f1&&row.nextSibling!==f1) d.insertBefore(row,f1); else if(!f1&&!row.parentNode) d.prepend(row); if(typeof dApply==='function') dApply();
     row.innerHTML=`<span>Car</span>${cars.length?`<select>${cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join('')}</select><button class="btn sm" data-dc="edit">Edit</button>`:''}<button class="btn sm" data-dc="add">＋</button>`;
     row.querySelector('select')&&(row.querySelector('select').onchange=e=>{ UI.car=e.target.value; save(); carChanged(); });
     row.onclick=e=>{ const b=e.target.closest('[data-dc]'); if(!b) return; carDialog(b.dataset.dc==='add'?null:UI.car); }; }; }
