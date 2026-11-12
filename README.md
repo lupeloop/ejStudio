@@ -51,7 +51,7 @@ Every table and setting card in the tune, with the log replayed live on top.
 - Knock windows (FBKC, FLKC and IAM ranges from the tune), visited-cell and fuel-cut overlays.
 - Cruise / Non-Cruise (TGV closed / open) base timing with an **● ECU** marker on the active table.
 - Pooled across all logs recorded on the current revision; the chip next to Reference tables picks which logs.
-- 16 colour palettes in the table gear (Classic, Traffic, Viridis, Thermal and more). Every mark drawn over the cells switches to colours that stand out on the chosen palette.
+- 16 colour palettes in the table gear (Classic, Traffic, Viridis, Thermal and more). Every mark drawn over the cells switches to colours that stand out on the chosen palette, with an outline so the crosshair and knock marks stay readable on any cell.
 
 ## Edit tune
 ![Edit mode](docs/img/edit.png)
@@ -105,7 +105,7 @@ Several cars, each with its engine, parts, drivetrain (gear ratios, final drive,
 ![Scatter](docs/img/scatter.png)
 
 - Multi-lane graph with Full log view, event ticks and hover details; drag to scrub. Wideband lanes switch between smoothed and raw.
-- Searchable **Jump to event** menu: knock, boost, fuelling, AVCS, tip-in and more.
+- Searchable **Jump to event** menu: knock, boost, fuelling, AVCS, tip-in and more. A green **Clean** chip shows beside it when the log has no knock or IAM events.
 - Scatter mode in the same tab, with colour channel and trend lines.
 - Two-log compare: log B draws over Graph, Tables and Scatter.
 - WOT pull splitter and diagnostics timeline; diagnostics switch on and off at the top of Jump to event.
