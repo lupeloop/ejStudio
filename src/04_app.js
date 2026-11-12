@@ -239,7 +239,7 @@ async function loadTuneText(text,name){
 function busy(on,t,s){ const b=$('land-busy'); if(on){ $('busy-t').textContent=t||'Processing'; $('busy-s').textContent=s||''; b.classList.remove('hidden','out'); } else { b.classList.add('out'); setTimeout(()=>{ if(b.classList.contains('out')){ b.classList.add('hidden'); } },450); } }
 
 // ── landing ─────────────────────────────────────────────────────────────────
-function showLanding(){ $('app').classList.add('hidden'); $('land').classList.remove('hidden'); landRefresh(); landLoadEjl(); if(!(UI.cars&&UI.cars.length)&&!UI.carSkip&&!document.querySelector('.cardlg')) setTimeout(()=>carDialog(null),400); }
+function showLanding(){ $('app').classList.add('hidden'); $('land').classList.remove('hidden'); landRefresh(); landLoadEjl(); }
 function enterApp(){ if(!ST.logs.length&&!TUNE) return; if(ST.logs.length&&UI.seenVer!==APP_VER){ UI.seenVer=APP_VER; save(); setTimeout(whatsNew,700); } $('land').classList.add('hidden'); $('app').classList.remove('hidden'); buildStage(); if(!RP.raf) RP.raf=requestAnimationFrame(loop); }
 // landing: tune card, logs from ejLogger plus anything dropped or browsed, recent sessions
 const LAND={q:[],ejl:null,sel:new Set(),init:false,tuneP:null};
@@ -278,9 +278,9 @@ function landRefresh(){ if(!$('land-tune')) return; $('land-ver').textContent=AP
   const {files,names}=landPicked(), n=files.length+names.length;
   $('ln-logs').classList.toggle('ok',n>0); $('land-count').textContent=TUNE?`1 tune · ${n} log${n===1?'':'s'}`:'Load a tune first';
   const go=$('land-go'); go.disabled=!TUNE; go.textContent=n?'Open session  →':'Open in editor  →';
-  $('land-back').classList.toggle('hidden',!ST.logs.length);
+  $('land-back').classList.toggle('hidden',!ST.logs.length); $('lst-car').hidden=!(TUNE&&!(UI.cars&&UI.cars.length));
   const SS=(UI.sessions||[]).map((s,i)=>Object.assign({i},s)).filter(s=>!UI.car||!s.car||s.car===UI.car), S=SS.slice(0,3); const cars=UI.cars||[];
-  $('land-car').innerHTML=cars.length?`<select id="land-carsel">${cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join('')}</select><button class="lchip" data-l="caredit">Edit</button><button class="lchip" data-l="caradd">Add car</button>`:`<button class="lchip" data-l="caradd">Create car profile</button>`;
+  $('land-car').innerHTML=cars.length?`<select id="land-carsel">${cars.map(c=>`<option value="${esc(c.id)}" ${c.id===UI.car?'selected':''}>${esc(c.name)}</option>`).join('')}</select><button class="lchip" data-l="caredit">Edit</button><button class="lchip" data-l="caradd">Add car</button>`:(TUNE?'':`<button class="lchip" data-l="caradd">Create car profile</button>`);
   $('land-last').innerHTML=S.length?`<div class="lbl">Pick up where you left off</div>`+S.map((s,i)=>`<button class="lses ${i?'':'top'}" data-ses="${s.i}" title="${esc(s.logs.map(l=>l.name).join('\n'))}"><b>${esc(s.tune.name)} <em>+ ${s.logs.length} log${s.logs.length===1?'':'s'}</em></b><small>${esc(whenTxt(s.t))} · ${esc(s.res||'')}</small>${i?'':'<span class="btn">Reopen</span>'}</button>`).join(''):'';
   let EJS=null; try{ EJS=EJL.S; }catch(_){} if(window.rrlab&&window.rrlab.desktop&&EJS){ const st=EJS, f0=LAND.ejl&&LAND.ejl.files&&LAND.ejl.files[0], ic=$('land-ejl').dataset.ic||'';
     const s=st.rec?['rec','Recording']:st.state==='logging'?['on','Logging']:st.state==='connecting'?['on','Connecting']:['','Not connected'];

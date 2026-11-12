@@ -91,7 +91,7 @@ const EDITOR={
     edOp((r,c,z)=>{ if(mode==='h') return z[r][B.c0]+(z[r][B.c1]-z[r][B.c0])*fx(c); if(mode==='v') return z[B.r0][c]+(z[B.r1][c]-z[B.r0][c])*fy(r);
       const a=fx(c), b=fy(r); return (z[B.r0][B.c0]*(1-a)+z[B.r0][B.c1]*a)*(1-b)+(z[B.r1][B.c0]*(1-a)+z[B.r1][B.c1]*a)*b; },'interpolate '+t.gname); },
   smooth(){ edOp((r,c,z)=>{ let s=0,n=0; for(let i=r-1;i<=r+1;i++) for(let j=c-1;j<=c+1;j++) if(z[i]&&z[i][j]!=null){ s+=z[i][j]; n++; } return s/n; },'smooth '+(TV.cur()||{}).gname); },
-  revert(){ const B=selBox(); if(!B) return; const b=baseOf(B.t); if(!b) return; edOp((r,c)=>b.z[r]?b.z[r][c]:NaN,'revert in '+B.t.gname); },
+  revert(){ const B=selBox(); if(!B) return; const b=baseOf(B.t); if(!b) return; edOp((r,c)=>b.z[r]?b.z[r][c]:NaN,'revert in '+B.t.gname); const n=(B.r1-B.r0+1)*(B.c1-B.c0+1); toast(`Reverted ${n} cell${n===1?'':'s'} to loaded · Ctrl+Z to undo`); },
   undo(){ const x=EDIT.undo.pop(); if(!x){ toast('Nothing to undo'); return; } EDIT.redo.push(x); edApply(x.u,'before'); if(!this._q) toast('Undid: '+x.label); },
   redo(){ const x=EDIT.redo.pop(); if(!x){ toast('Nothing to redo'); return; } EDIT.undo.push(x); edApply(x.u,'after'); toast('Redid: '+x.label); },
   copy(ax){ const t=TV.cur(); if(!t) return; const j=r=>r.map(fmtRaw).join('\t');
