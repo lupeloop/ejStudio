@@ -231,11 +231,11 @@ onMsg(async m => {
         break; }
       case 'ports': {
         let list = []; try { list = await SER.listPorts(); } catch (e) { post({ t: 'error', text: 'Port scan: ' + e.message }); }
-        if (m.mock !== false) { list.push({ path: MOCK, name: 'Simulated ECU (testing)' }); list.push({ path: REPLAY, name: 'Replay a log (testing)' }); }
         post({ t: 'ports', list, serial: SER.available() }); break; }
       case 'params': if (!def) loadDef(); if (def) sendParams(); break;
       case 'select': sel = (m.list || []).filter(s => s && s.id); applySelection(); break;
       case 'connect': await connect(); break;
+      case 'replay': if (qm && qm.isRunning()) disconnect(); if (m.file) cfg.replayFile = m.file; cfg.replayAt = +m.at || 0; startReplay(); break;
       case 'disconnect': disconnect(); break;
       case 'rec': m.on ? startRec() : stopRec(m.why || 'stopped by hand'); break;
       case 'split': if (fh && fh.isStarted()) { const old = fh.file; stopRec('profile switch'); try { const nf = old.replace(/\.csv$/i, '_split.csv'); fs.renameSync(old, nf); const om = metaPath(old); if (fs.existsSync(om)) { const j = JSON.parse(fs.readFileSync(om, 'utf8')); j.file = path.basename(nf); fs.writeFileSync(metaPath(nf), JSON.stringify(j, null, 1)); fs.unlinkSync(om); } } catch (e) { post({ t: 'error', text: 'Split rename: ' + e.message }); } startRec(); } break;
