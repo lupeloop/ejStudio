@@ -243,7 +243,7 @@ async function loadTuneText(text,name){
 function busy(on,t,s){ const b=$('land-busy'); if(on){ $('busy-t').textContent=t||'Processing'; $('busy-s').textContent=s||''; b.classList.remove('hidden','out'); } else { b.classList.add('out'); setTimeout(()=>{ if(b.classList.contains('out')){ b.classList.add('hidden'); } },450); } }
 
 // ── landing ─────────────────────────────────────────────────────────────────
-function showLanding(){ $('app').classList.add('hidden'); $('land').classList.remove('hidden'); landRefresh(); landLoadEjl(); }
+function showLanding(){ $('app').classList.add('hidden'); const ld=$('land'); ld.classList.remove('hidden','in'); void ld.offsetWidth; ld.classList.add('in'); landRefresh(); landLoadEjl(); }
 function enterApp(){ if(!ST.logs.length&&!TUNE) return; if(ST.logs.length&&UI.seenVer!==APP_VER){ UI.seenVer=APP_VER; save(); setTimeout(whatsNew,700); } $('land').classList.add('hidden'); $('app').classList.remove('hidden'); buildStage(); if(!RP.raf) RP.raf=requestAnimationFrame(loop); }
 // landing: tune card, logs from ejLogger plus anything dropped or browsed, recent sessions
 const LAND={q:[],ejl:null,sel:new Set(),init:false,tuneP:null};
@@ -272,12 +272,12 @@ async function landReopen(i){ const s=(UI.sessions||[])[i], D=window.rrlab; if(!
 function landRefresh(){ if(!$('land-tune')) return; $('land-ver').textContent=APP_VER;
   const rv=(typeof REV!=='undefined'&&REV.nodes)||[], cn=rv.find(n=>n.id===REV.cur), others=rv.filter(n=>n.id!==REV.cur).slice(-4).reverse();
   $('ln-tune').classList.toggle('ok',!!TUNE);
-  $('land-tune').innerHTML=TUNE?`<div class="lcur"><div class="lic">.tune</div><div><b>${esc(TUNE.name||'tune')}</b><small>${esc([TUNE.cal,cn&&cn.rev?'Rev '+cn.rev:'',cn&&cn.time?whenTxt(cn.time):''].filter(Boolean).join(' · '))}</small></div><span class="lb2"><button class="btn" data-l="edit" title="Open Tables to edit this tune, no log needed">Open in editor</button><button class="btn" data-l="tune">Change</button></span></div>`
+  $('land-tune').innerHTML=TUNE?`<div class="lcur${LAND.lastT===TUNE.name?'':(LAND.lastT=TUNE.name,' nw')}"><div class="lic">.tune</div><div><b>${esc(TUNE.name||'tune')}</b><small>${esc([TUNE.cal,cn&&cn.rev?'Rev '+cn.rev:'',cn&&cn.time?whenTxt(cn.time):''].filter(Boolean).join(' · '))}</small></div><span class="lb2"><button class="btn" data-l="edit" title="Open Tables to edit this tune, no log needed">Open in editor</button><button class="btn" data-l="tune">Change</button></span></div>`
     +(others.length?`<div class="lrec"><span>Revisions</span>${others.map(n=>`<button data-rev="${esc(n.id)}">${esc(n.file||'rev '+n.rev)}</button>`).join('')}</div>`:'')
     :`<div class="ldrop big" data-l="tune" role="button" tabindex="0">Drop a Project Lambda .tune here</div>`;
   const E=LAND.ejl&&LAND.ejl.files?LAND.ejl.files.filter(f=>!f.old&&f.name!==LAND.ejl.recording).slice(0,8):[];
   $('land-logs-s').textContent=E.length?'From ejLogger':'';
-  $('land-rows').innerHTML=LAND.q.map((f,i)=>`<div class="lrow ${LAND.sel.has('f:'+i)?'on':''}" data-k="f:${i}"><span class="lcb"></span><span>${esc(f.name)}</span><span class="p">dropped</span><span class="r"></span><span class="z">${f.size?kb(f.size):''}</span></div>`).join('')
+  $('land-rows').innerHTML=LAND.q.map((f,i)=>`<div class="lrow ${LAND.sel.has('f:'+i)?'on':''}${(LAND.seen=LAND.seen||new Set()).has(f.name)?'':(LAND.seen.add(f.name),' nw')}" data-k="f:${i}"><span class="lcb"></span><span>${esc(f.name)}</span><span class="p">dropped</span><span class="r"></span><span class="z">${f.size?kb(f.size):''}</span></div>`).join('')
     +E.map(f=>`<div class="lrow ${LAND.sel.has('e:'+f.name)?'on':''}" data-k="e:${esc(f.name)}"><span class="lcb"></span><span>${esc(f.name)}</span><span class="p">${esc(f.profile||'')}</span><span class="r">${f.meta&&f.meta.rows?Number(f.meta.rows).toLocaleString()+' rows':''}</span><span class="z">${kb(f.size)}</span></div>`).join('');
   const {files,names}=landPicked(), n=files.length+names.length;
   $('ln-logs').classList.toggle('ok',n>0); $('land-count').textContent=TUNE?`1 tune · ${n} log${n===1?'':'s'}`:'Load a tune first';
