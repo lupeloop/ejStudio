@@ -3,7 +3,7 @@
 <p align="center"><b>Log analyzer · Tune editor · Live logger</b><br>for Subaru EJ engines tuned with Project Lambda</p>
 
 <p align="center">
-  <img src="docs/img/badges/version.svg" alt="Version 3.1.5">
+  <img src="docs/img/badges/version.svg" alt="Version 3.1.6">
   <img src="docs/img/badges/windows.svg" alt="Windows 10 and 11">
   <img src="docs/img/badges/ecu.svg" alt="Subaru SSM over K-Line">
   <img src="docs/img/badges/tunes.svg" alt="Project Lambda">
@@ -253,7 +253,6 @@ ejStudio grew out of tooling built around **[RomRaider](https://www.romraider.co
 |---|---|
 | **RomRaider** | The SSM logger protocol, logger definitions, profile format and the table knowledge behind the analysis. |
 | **Project Lambda** | The `.tune` format and its CSV logs. |
-| **Open-Meteo** | Weather data from [open-meteo.com](https://open-meteo.com), CC BY 4.0. |
 | **Space Mono** | Monospace type by Colophon Foundry, SIL Open Font License. |
 | **Electron** and **serialport** | The desktop app and the serial connection to the ECU and widebands. |
 
