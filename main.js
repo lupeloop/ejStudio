@@ -32,7 +32,7 @@ let ejl={cfg:null,proc:null,rec:false,file:null,state:'idle',quitting:false};
 const BUILTIN_DEF=path.join(__dirname,'ejLogger','defaults','logger_METRIC_EN_v370.xml').replace('app.asar'+path.sep,'app.asar.unpacked'+path.sep);
 function ejlCfg(){ if(!ejl.cfg){ ejl.cfg=Object.assign({},EJL_DEF); try{ Object.assign(ejl.cfg,JSON.parse(fs.readFileSync(EJL_CFGF(),'utf8'))); }catch(_){} if(!ejl.cfg.defPath||!fs.existsSync(ejl.cfg.defPath)) ejl.cfg.defPath=BUILTIN_DEF; if(!ejl.cfg.logDir) ejl.cfg.logDir=path.join(app.getPath('documents'),'ejStudio','logs'); } return ejl.cfg; }
 function ejlSave(){ try{ const f=EJL_CFGF(); fs.writeFileSync(f+'.tmp',JSON.stringify(ejl.cfg,null,1)); fs.renameSync(f+'.tmp',f); }catch(e){ elog('ejl cfg '+e); } }
-const ejlEngineCfg=c=>({appVersion:app.getVersion(),profile:c.profile||'',defPath:c.defPath,ecuPort:c.ecuPort,wbType:c.wbType,wbPort:c.wbPort,wbUnits:c.wbUnits,logDir:c.logDir,fastPoll:c.fastPoll!==false});
+const ejlEngineCfg=c=>({appVersion:app.getVersion(),profile:c.profile||'',defPath:c.defPath,ecuPort:c.ecuPort,wbType:c.wbType,wbPort:c.wbPort,wbUnits:c.wbUnits,logDir:c.logDir,fastPoll:c.fastPoll!==false,replayFile:c.replayFile||'',replayAt:+c.replayAt||0});
 function ejlStart(){
   if(ejl.proc) return ejl.proc;
   const p=utilityProcess.fork(path.join(__dirname,'ejLogger','engine','engine.js'),[],{serviceName:'ejLogger engine',stdio:'pipe'});
@@ -60,6 +60,7 @@ function ejlIpc(){
     try{ const d=path.join(app.getPath('userData'),'ejLogger'); fs.mkdirSync(d,{recursive:true}); const dst=path.join(d,path.basename(r.filePaths[0])); if(path.resolve(dst)!==path.resolve(r.filePaths[0])) fs.copyFileSync(r.filePaths[0],dst); ejlCfg().defPath=dst; }
     catch(err){ elog('pickDef '+err); ejlCfg().defPath=r.filePaths[0]; }
     ejlSave(); ejlPost({t:'config',cfg:ejlEngineCfg(ejlCfg())}); return ejlCfg(); });
+  reg('ejl:pickReplay',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose a log to replay',properties:['openFile'],filters:[{name:'CSV log',extensions:['csv']}],defaultPath:ejlCfg().logDir||undefined}); if(r.canceled||!r.filePaths[0]) return ejlCfg(); ejlCfg().replayFile=r.filePaths[0]; ejlSave(); ejlPost({t:'config',cfg:ejlEngineCfg(ejlCfg())}); return ejlCfg(); });
   reg('ejl:pickDir',async()=>{ const c=ejlCfg(); const r=await dialog.showOpenDialog(win,{title:'Choose the ejLogger log folder',properties:['openDirectory','createDirectory'],defaultPath:c.logDir||undefined});
     if(!r.canceled&&r.filePaths[0]){ c.logDir=r.filePaths[0]; ejlSave(); if(ejl.proc) ejl.proc.postMessage({t:'config',cfg:ejlEngineCfg(c)}); } return c; });
   reg('ejl:openDir',()=>{ const d=ejlCfg().logDir; try{ fs.mkdirSync(d,{recursive:true}); }catch(_){} shell.openPath(d); return true; });

@@ -19,7 +19,7 @@ const log = text => post({ t: 'log', text: String(text) });
 process.on('uncaughtException', e => post({ t: 'error', text: 'engine: ' + (e && e.stack || e) }));
 process.on('unhandledRejection', e => post({ t: 'error', text: 'engine: ' + (e && e.stack || e) }));
 
-const MOCK = 'MOCK';
+const MOCK = 'MOCK', REPLAY = 'REPLAY';
 let cfg = { appVersion: '', profile: '', defPath: '', ecuPort: '', wbType: 'none', wbPort: '', wbUnits: 'AFR Gasoline', logDir: '', fastPoll: true, logfileNameText: '', locale: 'en_CA' };
 let xml = null, def = null, mod = null, init = null, qm = null, fh = null, wb = null, mock = null, state = 'idle';
 let sel = []; // [{id, units}] in registration (CSV column) order
@@ -132,6 +132,7 @@ async function openPort(name, props) {
 async function connect() {
   if (qm && qm.isRunning()) return;
   if (!cfg.ecuPort) { post({ t: 'error', text: 'Choose the ECU port first (☰ → Connection).' }); return; }
+  if (cfg.ecuPort === REPLAY) { startReplay(); return; }
   init = null; if (!loadDef()) return;
   if (!cfg.logDir) cfg.logDir = path.join(require('os').homedir(), 'Documents', 'ejStudio', 'logs');
   fh = newFileHandler(); firstFrame = false; frames = [];
@@ -146,7 +147,7 @@ async function connect() {
   qm.run().then(() => { if (mock) { mock.stop(); mock = null; } setState('idle', 'Disconnected'); });
 }
 function onFrame(r) {
-  if (!firstFrame) { firstFrame = true; setState('logging', 'ECU ' + (init ? init.ecuId : '')); setTimeout(dtcScan, 1500); }
+  if (!firstFrame) { firstFrame = true; if (rp) setState('logging', 'Replay · ' + path.basename(rp.file)); else { setState('logging', 'ECU ' + (init ? init.ecuId : '')); setTimeout(dtcScan, 1500); } }
   if (fh && fh.isStarted()) recRows++;
   try { fh && fh.handleDataUpdate(r); } catch (e) { post({ t: 'error', text: 'CSV: ' + e.message }); stopRec(); }
   const v = {}, f = {};
@@ -179,7 +180,29 @@ async function ecuReset() { if (!qm || !qm.isRunning()) return post({ t: 'reset'
       return { ok, tx: req.toString('hex'), rx: resp.toString('hex') }; });
     post(Object.assign({ t: 'reset' }, r, r.ok ? {} : { error: r.rx ? 'The ECU did not confirm the reset' : 'No reply to the reset' })); }
   catch (e) { post({ t: 'reset', ok: false, error: e.message }); } }
-function disconnect() { stopRec('disconnected'); if (qm) qm.stop(); stopWb(); }
+function disconnect() { stopRec('disconnected'); if (rp) { stopReplay(); setState('idle', ''); return; } if (qm) qm.stop(); stopWb(); }
+// ── replay: plays a recorded CSV into the cluster as if the ECU sent it (desk testing, Designer, screenshots) ──
+let rp = null;
+function stopReplay() { if (rp) { clearTimeout(rp.t); rp = null; } }
+function startReplay() {
+  const f = cfg.replayFile; if (!f || !fs.existsSync(f)) { post({ t: 'error', text: 'Choose a log to replay (Config → ECU).' }); return; }
+  if (!loadDef()) return;
+  let ls; try { ls = fs.readFileSync(f, 'utf8').split(/\r?\n/).filter(l => l.trim()); } catch (e) { post({ t: 'error', text: 'Replay: ' + e.message }); return; }
+  if (ls.length < 3) { post({ t: 'error', text: 'Replay: the log has no rows' }); return; }
+  const H = ls[0].split(',').map(h => h.trim().replace(/^"|"$/g, '')), ti = H.findIndex(h => /^time/i.test(h)), ms = ti >= 0 && /ms|msec/i.test(H[ti]) ? 1 : 1000;
+  const rows = ls.slice(1).map(l => l.split(',')), T = rows.map((r, i) => ti >= 0 ? parseFloat(r[ti]) * ms : i * 50);
+  const norm = s => String(s).toLowerCase().replace(/\s*\([^()]*\)\s*$/, '').replace(/[^a-z0-9]+/g, ' ').trim(), hn = H.map(norm);
+  stopReplay(); firstFrame = false; frames = []; fh = null; init = null;
+  rp = { file: f, rows, T, i: Math.max(0, Math.min(rows.length - 1, Math.floor(rows.length * (+cfg.replayAt || 0)))), ap: null, pairs: [] };
+  applySelection(); setState('settling', 'Replay · ' + path.basename(f));
+  const tick = () => { if (!rp) return;
+    if (rp.ap !== applied) { rp.ap = applied; rp.pairs = applied.map(it => [it, hn.indexOf(norm(it.name))]).filter(p => p[1] >= 0); }
+    const row = rp.rows[rp.i], values = [];
+    for (const [it, j] of rp.pairs) { const v = parseFloat(row[j]); if (Number.isFinite(v)) values.push([it, v]); }
+    if (values.length) onFrame({ timestamp: Date.now(), values });
+    const n = (rp.i + 1) % rp.rows.length, dt = n ? rp.T[n] - rp.T[rp.i] : 400; rp.i = n;
+    rp.t = setTimeout(tick, Math.max(10, Math.min(1000, Number.isFinite(dt) ? dt : 50))); };
+  tick(); }
 function startWb() {
   stopWb(); if (!cfg.wbType || cfg.wbType === 'none' || !cfg.wbPort) { post({ t: 'wb', state: 'off' }); return; }
   wb = new WB.Wideband(cfg.wbType, cfg.wbPort, cfg.wbUnits, { openRaw: SER.openRaw, onState: s => post(Object.assign({ t: 'wb' }, s)) });
@@ -208,7 +231,7 @@ onMsg(async m => {
         break; }
       case 'ports': {
         let list = []; try { list = await SER.listPorts(); } catch (e) { post({ t: 'error', text: 'Port scan: ' + e.message }); }
-        if (m.mock !== false) list.push({ path: MOCK, name: 'Simulated ECU (testing)' });
+        if (m.mock !== false) { list.push({ path: MOCK, name: 'Simulated ECU (testing)' }); list.push({ path: REPLAY, name: 'Replay a log (testing)' }); }
         post({ t: 'ports', list, serial: SER.available() }); break; }
       case 'params': if (!def) loadDef(); if (def) sendParams(); break;
       case 'select': sel = (m.list || []).filter(s => s && s.id); applySelection(); break;
