@@ -185,6 +185,45 @@ function ejlIpc(){
       if(!go){ fs.copyFileSync(p,dst); if(fs.statSync(dst).size!==fs.statSync(p).size) throw new Error('copy check failed'); ejl.pendingUpdate=dst; return {ok:true,staged:dst,perMachine:/Program Files/i.test(process.execPath)}; }
       const f=ejl.pendingUpdate||dst; if(!fs.existsSync(f)) throw new Error('installer missing'); try{ ejl.proc&&ejl.proc.postMessage({t:'quit'}); }catch(_){}
       require('child_process').spawn(f,['/S','--force-run'],{detached:true,stdio:'ignore',windowsHide:true}).unref(); setTimeout(()=>app.quit(),600); return {ok:true}; }catch(err){ elog('usb update '+err); return {ok:false,error:String(err.message||err)}; } });
+  // ── Car setup (.ejlp): profiles, pages, themes, labels, warn limits, display, warm-up, recording rules ──
+  const SETUP_CATS=[['profiles','Profiles'],['pages','Cluster pages and themes'],['labels','Labels'],['limits','Warn limits'],['display','Display, dimming, screensaver'],['warmup','Warm-up'],['record','Recording rules']];
+  const UNDO=()=>path.join(app.getPath('userData'),'ejLogger','setup-undo.ejlp'), sha=b=>require('crypto').createHash('sha1').update(b).digest('hex');
+  function setupFiles(){ const d=CLD(), out=[]; for(const [sub,re] of [['customize',/\.properties$/i],['profiles',/\.xml$/i]]){ let n=[]; try{ n=fs.readdirSync(path.join(d,sub)); }catch(_){} for(const f of n) if(re.test(f)) out.push(sub+'/'+f); } return out; }
+  const catOf=f=>{ const b=path.basename(f); if(f.startsWith('profiles/')||/^(profile-meta|trim)\./i.test(b)) return 'profiles'; if(/^labels\./i.test(b)) return 'labels'; if(/^warnlimits\./i.test(b)) return 'limits'; if(/^(display|dimming|screensaver)\./i.test(b)) return 'display'; if(/^warmup\./i.test(b)) return 'warmup'; if(/^record\./i.test(b)) return 'record'; return 'pages'; };
+  const itemOf=f=>{ const b=path.basename(f).replace(/\.(xml|properties)$/i,''); let m; if(f.startsWith('profiles/')) return 'p:'+b; if((m=b.match(/^(page|theme)-(.+)$/i))&&m[2]!=='base') return 'p:'+m[2]; return 'c:'+catOf(f); };
+  const itemLabel=k=>k.startsWith('p:')?k.slice(2)+' profile':(SETUP_CATS.find(c=>'c:'+c[0]===k)||[0,k])[1];
+  function machineId(){ const c=ejlCfg(); if(!c.machineId){ c.machineId=require('crypto').randomBytes(6).toString('hex'); ejlSave(); } return c.machineId; }
+  function unzipBuf(buf){ const zlib=require('zlib'), out=new Map(); let e=buf.length-22; while(e>=0&&buf.readUInt32LE(e)!==0x06054b50) e--; if(e<0) throw new Error('Not a setup file'); const n=buf.readUInt16LE(e+10); let p=buf.readUInt32LE(e+16);
+    for(let i=0;i<n;i++){ if(buf.readUInt32LE(p)!==0x02014b50) throw new Error('The setup file is damaged'); const meth=buf.readUInt16LE(p+10), cs=buf.readUInt32LE(p+20), nl=buf.readUInt16LE(p+28), xl=buf.readUInt16LE(p+30), cl=buf.readUInt16LE(p+32), lo=buf.readUInt32LE(p+42), name=buf.toString('utf8',p+46,p+46+nl);
+      const lnl=buf.readUInt16LE(lo+26), lxl=buf.readUInt16LE(lo+28), d=buf.subarray(lo+30+lnl+lxl,lo+30+lnl+lxl+cs); out.set(name,meth===8?zlib.inflateRawSync(d):Buffer.from(d)); p+=46+nl+xl+cl; } return out; }
+  function setupRead(p){ const z=unzipBuf(fs.readFileSync(p)); let man={}; try{ man=JSON.parse((z.get('manifest.json')||'{}').toString()); }catch(_){} if(man.kind!=='ejlp') throw new Error('Not a setup file'); return {man,z}; }
+  function setupMake(cats,from){ const d=CLD(), files=setupFiles().filter(f=>cats.includes(catOf(f)));
+    const man={app:'ejStudio',kind:'ejlp',version:app.getVersion(),made:Date.now(),from,machine:machineId(),cats,files}; return {buf:zipBuf([['manifest.json',Buffer.from(JSON.stringify(man,null,1))],...files.map(f=>[f,fs.readFileSync(path.join(d,f))])]),files}; }
+  function setupDiff(p){ const {man,z}=setupRead(p), d=CLD(), base=ejlCfg().setupBase||{}, items={};
+    for(const [f,b] of z){ if(f==='manifest.json'||f.includes('..')) continue; const k=itemOf(f); let cur=null; try{ cur=fs.readFileSync(path.join(d,f)); }catch(_){}
+      const it=items[k]||(items[k]={key:k,label:itemLabel(k),files:[],status:'same',conflict:false}); it.files.push(f);
+      if(!cur){ if(it.status!=='changed') it.status='new'; } else if(!cur.equals(b)){ it.status='changed'; if(base[f]&&base[f]!==sha(cur)) it.conflict=true; } }
+    const list=Object.values(items).filter(x=>x.status!=='same').sort((a,b)=>(a.key>b.key?1:-1));
+    for(const x of list) x.detail=x.key.startsWith('p:')?[...new Set(x.files.map(f=>f.startsWith('profiles/')?'parameters':/page-/i.test(f)?'page':/theme-/i.test(f)?'theme':''))].filter(Boolean).join(' · '):x.files.length+' file'+(x.files.length===1?'':'s');
+    return {path:p,made:man.made,version:man.version,from:man.from,newer:verNum(man.version)>verNum(app.getVersion()),own:man.machine===machineId(),items:list}; }
+  const stickSetup=d=>path.join(d.path,'ejStudio','setup.ejlp');
+  function setupApply(p,keys,choices){ const {z}=setupRead(p), d=CLD(), c=ejlCfg(), base=c.setupBase||(c.setupBase={}), undo=[]; let n=0;
+    for(const [f,b] of z){ if(f==='manifest.json'||f.includes('..')) continue; const k=itemOf(f); if(!keys.includes(k)) continue; const dst=path.join(d,f);
+      if(choices&&choices[k]==='car'){ try{ base[f]=sha(fs.readFileSync(dst)); }catch(_){} continue; }
+      try{ undo.push([f,fs.readFileSync(dst)]); }catch(_){ undo.push([f,Buffer.alloc(0)]); } fs.mkdirSync(path.dirname(dst),{recursive:true}); fs.writeFileSync(dst+'.tmp',b); fs.renameSync(dst+'.tmp',dst); base[f]=sha(b); n++; }
+    if(undo.length){ fs.mkdirSync(path.dirname(UNDO()),{recursive:true}); writeZip(UNDO(),[['manifest.json',Buffer.from(JSON.stringify({kind:'ejlp',undo:true,made:Date.now(),version:app.getVersion()}))],...undo]); }
+    ejlSave(); send('ejl',{t:'clusterChanged'}); return {ok:true,n}; }
+  reg('ejl:setupScan',(e,letter)=>{ const d=ejl.drives.find(x=>x.letter===letter); if(!d) return null; const p=stickSetup(d); if(!fs.existsSync(p)) return null; try{ const r=setupDiff(p); return r.own||!r.items.length?null:r; }catch(err){ return {error:String(err.message||err)}; } });
+  reg('ejl:setupApply',(e,p,keys,choices)=>{ try{ return setupApply(p,keys||[],choices||{}); }catch(err){ elog('setup apply '+err); return {ok:false,error:String(err.message||err)}; } });
+  reg('ejl:setupUndo',()=>{ try{ if(!fs.existsSync(UNDO())) return {ok:false,error:'Nothing to restore'}; const z=unzipBuf(fs.readFileSync(UNDO())), d=CLD(); for(const [n,b] of z){ if(n==='manifest.json'||n.includes('..')) continue; const dst=path.join(d,n); if(!b.length){ try{ fs.unlinkSync(dst); }catch(_){} } else fs.writeFileSync(dst,b); } fs.unlinkSync(UNDO()); send('ejl',{t:'clusterChanged'}); return {ok:true}; }catch(err){ return {ok:false,error:String(err.message||err)}; } });
+  reg('ejl:setupInfo',()=>{ let profiles=[]; try{ profiles=fs.readdirSync(path.join(CLD(),'profiles')).filter(f=>/\.xml$/i.test(f)).map(f=>f.replace(/\.xml$/i,'')); }catch(_){} return {cats:SETUP_CATS,pick:ejlCfg().setupPick||SETUP_CATS.map(c=>c[0]).filter(c=>c!=='warmup'),drives:ejl.drives||[],undo:fs.existsSync(UNDO()),profiles}; });
+  reg('ejl:setupExport',async(e,letter,cats,from)=>{ try{ const c=ejlCfg(); if(from!=='car'){ c.setupPick=cats; } let p;
+      if(letter){ const d=ejl.drives.find(x=>x.letter===letter); if(!d) return {ok:false,error:'Stick removed'}; p=stickSetup(d); }
+      else { const r=await dialog.showSaveDialog(win,{title:'Export setup',defaultPath:path.join(app.getPath('documents'),'setup.ejlp'),filters:[{name:'ejLogger setup',extensions:['ejlp']}]}); if(r.canceled||!r.filePath) return {ok:false}; p=r.filePath; }
+      fs.mkdirSync(path.dirname(p),{recursive:true}); const m=setupMake(cats,from||'desk'); fs.writeFileSync(p+'.tmp',m.buf); fs.renameSync(p+'.tmp',p);
+      const base=c.setupBase||(c.setupBase={}); for(const f of m.files){ try{ base[f]=sha(fs.readFileSync(path.join(CLD(),f))); }catch(_){} } ejlSave(); return {ok:true,path:p,n:m.files.length}; }
+    catch(err){ elog('setup export '+err); return {ok:false,error:/ENOSPC/.test(String(err))?'The stick is full':String(err.message||err)}; } });
+  reg('ejl:setupImport',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Import setup',properties:['openFile'],filters:[{name:'ejLogger setup',extensions:['ejlp']}]}); if(r.canceled||!r.filePaths[0]) return null; try{ return setupDiff(r.filePaths[0]); }catch(err){ return {error:String(err.message||err)}; } });
   // ── Log storage: move old logs to .old, optionally delete old .old logs, warn on low disk ──
   function storage(){ const c=ejlCfg(), S=c.storage||{}, day=864e5, now=Date.now(), recName=ejl.rec?path.basename(ejl.file||''):null;
     try{ const zd=S.zipAfterDays==null?30:+S.zipAfterDays; if(zd>0){ const z=listLogs().filter(f=>!(!f.old&&f.name===recName)&&now-f.mtime>zd*day);
