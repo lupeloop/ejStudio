@@ -232,6 +232,7 @@ function create(){
   win.webContents.on('did-fail-load',(e,code,desc)=>{ try{ elog('load failed: '+code+' '+desc); }catch(_){} showIt(); });
   win.webContents.setWindowOpenHandler(({url})=>(!url||url==='about:blank')?{action:'allow',overrideBrowserWindowOptions:{backgroundColor:'#000000',autoHideMenuBar:true,icon:path.join(__dirname,'logos/ejstudio.ico')}}:{action:'deny'});
   win.webContents.on('will-navigate',e=>e.preventDefault());
+  win.webContents.session.on('will-download',(e,item)=>{ item.once('done',(ev,st)=>{ if(st==='completed') DLS.set(item.getFilename(),item.getSavePath()); }); });
   win.webContents.on('did-finish-load',()=>{ const f=argFiles(process.argv); if(f.length) send('open-files',f.map(readOut)); });
   win.loadFile(path.join(__dirname,'ejstudio.html'),CAR?{query:{car:'1'}}:undefined);
   if(CAR) win.webContents.on('before-input-event',(e,i)=>{ if(i.type==='keyDown'&&i.control&&i.shift&&i.key.toLowerCase()==='q'){ e.preventDefault(); win.close(); } });
@@ -257,7 +258,9 @@ else {
     ipcMain.handle('watch:off',()=>{ cfg.folder=null; saveCfg(); startWatch(); return cfg; });
     ipcMain.handle('watch:newest',()=>{ if(!cfg.folder) return null; const l=csvs(cfg.folder).map(f=>({f,t:fs.statSync(path.join(cfg.folder,f)).mtimeMs})).sort((a,b)=>b.t-a.t);
       return l.length?readOut(path.join(cfg.folder,l[0].f)):null; });
-    function askSpec(m){ if(m&&typeof m==='object') return m; const msg=String(m), ps=msg.split(/\n\n+/); let lab='OK', q='';
+    const DLS=new Map();
+ipcMain.handle('dl:show',(e,n)=>{ const p=DLS.get(String(n)); if(p&&fs.existsSync(p)) shell.showItemInFolder(p); else shell.openPath(app.getPath('downloads')); return true; });
+function askSpec(m){ if(m&&typeof m==='object') return m; const msg=String(m), ps=msg.split(/\n\n+/); let lab='OK', q='';
   if(ps.length>1&&/\?\s*$/.test(ps[ps.length-1])){ q=ps.pop().trim(); if(q.length<=28) lab=q.replace(/\?$/,''); }
   const r=msg.match(/^(Delete|Reset|Discard)\b/); if(r&&lab==='OK') lab=r[1];
   return {msg:ps.join('\n\n'),sub:q&&lab==='OK'?q:'',btns:['Cancel',lab],primary:1,cancel:0,red:!!r}; }

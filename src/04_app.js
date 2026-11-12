@@ -34,7 +34,9 @@ const ST={logs:[],bins:null,row:null,ipw:null,fixes:new Set(),queue:[],anKey:0};
 const RP={L:null,i:0,playT:0,playing:false,lastTs:0,raf:0,dirty:true,a:null,b:null,kClear:-1,gOff:0,hoverT:null,flashes:[]};
 let toastT=0;
 let DESK=null;
-function toast(m){ let e=document.querySelector('.toast'); if(!e) e=mk('div','toast',document.body); e.textContent=m; e.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('on'),1800); }
+function toast(m,o){ o=o||{}; let e=document.querySelector('.toast'); if(!e) e=mk('div','toast',document.body); const st=!!(o.sticky||o.act||/fail|error|could ?n.t|not found|not in the list|invalid|unable/i.test(m));
+  e.innerHTML='<span class="tm"></span>'+(o.act?'<button class="tb"></button>':'')+(st?'<button class="tx" title="Dismiss">✕</button>':''); e.querySelector('.tm').textContent=m; const b=e.querySelector('.tb'); if(b){ b.textContent=o.act[0]; b.onclick=()=>{ e.classList.remove('on'); o.act[1](); }; } const x=e.querySelector('.tx'); if(x) x.onclick=()=>e.classList.remove('on');
+  e.classList.toggle('sticky',st); e.classList.add('on'); clearTimeout(toastT); if(!st) toastT=setTimeout(()=>e.classList.remove('on'),1800); }
 function copyText(txt,ok){ const done=()=>toast(ok);
   if(navigator.clipboard&&window.isSecureContext) return navigator.clipboard.writeText(txt).then(done,fb); fb();
   function fb(){ const ta=mk('textarea','',document.body); ta.value=txt; ta.style.cssText='position:fixed;opacity:0'; ta.select(); try{ document.execCommand('copy'); done(); }catch(_){ toast('Copy failed'); } ta.remove(); } }
@@ -140,7 +142,7 @@ function projLand(){ const el=$('land-proj'); if(!el) return; if(!(window.rrlab&
   el.innerHTML=`<div class="lbl lprh"><span>Recent projects</span><button class="lnk" data-lp="open">Open…</button></div>`+r.map((x,i)=>`<button class="lses${i?'':' top'}" data-lp="${i}" title="${esc(x.path)}"><b>${esc(x.name)}</b><small>${[x.rev!=null?'rev '+x.rev:'',x.logs!=null?x.logs+' log'+(x.logs===1?'':'s'):'',whenTxt(x.at)].filter(Boolean).map(esc).join(' · ')}</small><span class="btn sm">Open</span></button>`).join(''); }
 document.addEventListener('click',e=>{ const b=e.target.closest('[data-lp]'); if(!b) return; const v=b.dataset.lp, r=projRecent()[+v]; openProject(v==='open'?null:r&&r.path); });
 // ── quick menu ──
-function drawerAt(tab,id){ UI.dtab=tab; UI.dq=''; if(id) UI.open[id]=true; drawer(true); if(id) requestAnimationFrame(()=>{ const s=document.querySelector(`#drawer-bd .dsec[data-id="${id}"]`); if(s){ s.open=true; s.scrollIntoView({block:'start'}); } }); }
+function drawerAt(tab,id){ UI.dtab=tab; UI.dq=''; UI.dsec=id||({session:'tune',settings:'disp',about:'about'})[tab]; if(id) UI.open[id]=true; drawer(true); if(id) requestAnimationFrame(()=>{ const s=document.querySelector(`#drawer-bd .dsec[data-id="${id}"]`); if(s){ s.open=true; s.scrollIntoView({block:'start'}); } }); }
 function qRender(m){ const d=projDirty(), sg=(key,opts)=>`<div class="seg" data-u="${key}">${opts.map(([v,l])=>`<button data-v="${v}" class="${UI[key]===v?'on':''}">${l}</button>`).join('')}</div>`, cars=UI.cars||[], rp=projRecent(), rec=rp.filter(x=>x.path!==PROJ.path).slice(0,3), rv=projRev(), n=ST.logs.length;
   m.innerHTML=`<div class="qproj">${PROJ.path?`<b title="${esc(PROJ.path)}">${esc(PROJ.name)}</b><small>${d?'<i></i>Unsaved':'Saved '+esc(whenTxt(PROJ.savedAt))}${rv!=null?' · rev '+rv:''} · ${n} log${n===1?'':'s'}</small>`:`<b class="np">No project open</b>`}
 <div class="qpb"><button class="btn sm acc" data-q="${PROJ.path?'save':'saveas'}">${PROJ.path?'Save':'Save as project…'}</button><button class="btn sm" data-q="open">Open…</button>${PROJ.path?'<button class="btn sm" data-q="saveas">Save as…</button>':''}</div>
@@ -151,8 +153,7 @@ ${rec.length?`<div class="qrec">${rec.map(x=>`<button data-q="rp:${rp.indexOf(x)
 <div class="qr"><span>Table colours</span><select class="sel sm" data-qpal>${TPALS.map(p=>`<option value="${p[0]}"${(UI.tpal||'classic')===p[0]?' selected':''}>${p[1]}</option>`).join('')}</select></div>
 ${cars.length?`<div class="qr"><span>Car</span><select class="sel sm" data-qcar>${cars.map(c=>`<option value="${esc(c.id)}"${c.id===UI.car?' selected':''}>${esc(c.name)}</option>`).join('')}</select></div>`:''}
 <button class="qi" data-q="go:settings:keys">Shortcuts<span>›</span></button>
-<hr><button class="qi" data-q="go:settings:">Settings<span>›</span></button><button class="qi" data-act="news">What's new</button><button class="qi" data-act="updchk">Check for updates</button><button class="qi" data-act="bug">Bug report</button>
-<button class="qall" data-q="all">Show all</button>`; }
+<hr><button class="qi" data-q="go:settings:">Settings<span>›</span></button><button class="qi" data-act="news">What's new</button><button class="qi" data-act="updchk">Check for updates</button><button class="qi" data-act="bug">Bug report</button>`; }
 function qAct(q){ const m=$('qmenu'), x=()=>m&&m.remove(); if(q==='save'){ x(); saveProject(false); } else if(q==='saveas'){ x(); saveProject(true); } else if(q==='open'){ x(); openProject(); }
   else if(q.startsWith('rp:')){ x(); const r=projRecent()[+q.slice(3)]; if(r) openProject(r.path); } else if(q==='all'){ x(); drawer(true); } else if(q.startsWith('go:')){ const [,tab,id]=q.split(':'); x(); drawerAt(tab,id); } }
 function qMenu(){ if($('drawer').classList.contains('open')){ drawer(false); return; } let m=$('qmenu'); if(m){ m.remove(); return; }
@@ -162,6 +163,43 @@ function qMenu(){ if($('drawer').classList.contains('open')){ drawer(false); ret
   m.addEventListener('change',e=>{ const t=e.target; if(t.dataset.qpal!=null){ UI.tpal=t.value; INKK=''; save(); unitsChanged(); } else if(t.dataset.qcar!=null){ UI.car=t.value; save(); carChanged(); } });
   setTimeout(()=>{ const off=e=>{ if(!m.isConnected) return done(); if(!m.contains(e.target)&&!$('drawer-btn').contains(e.target)){ m.remove(); done(); } }, key=e=>{ if(e.key==='Escape'&&m.isConnected){ m.remove(); done(); } }, done=()=>{ removeEventListener('pointerdown',off,true); removeEventListener('keydown',key,true); };
     addEventListener('pointerdown',off,true); addEventListener('keydown',key,true); },0); }
+// ── command palette (Ctrl+K) ──
+const CMDK={el:null,items:[],res:[],i:0,f:'all'};
+function cmdBuild(){ const out=[], add=(k,id,label,sub,key,run)=>out.push({k,id,label,sub:sub||'',key:key||'',run});
+  const seen={}; for(const t of (TUNE&&TUNE.tables||[])){ if(seen[t.group]) continue; seen[t.group]=1; add('tab','t:'+t.group,t.gname||t.name,t.cat||'Table','',()=>{ setPaneView(UI.focus,'tables'); TV.openGroup(t.group,true); }); }
+  for(const [id,lab,d] of ACTIONS){ if(id.startsWith('ed:')&&!EDIT.on) continue; add('act','a:'+id,lab,'',UI.keys[id]??d,()=>runAction(id)); }
+  add('act','x:tables','Tables view','','',()=>setPaneView(UI.focus,'tables')); add('act','x:graph','Graph view','','',()=>setPaneView(UI.focus,'graph')); add('act','x:maf','MAF tools view','','',()=>setPaneView(UI.focus,'maf'));
+  add('act','x:open','Open project…','','Ctrl+O',()=>openProject()); add('act','x:saveas','Save project as…','','Ctrl+Shift+S',()=>saveProject(true)); add('act','x:ejl','Open ejLogger','','',()=>EJL.setMode('logger')); add('act','x:land','Start screen','','',()=>showLanding()); add('act','x:news',"What's new",'','',()=>whatsNew()); add('act','x:upd','Check for updates','','',()=>checkUpdates(true)); add('act','x:bug','Bug report','','',()=>bugReport()); add('act','x:set','Settings','','',()=>drawerAt('settings',''));
+  if(EDIT.on&&typeof edCount==='function'&&edCount()) add('act','x:build',`Build rev ${Math.max(...REV.nodes.map(x=>x.rev))+1}`,`${edCount()} changes`,UI.keys.build??'Ctrl+B',()=>window.__build&&window.__build());
+  const U=[['wbDisp','Wideband units',[['lambda','λ'],['afr','AFR']]],['ffbDisp','FFB target units',[['lambda','λ'],['afr','AFR']]],['tu','Temperature units',[['C','°C'],['F','°F']]],['pu','Pressure units',[['psi','psi'],['kPa','kPa'],['bar','bar']]]];
+  for(const [k,lab,v] of U){ const i=Math.max(0,v.findIndex(x=>x[0]===UI[k])), nx=v[(i+1)%v.length]; add('set','u:'+k,`${lab}: ${v.map(x=>x[1]).join(' / ')}`,'now '+v[i][1],'',()=>{ UI[k]=nx[0]; save(); unitsChanged(); toast(`${lab}: ${nx[1]}`); }); }
+  for(const p of TPALS) add('set','p:'+p[0],'Table colours: '+p[1],(UI.tpal||'classic')===p[0]?'current':'','',()=>{ UI.tpal=p[0]; INKK=''; save(); unitsChanged(); });
+  for(const f of SCALES) add('set','s:'+f,`UI scale ${Math.round(f*100)}%`,(UI.scale||1)===f?'current':'','',()=>{ uiScale(f); });
+  try{ drawerRefresh(); for(const x of $('drawer-bd').querySelectorAll('.dsec[data-tab]')){ const n=(x.querySelector('summary>span')||x).textContent.trim(); add('set','g:'+x.dataset.id,'Settings · '+n,'','',()=>drawerAt(x.dataset.tab,x.dataset.id)); } }catch(_){}
+  for(const r of projRecent()) add('act','r:'+r.path,'Open '+r.name,'recent project','',()=>openProject(r.path));
+  const L=RP.L; if(L&&L.allEv) L.allEv.forEach((ev,i)=>add('ev','e:'+i,ev.label,fmtT(ev.t)+' · '+ev.kind,'',()=>{ rpPlay(false); rpGlide(ev.t); }));
+  return out; }
+function cmdScore(s,q){ s=s.toLowerCase(); if(!q) return 1; const i=s.indexOf(q); if(i>=0) return 100-i-(s.length/100)+(i===0||s[i-1]===' '?20:0); let p=0, sc=0; for(const c of q){ const j=s.indexOf(c,p); if(j<0) return 0; sc+=j===p?3:1; p=j+1; } return sc; }
+function cmdHi(s,q){ if(!q) return esc(s); const i=s.toLowerCase().indexOf(q); if(i>=0) return esc(s.slice(0,i))+'<mark>'+esc(s.slice(i,i+q.length))+'</mark>'+esc(s.slice(i+q.length)); return esc(s); }
+const CMDG={tab:'Tables',act:'Actions',set:'Settings',ev:'Events'}, CMDF=['all','tab','act','set','ev'];
+function cmdRender(){ const C=CMDK, q=C.el.querySelector('input').value.trim().toLowerCase(), f=C.f; let r;
+  if(!q&&f==='all'){ const rec=(UI.cmdRec||[]).map(id=>C.items.find(x=>x.id===id)).filter(Boolean).slice(0,5).map(x=>Object.assign({g:'Recent'},x)); const sug=[]; const L=RP.L; if(L&&L.allEv){ const n=L.allEv.find(e=>e.kind==='Knock'&&e.t>RP.playT); if(n) sug.push(C.items.find(x=>x.id==='e:'+L.allEv.indexOf(n))); } sug.push(C.items.find(x=>x.id==='x:build'),C.items.find(x=>x.id==='a:save'),C.items.find(x=>x.id==='x:ejl')); r=rec.concat(sug.filter(Boolean).filter(x=>!rec.some(y=>y.id===x.id)).map(x=>Object.assign({g:'Suggested'},x))); }
+  else { r=C.items.filter(x=>f==='all'||x.k===f).map(x=>({x,s:cmdScore(x.label+' '+x.sub,q)})).filter(o=>o.s>0).sort((a,b)=>b.s-a.s).slice(0,60).map(o=>Object.assign({g:CMDG[o.x.k]},o.x)); const order=['tab','set','act','ev']; if(q) r.sort((a,b)=>0); }
+  C.res=r; C.i=Math.min(C.i,Math.max(0,r.length-1)); let h='', g='';
+  r.forEach((x,i)=>{ if(x.g!==g){ h+=`<div class="ck-g">${x.g}</div>`; g=x.g; } h+=`<div class="ck-it${i===C.i?' on':''}" data-i="${i}"><span class="ck-ic">${{tab:'T',act:'▸',set:'⚙',ev:'!'}[x.k]}</span><b>${cmdHi(x.label,q)}</b><em>${esc(x.sub)}</em>${x.key?`<kbd>${esc(x.key)}</kbd>`:''}</div>`; });
+  C.el.querySelector('.ck-l').innerHTML=h||'<div class="ck-none">No matches</div>'; C.el.querySelector('.ck-f').innerHTML=`<span>↑↓ move</span><span>↵ run</span><span>Tab ${CMDF.map(x=>x===f?`<b>${x==='all'?'all':CMDG[x].toLowerCase()}</b>`:(x==='all'?'all':CMDG[x].toLowerCase())).join(' · ')}</span><span class="ck-n">${q?r.length+' results':''}</span><span>Esc</span>`;
+  const on=C.el.querySelector('.ck-it.on'); if(on) on.scrollIntoView({block:'nearest'}); }
+function cmdRun(x){ cmdClose(); if(!x) return; UI.cmdRec=[x.id].concat((UI.cmdRec||[]).filter(i=>i!==x.id)).slice(0,8); save(); setTimeout(()=>x.run(),0); }
+function cmdClose(){ if(CMDK.el){ CMDK.el.remove(); CMDK.el=null; } }
+function cmdOpen(){ if(CMDK.el){ cmdClose(); return; } const qm=$('qmenu'); if(qm) qm.remove(); const C=CMDK; C.items=cmdBuild(); C.i=0; C.f='all';
+  const el=mk('div','cmdk',document.body); C.el=el; el.innerHTML='<div class="ck-p" role="dialog" aria-label="Command palette"><div class="ck-q"><span>⌕</span><input type="text" spellcheck="false" placeholder="Tables, actions, settings, events…"></div><div class="ck-l"></div><div class="ck-f"></div></div>';
+  const inp=el.querySelector('input'); inp.focus(); cmdRender();
+  el.addEventListener('pointerdown',e=>{ if(e.target===el) cmdClose(); });
+  el.querySelector('.ck-l').addEventListener('click',e=>{ const it=e.target.closest('[data-i]'); if(it) cmdRun(C.res[+it.dataset.i]); });
+  el.querySelector('.ck-l').addEventListener('pointermove',e=>{ const it=e.target.closest('[data-i]'); if(it&&+it.dataset.i!==C.i){ C.i=+it.dataset.i; el.querySelectorAll('.ck-it').forEach(n=>n.classList.toggle('on',+n.dataset.i===C.i)); } });
+  inp.addEventListener('input',()=>{ C.i=0; cmdRender(); });
+  inp.addEventListener('keydown',e=>{ if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); C.i=Math.max(0,Math.min(C.res.length-1,C.i+(e.key==='ArrowDown'?1:-1))); cmdRender(); } else if(e.key==='Enter'){ e.preventDefault(); cmdRun(C.res[C.i]); } else if(e.key==='Escape'){ e.preventDefault(); cmdClose(); } else if(e.key==='Tab'){ e.preventDefault(); C.f=CMDF[(CMDF.indexOf(C.f)+(e.shiftKey?CMDF.length-1:1))%CMDF.length]; C.i=0; cmdRender(); } e.stopPropagation(); }); }
+addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&e.key.toLowerCase()==='k'){ e.preventDefault(); e.stopImmediatePropagation(); cmdOpen(); } },true);
 if(window.rrlab&&rrlab.confirmSync) window.confirm=m=>rrlab.confirmSync(String(m));
 function syncTabs(){ const vis=UI.panes.slice(0,paneCount()); requestAnimationFrame(tabInd); document.querySelectorAll('#tabs button').forEach(b=>{ const tv=b.dataset.v, is=v=>tv==='maf'?MAFV.includes(v):tv==='graph'?(v==='graph'||v==='scatter'||v==='graph2'):v===tv; b.classList.toggle('on',vis.some(is)); b.classList.toggle('foc',is(UI.panes[UI.focus])); const m=viewNeeds(tv==='maf'?'maf_table':tv); b.classList.toggle('na',!!m.length); b.style.display=b.dataset.v.endsWith('_b')&&!RP.B?'none':''; b.title=m.length?'Needs: '+m.join(', '):''; });
   document.querySelectorAll('#stage .pane').forEach((p,k)=>{ const pb=p.querySelector('.pb'), m=viewNeeds(UI.panes[k]); if(!pb) return; pb.classList.toggle('na',!!m.length); let e=pb.querySelector('.na-msg'); if(m.length){ if(!e) e=mk('div','na-msg',pb); e.textContent='Needs: '+m.join(', '); } else if(e) e.remove(); });
@@ -321,6 +359,8 @@ async function landReopen(i){ const s=(UI.sessions||[])[i], D=window.rrlab; if(!
   if(by[s.tune.path]){ LAND.tuneP={name:s.tune.name,path:s.tune.path}; await loadTuneText(by[s.tune.path].text,s.tune.name); } else if(!TUNE||TUNE.name!==s.tune.name) return toast('Tune not found: '+s.tune.name);
   const lf=s.logs.map(l=>by[l.path]).filter(Boolean), miss=s.logs.length-lf.length; if(!lf.length){ landRefresh(); return toast('Those logs were moved or deleted'); }
   await addFiles(lf.map(o=>({name:o.name,path:o.path,text:async()=>o.text}))); if(miss) toast(miss+' log'+(miss>1?'s were':' was')+' not found'); }
+const LENC={}, lenKey=f=>f.name+'|'+(f.size||0);
+async function lenCalc(f){ const k=lenKey(f); if(k in LENC) return; LENC[k]=''; try{ const t=typeof f.text==='function'?await f.text():''; if(!t) return; const ls=t.split(/\r?\n/).filter(l=>l.trim()); if(ls.length<3) return; const h=ls[0].split(','), j=h.findIndex(c=>/time/i.test(c)); if(j<0) return; let a=parseFloat(ls[1].split(',')[j]), b=parseFloat(ls[ls.length-1].split(',')[j]); if(!Number.isFinite(a)||!Number.isFinite(b)) return; let d=b-a; if(/ms|msec/i.test(h[j])||d>36000) d/=1000; const s=Math.max(0,Math.round(d)); LENC[k]=s<90?s+' s':s<5400?Math.round(s/60)+' min':Math.floor(s/3600)+' h '+Math.round(s%3600/60)+' min'; document.querySelectorAll(`[data-len="${CSS.escape(k)}"]`).forEach(e=>e.textContent=LENC[k]); }catch(_){} }
 function landRefresh(){ projLand(); if(!$('land-tune')) return; $('land-ver').textContent=APP_VER;
   const rv=(typeof REV!=='undefined'&&REV.nodes)||[], cn=rv.find(n=>n.id===REV.cur), others=rv.filter(n=>n.id!==REV.cur).slice(-4).reverse();
   $('ln-tune').classList.toggle('ok',!!TUNE);
@@ -329,7 +369,7 @@ function landRefresh(){ projLand(); if(!$('land-tune')) return; $('land-ver').te
     :`<div class="ldrop big" data-l="tune" role="button" tabindex="0">Drop a Project Lambda .tune here</div>`;
   const E=LAND.ejl&&LAND.ejl.files?LAND.ejl.files.filter(f=>!f.old&&f.name!==LAND.ejl.recording).slice(0,8):[];
   $('land-logs-s').textContent=E.length?'From ejLogger':'';
-  $('land-rows').innerHTML=LAND.q.map((f,i)=>`<div class="lrow ${LAND.sel.has('f:'+i)?'on':''}${(LAND.seen=LAND.seen||new Set()).has(f.name)?'':(LAND.seen.add(f.name),' nw')}" data-k="f:${i}"><span class="lcb"></span><span>${esc(f.name)}</span><span class="p">dropped</span><span class="r"></span><span class="z">${f.size?kb(f.size):''}</span></div>`).join('')
+  $('land-rows').innerHTML=LAND.q.map((f,i)=>`<div class="lrow ${LAND.sel.has('f:'+i)?'on':''}${(LAND.seen=LAND.seen||new Set()).has(f.name)?'':(LAND.seen.add(f.name),' nw')}" data-k="f:${i}"><span class="lcb"></span><span>${esc(f.name)}</span><span class="p" data-len="${esc(lenKey(f))}">${(lenCalc(f),LENC[lenKey(f)]||'')}</span><span class="r"></span><span class="z">${f.size?kb(f.size):''}</span></div>`).join('')
     +E.map(f=>`<div class="lrow ${LAND.sel.has('e:'+f.name)?'on':''}" data-k="e:${esc(f.name)}"><span class="lcb"></span><span>${esc(f.name)}</span><span class="p">${esc(f.profile||'')}</span><span class="r">${f.meta&&f.meta.rows?Number(f.meta.rows).toLocaleString()+' rows':''}</span><span class="z">${kb(f.size)}</span></div>`).join('');
   const {files,names}=landPicked(), n=files.length+names.length;
   $('ln-logs').classList.toggle('ok',n>0); $('land-count').textContent=TUNE?`1 tune · ${n} log${n===1?'':'s'}`:'Load a tune first';
@@ -389,10 +429,13 @@ function drawerRefresh(){ const d=$('drawer-bd'); if(!d) return; const L=RP.L, T
    +S('settings','reset','Reset','<button class="btn sm danger" data-act="reset">Reset everything</button>')
    +S('about','about','ejStudio',aboutHtml())+S('about','upd','Updates & bug reports',updHtml());
   dApply(); if(refocus){ const e=d.querySelector('[data-dsearch]'); e.focus(); e.setSelectionRange(q.length,q.length); } }
-function dApply(){ const d=$('drawer-bd'), q=(UI.dq||'').trim().toLowerCase(), t=UI.dtab||'session'; const dc=d.querySelector('.dcar'); if(dc) dc.style.display=(!q&&t==='session')?'':'none';
-  d.querySelectorAll('.dtabs button').forEach(b=>b.classList.toggle('on',!q&&b.dataset.dtab===t));
-  d.querySelectorAll('.dsec[data-tab]').forEach(x=>{ const hit=q&&(x.textContent.toLowerCase().includes(q)||[...x.querySelectorAll('input')].some(i=>(i.placeholder||'').toLowerCase().includes(q)));
-    x.style.display=(q?hit:x.dataset.tab===t)?'':'none'; if(hit) x.open=true; }); }
+function dApply(){ const d=$('drawer-bd'), q=(UI.dq||'').trim().toLowerCase(); const secs=[...d.querySelectorAll('.dsec[data-tab]')]; if(!secs.length) return; let sid=UI.dsec; if(!secs.some(x=>x.dataset.id===sid)) sid=secs[0].dataset.id; UI.dtab=(secs.find(x=>x.dataset.id===sid)||secs[0]).dataset.tab;
+  let nav=d.querySelector(':scope>.snav'); if(!nav){ nav=document.createElement('nav'); nav.className='snav'; d.prepend(nav); nav.onclick=e=>{ const b=e.target.closest('[data-sid]'); if(!b) return; UI.dsec=b.dataset.sid; UI.dq=''; const s=d.querySelector('[data-dsearch]'); if(s) s.value=''; dApply(); d.scrollTop=0; }; }
+  const srch=d.querySelector('[data-dsearch]'); const G={session:'Session',settings:'App',about:'ejStudio'}; let h='', last='';
+  for(const x of secs){ const t=x.dataset.tab; if(t!==last){ h+=`<div class="sg">${G[t]||t}</div>`; last=t; } h+=`<button data-sid="${x.dataset.id}" class="${!q&&x.dataset.id===sid?'on':''}">${esc((x.querySelector('summary>span')||x.querySelector('summary')).textContent.trim())}</button>`; }
+  nav.innerHTML=h; if(srch) nav.prepend(srch);
+  const dc=d.querySelector('.dcar'); if(dc) dc.style.display=(!q&&sid==='tune')?'':'none';
+  secs.forEach(x=>{ const hit=q&&(x.textContent.toLowerCase().includes(q)||[...x.querySelectorAll('input')].some(i=>(i.placeholder||'').toLowerCase().includes(q))); x.style.display=(q?hit:x.dataset.id===sid)?'':'none'; x.open=true; }); }
 function drawerBind(d=$('drawer-bd')){
   d.addEventListener('input',e=>{ if(e.target.dataset&&e.target.dataset.dsearch!=null){ UI.dq=e.target.value; dApply(); } });
   d.addEventListener('toggle',e=>{ if(UI.dq) return; const s=e.target; if(s.dataset&&s.dataset.id){ UI.open[s.dataset.id]=s.open; save(); } else if(s.dataset&&s.dataset.lf){ UI.open['lim:'+s.dataset.lf]=s.open; save(); } },true);

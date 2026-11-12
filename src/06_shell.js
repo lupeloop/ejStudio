@@ -8,7 +8,7 @@ function wire(){
   $('layouts').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; UI.layout=b.dataset.l; save(); buildStage(); };
   $('presets').onclick=e=>{ const b=e.target.closest('button'); if(b) preset(+b.dataset.k,e.shiftKey); };
   $('ed-top').onclick=()=>EDITOR.on(!EDIT.on);
-  $('drawer-btn').onclick=()=>qMenu(); $('drawer-x').onclick=()=>drawer(false);
+  $('drawer-btn').onclick=()=>qMenu(); $('drawer-x').onclick=()=>drawer(false); $('drawer-back').onclick=()=>drawer(false);
   $('drawer-pin').onclick=()=>{ UI.drawerPin=!UI.drawerPin; $('drawer-pin').classList.toggle('on',UI.drawerPin); document.body.classList.toggle('dpin',UI.drawerPin&&$('drawer').classList.contains('open')); save(); RP.dirty=true; };
   $('drawer-pin').classList.toggle('on',UI.drawerPin); drawerBind();
   $('t-play').onclick=()=>rpPlay(!RP.playing); $('t-prev').onclick=()=>rpStep(-1); $('t-next').onclick=()=>rpStep(1);
