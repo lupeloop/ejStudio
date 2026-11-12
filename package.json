@@ -61,9 +61,9 @@
     },
     "fileAssociations": [
       {
-        "ext": ["ejstudio","ejlab"],
-        "name": "ejStudio Session",
-        "description": "ejStudio session"
+        "ext": ["ejsp","ejstudio","ejlab"],
+        "name": "ejStudio Project",
+        "description": "ejStudio project"
       }
     ],
     "npmRebuild": false,

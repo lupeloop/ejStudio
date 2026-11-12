@@ -12,7 +12,7 @@ function elog(t){ try{ fs.mkdirSync(LOGD(),{recursive:true}); fs.appendFileSync(
 function pruneLogs(){ try{ const cut=Date.now()-5*864e5; for(const f of fs.readdirSync(LOGD())){ const p=path.join(LOGD(),f); if(fs.statSync(p).mtimeMs<cut) fs.unlinkSync(p); } }catch(_){} }
 process.on('uncaughtException',e=>elog(new Date().toISOString()+' MAIN '+(e&&e.stack||e)));
 const saveCfg=()=>{ try{ fs.writeFileSync(CFGF(),JSON.stringify(cfg)); }catch(_){} };
-const argFiles=argv=>argv.slice(1).filter(a=>/\.(csv|tune|json|ejstudio|ejlab)$/i.test(a)&&fs.existsSync(a));
+const argFiles=argv=>argv.slice(1).filter(a=>/\.(csv|tune|json|ejsp|ejstudio|ejlab)$/i.test(a)&&fs.existsSync(a));
 const readOut=p=>({name:path.basename(p),path:p,text:fs.readFileSync(p,'utf8')});
 const send=(ch,d)=>{ if(win&&!win.isDestroyed()) win.webContents.send(ch,d); if(ch==='ejl'&&typeof phoneBroadcast==='function') phoneBroadcast(d); };
 const csvs=dir=>{ try{ return fs.readdirSync(dir).filter(f=>/\.csv$/i.test(f)); }catch(_){ return []; } };
@@ -257,25 +257,34 @@ else {
     ipcMain.handle('watch:off',()=>{ cfg.folder=null; saveCfg(); startWatch(); return cfg; });
     ipcMain.handle('watch:newest',()=>{ if(!cfg.folder) return null; const l=csvs(cfg.folder).map(f=>({f,t:fs.statSync(path.join(cfg.folder,f)).mtimeMs})).sort((a,b)=>b.t-a.t);
       return l.length?readOut(path.join(cfg.folder,l[0].f)):null; });
-    function confirmHtml(msg){ const esc=t=>t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); const ps=msg.split(/\n\n+/); let body=ps, q='', lab='OK';
+    function askSpec(m){ if(m&&typeof m==='object') return m; const msg=String(m), ps=msg.split(/\n\n+/); let lab='OK', q='';
   if(ps.length>1&&/\?\s*$/.test(ps[ps.length-1])){ q=ps.pop().trim(); if(q.length<=28) lab=q.replace(/\?$/,''); }
-  const m=msg.match(/^(Delete|Reset|Discard)\b/); const red=!!m; if(m&&lab==='OK') lab=m[1];
+  const r=msg.match(/^(Delete|Reset|Discard)\b/); if(r&&lab==='OK') lab=r[1];
+  return {msg:ps.join('\n\n'),sub:q&&lab==='OK'?q:'',btns:['Cancel',lab],primary:1,cancel:0,red:!!r}; }
+function askHtml(s){ const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])), red=!!s.red, A=red?'#ff6b6b':'#e4aa28', AD=red?'255,107,107':'228,170,40', foc=red?s.cancel:s.primary;
   return `<!doctype html><html><head><meta charset="utf-8"><style>
 html,body{margin:0;background:transparent;font:14px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;color:#e8e8ea;user-select:none;overflow:hidden}
 .c{margin:8px;background:#0c0c10;border:1px solid #2a2a31;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);padding:18px 20px 16px;animation:in .16s cubic-bezier(.16,1,.3,1)}
 @keyframes in{from{opacity:0;transform:scale(.97)}}
-.h{display:flex;gap:12px;align-items:flex-start}.i{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 14px Consolas,monospace;background:${red?'rgba(255,107,107,.12)':'rgba(228,170,40,.12)'};color:${red?'#ff6b6b':'#e4aa28'};border:1px solid ${red?'rgba(255,107,107,.35)':'rgba(228,170,40,.35)'}}
+.h{display:flex;gap:12px;align-items:flex-start}.i{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 14px Consolas,monospace;background:rgba(${AD},.12);color:${A};border:1px solid rgba(${AD},.35)}
 p{margin:2px 0 8px;color:#c9c9cf;white-space:pre-wrap;word-wrap:break-word}p:first-child{color:#e8e8ea}.q{color:#8a8a92;font-size:13px}
 .b{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}button{font:600 13px -apple-system,'Segoe UI',Roboto,sans-serif;border-radius:8px;padding:7px 16px;cursor:pointer;border:1px solid #2a2a31;background:#141419;color:#e8e8ea;transition:background-color .15s,border-color .15s}
-button:hover{border-color:#3d3d47}.y{background:${red?'#ff6b6b':'#e4aa28'};border-color:${red?'#ff6b6b':'#e4aa28'};color:#000}.y:hover{filter:brightness(1.08);border-color:inherit}button:focus-visible{outline:2px solid #e4aa28;outline-offset:2px}
-</style></head><body><div class="c"><div class="h"><div class="i">!</div><div style="flex:1;min-width:0">${body.map(x=>`<p>${esc(x)}</p>`).join('')}${q&&lab==='OK'?`<p class="q">${esc(q)}</p>`:''}</div></div>
-<div class="b"><button id="n">Cancel</button><button class="y" id="y">${esc(lab)}</button></div></div>
-<script>const s=t=>{document.title='';document.title=t};document.getElementById('y').onclick=()=>s('yes');document.getElementById('n').onclick=()=>s('no');addEventListener('keydown',e=>{if(e.key==='Escape')s('no');});addEventListener('load',()=>{document.title='h:'+Math.ceil(document.body.scrollHeight);document.getElementById('${red?'n':'y'}').focus();});</script></body></html>`; }
-ipcMain.on('confirm-sync',(e,msg)=>{ const par=BrowserWindow.fromWebContents(e.sender); let done=false, w=null; const fin=v=>{ if(done) return; done=true; e.returnValue=v; try{ w&&!w.isDestroyed()&&w.destroy(); }catch(_){} };
+button:hover{border-color:#3d3d47}.y{background:${A};border-color:${A};color:#000}.y:hover{filter:brightness(1.08);border-color:${A}}.l{margin-right:auto}button:focus-visible{outline:2px solid #e4aa28;outline-offset:2px}
+</style></head><body><div class="c"><div class="h"><div class="i">!</div><div style="flex:1;min-width:0">${String(s.msg).split(/\n\n+/).map(x=>`<p>${esc(x)}</p>`).join('')}${s.sub?`<p class="q">${esc(s.sub)}</p>`:''}</div></div>
+<div class="b">${s.btns.map((t,i)=>`<button id="b${i}" class="${i===s.primary?'y':''}${i===s.left?' l':''}">${esc(t)}</button>`).join('')}</div></div>
+<script>const s=t=>{document.title='';document.title=t};document.querySelectorAll('button').forEach(b=>b.onclick=()=>s('b:'+b.id.slice(1)));addEventListener('keydown',e=>{if(e.key==='Escape')s('b:${s.cancel}');});addEventListener('load',()=>{document.title='h:'+Math.ceil(document.body.scrollHeight);document.getElementById('b${foc}').focus();});</script></body></html>`; }
+function askWin(e,s,done){ const par=BrowserWindow.fromWebContents(e.sender); let fin=false, w=null; const end=i=>{ if(fin) return; fin=true; done(i); try{ w&&!w.isDestroyed()&&w.destroy(); }catch(_){} };
   try{ w=new BrowserWindow({parent:par||undefined,modal:!!par,show:false,frame:false,transparent:true,resizable:false,minimizable:false,maximizable:false,skipTaskbar:true,width:476,height:220,backgroundColor:'#00000000',webPreferences:{contextIsolation:true}});
-    w.webContents.on('page-title-updated',(ev,t)=>{ if(t.startsWith('h:')){ const h=Math.min(640,+t.slice(2)); if(par){ const b=par.getBounds(); w.setBounds({x:Math.round(b.x+(b.width-476)/2),y:Math.round(b.y+(b.height-h)/2.4),width:476,height:h}); } else w.setContentSize(476,h); w.show(); w.focus(); } else if(t==='yes') fin(true); else if(t==='no') fin(false); });
-    w.on('closed',()=>fin(false)); w.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(confirmHtml(String(msg))));
-  }catch(err){ fin(false); } });
+    w.webContents.on('page-title-updated',(ev,t)=>{ if(t.startsWith('h:')){ const h=Math.min(640,+t.slice(2)); if(par){ const b=par.getBounds(); w.setBounds({x:Math.round(b.x+(b.width-476)/2),y:Math.round(b.y+(b.height-h)/2.4),width:476,height:h}); } else w.setContentSize(476,h); w.show(); w.focus(); } else if(t.startsWith('b:')) end(+t.slice(2)); });
+    w.on('closed',()=>end(s.cancel)); w.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(askHtml(s)));
+  }catch(err){ end(s.cancel); } }
+ipcMain.on('confirm-sync',(e,m)=>{ const s=askSpec(m); askWin(e,s,i=>{ e.returnValue=(i===s.primary); }); });
+ipcMain.on('ask-sync',(e,m)=>{ const s=askSpec(m); askWin(e,s,i=>{ e.returnValue=i; }); });
+ipcMain.handle('proj:save',async(e,o)=>{ let p=o&&o.path; if(!p){ const w=BrowserWindow.fromWebContents(e.sender), sg=(o&&o.suggest)||'project.ejsp';
+    const r=await dialog.showSaveDialog(w,{title:'Save project',defaultPath:path.isAbsolute(sg)?sg:path.join(app.getPath('documents'),sg),filters:[{name:'ejStudio project',extensions:['ejsp']}]}); if(r.canceled||!r.filePath) return null; p=r.filePath; if(!/\.ejsp$/i.test(p)) p+='.ejsp'; }
+  const tmp=p+'.tmp'; fs.writeFileSync(tmp,o.text); fs.renameSync(tmp,p); return p; });
+ipcMain.handle('proj:open',async e=>{ const w=BrowserWindow.fromWebContents(e.sender); const r=await dialog.showOpenDialog(w,{title:'Open project',properties:['openFile'],filters:[{name:'ejStudio project',extensions:['ejsp','ejstudio','ejlab']}]}); if(r.canceled||!r.filePaths[0]) return null; return readOut(r.filePaths[0]); });
+ipcMain.handle('proj:read',(e,p)=>{ try{ return p&&fs.existsSync(p)?readOut(p):null; }catch(_){ return null; } });
 ipcMain.handle('capture',async(e,r)=>{ const w=BrowserWindow.fromWebContents(e.sender); const img=await e.sender.capturePage({x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.w),height:Math.round(r.h)});
       const s=await dialog.showSaveDialog(w,{defaultPath:r.name,filters:[{name:'PNG image',extensions:['png']}]}); if(s.canceled||!s.filePath) return null; fs.writeFileSync(s.filePath,img.toPNG()); return s.filePath; });
     ipcMain.handle('info',()=>({version:app.getVersion(),electron:process.versions.electron,chrome:process.versions.chrome,userData:app.getPath('userData')}));
