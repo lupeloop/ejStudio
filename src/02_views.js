@@ -4,7 +4,8 @@
 const $=id=>document.getElementById(id);
 const mk=(t,c,p)=>{ const e=document.createElement(t); if(c) e.className=c; if(p) p.appendChild(e); return e; };
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function sizeCanvas(cv){ const dpr=devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight; if(!W||!H) return null;
+const CVRO=typeof ResizeObserver!=='undefined'?new ResizeObserver(es=>{ for(const e of es){ const t=e.target; t._W=t.clientWidth; t._H=t.clientHeight; } }):null;
+function sizeCanvas(cv){ if(cv._W==null||!CVRO){ cv._W=cv.clientWidth; cv._H=cv.clientHeight; if(CVRO&&!cv._ro){ cv._ro=1; CVRO.observe(cv); } } const dpr=devicePixelRatio||1, W=cv._W, H=cv._H; if(!W||!H){ cv._W=null; return null; }
   const w=Math.round(W*dpr), h=Math.round(H*dpr); if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
   const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); return {c,W,H}; }
 function fmtT(ms){ const s=Math.max(0,ms)/1000, m=Math.floor(s/60); return m+':'+(s-m*60).toFixed(1).padStart(4,'0'); }
