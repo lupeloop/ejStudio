@@ -333,7 +333,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   function renderBreak(){ const L=CX.L, t=built, cat=isSet()?setCat():t?t.cat:'', rb=L&&L.rb, i=CX.i;
     const show=(c,html)=>{ bstrip.style.display=html?'':'none'; if(html) bstrip.innerHTML=html; };
     if(!rb||i<0||i>=L.N) return show(0,'');
-    const P=pDisp('abs'), D=pDisp('rel'), card=(lab,val,sub,cls)=>`<div class="kcard${cls?' '+cls:''}" title="${esc(BTIP[lab.split(' · ')[0]]||'')}"><i>${lab}</i><b>${val}</b><u>${sub||''}</u></div>`, ok=v=>Number.isFinite(v);
+    const P=pDisp('abs'), D=pDisp('rel'), card=(lab,val,sub,cls)=>`<div class="kcard${cls?' '+cls:''}" title="${esc([BTIP[lab.split(' · ')[0]],sub].filter(Boolean).join('\n'))}"><i>${lab}</i><b>${val}</b></div>`, ok=v=>Number.isFinite(v);
     const fx=(v,d,u,sg)=>ok(v)?(sg&&v>0?'+':'')+v.toFixed(d)+u:'—', pc=v=>ok(v)?(v>0?'+':'')+v.toFixed(1)+' %':'—', pa=v=>ok(v)?dv(P,v):'—', pr=v=>ok(v)?(v>0?'+':'')+dv(D,v):'—', dg=v=>ok(v)?(v>0?'+':'')+v.toFixed(1)+' deg':'—';
     const big=(arr)=>{ let m=-1,k=-1; arr.forEach((v,j)=>{ if(ok(v)&&Math.abs(v)>m+1e-9&&Math.abs(v)>0.05){ m=Math.abs(v); k=j; } }); return k; };
     const delta=(lg,rv,thr,f)=>ok(lg)&&ok(rv)?card('Calc vs logged',f(lg-rv),'',Math.abs(lg-rv)>thr?'warn':'ok'):'';
