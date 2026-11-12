@@ -257,7 +257,26 @@ else {
     ipcMain.handle('watch:off',()=>{ cfg.folder=null; saveCfg(); startWatch(); return cfg; });
     ipcMain.handle('watch:newest',()=>{ if(!cfg.folder) return null; const l=csvs(cfg.folder).map(f=>({f,t:fs.statSync(path.join(cfg.folder,f)).mtimeMs})).sort((a,b)=>b.t-a.t);
       return l.length?readOut(path.join(cfg.folder,l[0].f)):null; });
-    ipcMain.handle('capture',async(e,r)=>{ const w=BrowserWindow.fromWebContents(e.sender); const img=await e.sender.capturePage({x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.w),height:Math.round(r.h)});
+    function confirmHtml(msg){ const esc=t=>t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); const ps=msg.split(/\n\n+/); let body=ps, q='', lab='OK';
+  if(ps.length>1&&/\?\s*$/.test(ps[ps.length-1])){ q=ps.pop().trim(); if(q.length<=28) lab=q.replace(/\?$/,''); }
+  const m=msg.match(/^(Delete|Reset|Discard)\b/); const red=!!m; if(m&&lab==='OK') lab=m[1];
+  return `<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:transparent;font:14px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;color:#e8e8ea;user-select:none;overflow:hidden}
+.c{margin:8px;background:#0c0c10;border:1px solid #2a2a31;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);padding:18px 20px 16px;animation:in .16s cubic-bezier(.16,1,.3,1)}
+@keyframes in{from{opacity:0;transform:scale(.97)}}
+.h{display:flex;gap:12px;align-items:flex-start}.i{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 14px Consolas,monospace;background:${red?'rgba(255,107,107,.12)':'rgba(228,170,40,.12)'};color:${red?'#ff6b6b':'#e4aa28'};border:1px solid ${red?'rgba(255,107,107,.35)':'rgba(228,170,40,.35)'}}
+p{margin:2px 0 8px;color:#c9c9cf;white-space:pre-wrap;word-wrap:break-word}p:first-child{color:#e8e8ea}.q{color:#8a8a92;font-size:13px}
+.b{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}button{font:600 13px -apple-system,'Segoe UI',Roboto,sans-serif;border-radius:8px;padding:7px 16px;cursor:pointer;border:1px solid #2a2a31;background:#141419;color:#e8e8ea;transition:background-color .15s,border-color .15s}
+button:hover{border-color:#3d3d47}.y{background:${red?'#ff6b6b':'#e4aa28'};border-color:${red?'#ff6b6b':'#e4aa28'};color:#000}.y:hover{filter:brightness(1.08);border-color:inherit}button:focus-visible{outline:2px solid #e4aa28;outline-offset:2px}
+</style></head><body><div class="c"><div class="h"><div class="i">!</div><div style="flex:1;min-width:0">${body.map(x=>`<p>${esc(x)}</p>`).join('')}${q&&lab==='OK'?`<p class="q">${esc(q)}</p>`:''}</div></div>
+<div class="b"><button id="n">Cancel</button><button class="y" id="y">${esc(lab)}</button></div></div>
+<script>const s=t=>{document.title='';document.title=t};document.getElementById('y').onclick=()=>s('yes');document.getElementById('n').onclick=()=>s('no');addEventListener('keydown',e=>{if(e.key==='Escape')s('no');});addEventListener('load',()=>{document.title='h:'+Math.ceil(document.body.scrollHeight);document.getElementById('${red?'n':'y'}').focus();});</script></body></html>`; }
+ipcMain.on('confirm-sync',(e,msg)=>{ const par=BrowserWindow.fromWebContents(e.sender); let done=false, w=null; const fin=v=>{ if(done) return; done=true; e.returnValue=v; try{ w&&!w.isDestroyed()&&w.destroy(); }catch(_){} };
+  try{ w=new BrowserWindow({parent:par||undefined,modal:!!par,show:false,frame:false,transparent:true,resizable:false,minimizable:false,maximizable:false,skipTaskbar:true,width:476,height:220,backgroundColor:'#00000000',webPreferences:{contextIsolation:true}});
+    w.webContents.on('page-title-updated',(ev,t)=>{ if(t.startsWith('h:')){ const h=Math.min(640,+t.slice(2)); if(par){ const b=par.getBounds(); w.setBounds({x:Math.round(b.x+(b.width-476)/2),y:Math.round(b.y+(b.height-h)/2.4),width:476,height:h}); } else w.setContentSize(476,h); w.show(); w.focus(); } else if(t==='yes') fin(true); else if(t==='no') fin(false); });
+    w.on('closed',()=>fin(false)); w.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(confirmHtml(String(msg))));
+  }catch(err){ fin(false); } });
+ipcMain.handle('capture',async(e,r)=>{ const w=BrowserWindow.fromWebContents(e.sender); const img=await e.sender.capturePage({x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.w),height:Math.round(r.h)});
       const s=await dialog.showSaveDialog(w,{defaultPath:r.name,filters:[{name:'PNG image',extensions:['png']}]}); if(s.canceled||!s.filePath) return null; fs.writeFileSync(s.filePath,img.toPNG()); return s.filePath; });
     ipcMain.handle('info',()=>({version:app.getVersion(),electron:process.versions.electron,chrome:process.versions.chrome,userData:app.getPath('userData')}));
     ipcMain.handle('readFiles',(e,ps)=>{ const out=[]; for(const p of (ps||[]).slice(0,60)){ if(!/\.(csv|tune|json)$/i.test(String(p))) continue; try{ if(fs.existsSync(p)) out.push(readOut(p)); }catch(_){} } return out; });
