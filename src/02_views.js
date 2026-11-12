@@ -483,7 +483,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     c.save(); c.beginPath(); c.rect(g.hw,0,g.GW-g.hw,g.chH); c.clip(); c.strokeStyle=COL.acc; c.lineWidth=2; c.beginPath();
     t.z[0].forEach((v,i)=>{ if(i) c.lineTo(X(i),Y(v)); else c.moveTo(X(i),Y(v)); }); c.stroke(); c.restore();
     if(S.px==null||S.tx==null) return; const v=bil(t,S.px,0), x=X(S.px), y=Y(v), red=COL.red;
-    c.strokeStyle=red; c.lineWidth=2; c.shadowColor='rgba(255,0,0,.8)'; c.shadowBlur=6; c.beginPath(); c.moveTo(x,T0); c.lineTo(x,g.chH); c.moveTo(g.hw,y); c.lineTo(g.GW,y); c.stroke(); c.shadowBlur=0;
+    c.strokeStyle=red; c.lineWidth=2; c.shadowColor=inkOut(red)==='#000'?'rgba(0,0,0,.9)':'rgba(255,255,255,.9)'; c.shadowBlur=3; c.beginPath(); c.moveTo(x,T0); c.lineTo(x,g.chH); c.moveTo(g.hw,y); c.lineTo(g.GW,y); c.stroke(); c.shadowBlur=0;
     c.fillStyle=red; c.beginPath(); c.arc(x,y,5,0,7); c.fill();
     if(T.opt.val){ const tx=fmtVal(t,v); c.font='800 15px system-ui,sans-serif'; c.textAlign='left'; const w=c.measureText(tx).width+10, h=24; let bx=x+10, by=y-h-8; if(bx+w>g.GW) bx=x-10-w; if(by<T0) by=y+8;
       c.fillStyle='rgba(0,0,0,.82)'; c.fillRect(bx,by,w,h); c.strokeStyle=red; c.lineWidth=1.5; c.strokeRect(bx,by,w,h); c.fillStyle='#fff'; c.fillText(tx,bx+5,by+h/2+0.5); } }
@@ -519,7 +519,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
         if(T.opt.fc&&V.cut[k]){ c.strokeStyle=INK().fc; c.lineWidth=1.6; c.setLineDash([4,3]); c.strokeRect(x0+3,y0+3,g.cw-6,g.ch-6); c.setLineDash([]); c.fillStyle=INK().fc; c.beginPath(); c.moveTo(x0+2,y0+g.ch-2); c.lineTo(x0+2,y0+g.ch-Math.min(10,g.ch*.45)); c.lineTo(x0+Math.min(10,g.cw*.3),y0+g.ch-2); c.fill(); } } }
     if(L&&knockTbl(t)&&T.opt.kmL&&!(ED()&&!EDIT.overlays)){ c.save(); c.beginPath(); c.rect(g.hw,g.hh,g.GW-g.hw,g.GH-g.hh); c.clip(); for(const PL of poolL(CX.L)) for(const k of (PL.kmarks||[])){ if(!kOnTable(PL,k.i,t)) continue;
         const kx=X(fi(t.x,k.load)), ky=Y(fi(t.y,k.rpm)), r=Math.max(3,Math.min(g.cw,g.ch)*0.28);
-        c.strokeStyle='rgba(255,40,40,.9)'; c.lineWidth=2.2; c.beginPath(); c.moveTo(kx-r,ky-r); c.lineTo(kx+r,ky+r); c.moveTo(kx+r,ky-r); c.lineTo(kx-r,ky+r); c.stroke(); } c.restore(); }
+        c.beginPath(); c.moveTo(kx-r,ky-r); c.lineTo(kx+r,ky+r); c.moveTo(kx+r,ky-r); c.lineTo(kx-r,ky+r); c.strokeStyle=inkOut(INK().knk)==='#000'?'rgba(0,0,0,.6)':'rgba(255,255,255,.6)'; c.lineWidth=4.2; c.stroke(); c.strokeStyle=INK().knk; c.lineWidth=2.2; c.stroke(); } c.restore(); }
     edDraw(c,g,t,W); if(ED()&&!EDIT.overlays){ c.restore(); return; }
     if(RP.B&&RP.B!==L){ const d=rpSample(RP.B,RP.bI), xv=d[t.xin], yv=t.yin?d[t.yin]:0; if(xv!=null&&yv!=null){ const bx=X(fi(t.x,xv)), by=oneD?g.hh+g.ch/2:Y(fi(t.y,yv)), bc=logC('b');
       c.strokeStyle=bc; c.lineWidth=2.5; c.beginPath(); c.arc(bx,by,Math.max(5,Math.min(g.cw,g.ch)*0.32),0,7); c.stroke(); c.fillStyle=bc; c.font='700 11px system-ui,sans-serif'; c.textAlign='left'; c.textBaseline='alphabetic'; c.fillText('B',bx+7,by-7); } }
@@ -527,18 +527,18 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     const x=X(S.px), y=Y(S.py); let bx0,by0,bx1,by1;
     if(T.opt.mark==='glow'){ const ix=Math.floor(S.px), iy=Math.floor(S.py), ix1=Math.min(ix+1,t.x.length-1), iy1=oneD?iy:Math.min(iy+1,t.z.length-1), ax=S.px-ix, ay=S.py-iy;
       [[ix,iy,(1-ax)*(1-ay)],[ix1,iy,ax*(1-ay)],[ix,iy1,(1-ax)*ay],[ix1,iy1,ax*ay]].forEach(q=>{ if(q[2]<0.02||q[0]<W.c0||q[0]>=W.c0+W.vx||q[1]<W.r0||q[1]>=W.r0+W.vy) return;
-        c.fillStyle='rgba(255,30,30,'+(0.06+0.16*q[2]).toFixed(3)+')'; c.fillRect(g.hw+(q[0]-W.c0)*g.cw,g.hh+(q[1]-W.r0)*g.ch,g.cw,g.ch); });
+        c.fillStyle=hexA(INK().cur,(0.08+0.2*q[2]).toFixed(3)); c.fillRect(g.hw+(q[0]-W.c0)*g.cw,g.hh+(q[1]-W.r0)*g.ch,g.cw,g.ch); });
       bx0=ix; bx1=ax>0.02?ix1:ix; by0=iy; by1=(!oneD&&ay>0.02)?iy1:iy; }
     else { const rx=Math.round(S.px), ry=Math.round(S.py); bx0=bx1=rx; by0=by1=ry; }
     const L0=g.hw+(bx0-W.c0)*g.cw, R0=g.hw+(bx1-W.c0+1)*g.cw, T0=g.hh+(by0-W.r0)*g.ch, B0=g.hh+(by1-W.r0+1)*g.ch;
     const inX=S.px>W.c0-0.5&&S.px<W.c0+W.vx-0.5, inY=oneD||(S.py>W.r0-0.5&&S.py<W.r0+W.vy-0.5);
-    c.strokeStyle=red; c.lineWidth=2; c.shadowColor='rgba(255,0,0,.8)'; c.shadowBlur=6; c.beginPath();
+    const cas=inkOut(red)==='#000'?'rgba(0,0,0,.62)':'rgba(255,255,255,.62)'; c.beginPath();
     if(inX){ c.moveTo(x,g.hh); c.lineTo(x,Math.max(g.hh,T0)); c.moveTo(x,Math.min(g.GH,B0)); c.lineTo(x,g.GH); }
     if(!oneD&&inY){ c.moveTo(g.hw,y); c.lineTo(Math.max(g.hw,L0),y); c.moveTo(Math.min(g.GW,R0),y); c.lineTo(g.GW,y); }
-    c.stroke(); c.lineWidth=2.5; c.strokeRect(L0+1.25,T0+1.25,R0-L0-2.5,B0-T0-2.5); c.shadowBlur=0;
-    if(inX&&inY){ c.fillStyle=red; c.strokeStyle='rgba(0,0,0,.7)'; c.lineWidth=1; c.beginPath(); c.arc(x,y,Math.max(2.5,Math.min(4,g.ch*0.14)),0,7); c.fill(); c.stroke(); }
+    c.strokeStyle=cas; c.lineWidth=4.5; c.stroke(); c.lineWidth=5; c.strokeRect(L0+1.25,T0+1.25,R0-L0-2.5,B0-T0-2.5); c.strokeStyle=red; c.lineWidth=2; c.stroke(); c.lineWidth=2.5; c.strokeRect(L0+1.25,T0+1.25,R0-L0-2.5,B0-T0-2.5);
+    if(inX&&inY){ c.fillStyle=red; c.strokeStyle=cas; c.lineWidth=1.5; c.beginPath(); c.arc(x,y,Math.max(2.5,Math.min(4,g.ch*0.14)),0,7); c.fill(); c.stroke(); }
     const l=S.live; c.font='700 '+Math.max(9,Math.min(13,g.hh*0.72))+'px system-ui,sans-serif'; c.textBaseline='middle'; c.textAlign='center';
-    const pill=(px,py,txt,minW,maxR,h)=>{ const w=Math.max(minW,c.measureText(txt).width+8), lx=Math.max(0,Math.min(maxR-w,px-w/2)); c.fillStyle=red; c.fillRect(lx,py-h/2,w,h); c.fillStyle='#fff'; c.fillText(txt,lx+w/2,py+0.5); };
+    const pill=(px,py,txt,minW,maxR,h)=>{ const w=Math.max(minW,c.measureText(txt).width+8), lx=Math.max(0,Math.min(maxR-w,px-w/2)); c.fillStyle=red; c.fillRect(lx,py-h/2,w,h); c.fillStyle=inkOut(red); c.fillText(txt,lx+w/2,py+0.5); };
     if(l){ if(inX) pill(x,g.hh/2,fmtA(t.xin,l[t.xin]),g.cw*0.9,g.GW,g.hh-2); if(!oneD&&inY) pill(g.hw/2,y,fmtA(t.yin,l[t.yin]),g.hw-2,g.hw,g.ch-2); }
     if(T.opt.val&&!oneD&&inX&&inY){ const tx=fmtVal(t,bil(t,S.px,S.py)); c.font='800 '+Math.max(11,Math.min(16,g.ch*0.95))+'px system-ui,sans-serif';
       const w=c.measureText(tx).width+10, h=Math.max(14,Math.min(26,g.ch*1.15)); let bx=R0+4, by=T0-h-4;
