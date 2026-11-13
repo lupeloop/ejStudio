@@ -151,7 +151,7 @@ ${rec.length?`<div class="qrec">${rec.map(x=>`<button data-q="rp:${rp.indexOf(x)
 <div class="qg">Session</div><button class="qi" data-act="tune">Replace tune</button>${ST.logs.length?`<div class="qlogs">${logRows(false)}</div>`:''}<button class="qi" data-act="logs">Add logs</button><button class="qi" data-q="go:session:lim">Warning limits<span>›</span></button>
 <div class="qg">Quick settings</div><div class="qr"><span>Wideband</span>${sg('wbDisp',[['lambda','λ'],['afr','AFR']])}</div><div class="qr"><span>Temperature</span>${sg('tu',[['C','°C'],['F','°F']])}</div><div class="qr"><span>Pressure</span>${sg('pu',[['psi','psi'],['kPa','kPa'],['bar','bar']])}</div>
 <div class="qr"><span>Scale</span><div class="seg">${SCALES.map(f=>`<button data-act="sc${Math.round(f*100)}" class="${(UI.scale||1)===f?'on':''}">${Math.round(f*100)}</button>`).join('')}</div></div>
-<div class="qr"><span>Table colours</span><select class="sel sm" data-qpal>${TPALS.map(p=>`<option value="${p[0]}"${(UI.tpal||'classic')===p[0]?' selected':''}>${p[1]}</option>`).join('')}</select></div>
+
 ${cars.length?`<div class="qr"><span>Car</span><select class="sel sm" data-qcar>${cars.map(c=>`<option value="${esc(c.id)}"${c.id===UI.car?' selected':''}>${esc(c.name)}</option>`).join('')}</select></div>`:''}
 <button class="qi" data-q="go:settings:keys">Shortcuts<span>›</span></button>
 <hr><button class="qi" data-q="go:settings:">Settings<span>›</span></button><button class="qi" data-act="news">What's new</button><button class="qi" data-act="updchk">Check for updates</button><button class="qi" data-act="bug">Bug report</button>`; }

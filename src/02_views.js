@@ -467,7 +467,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
       const GW=hw2+cw2, GH=hh+ch*ny, dpr=devicePixelRatio||1, chW=Math.max(160,W-GW-14); cv.width=GW*dpr; cv.height=GH*dpr; cv.style.width=GW+'px'; cv.style.height=GH+'px';
       const VH=Math.max(160,H); chart.width=chW*dpr; chart.height=VH*dpr; chart.style.width=chW+'px'; chart.style.height=VH+'px'; S.geo={hw:hw2,hh,cw:cw2,ch,nx:1,ny,GW,GH,chW,dpr,vh:VH}; draw(); return; }
     if(oneD){ ch=Math.max(18,Math.min(34,cw*0.7)); hh=ch; chH=Math.max(100,H-hh-ch-6); }
-    else { ch=Math.max(11,Math.min(H/(ny+1),40*Math.max(1,S.zoom))); hh=Math.max(20,Math.min(ch,26)); ch=Math.max(11,Math.min(ch,(H-hh)/ny)); }
+    else { hh=Math.max(20,Math.min(26,H/(ny+1))); ch=Math.max(11,Math.min((H-hh)/ny,56*Math.max(1,S.zoom))); }
     grid.style.gridTemplateColumns=hw+'px repeat('+nx+','+cw+'px)'; grid.style.gridTemplateRows=hh+'px repeat('+ny+','+ch+'px)';
     grid.style.fontSize=Math.max(9,Math.min(17,Math.min(cw/3.7,ch*0.78)))+'px';
     const GW=hw+cw*nx, GH=hh+ch*ny, dpr=devicePixelRatio||1; cv.width=GW*dpr; cv.height=GH*dpr; cv.style.width=GW+'px'; cv.style.height=GH+'px';
