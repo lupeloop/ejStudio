@@ -330,7 +330,8 @@ ipcMain.handle('proj:open',async e=>{ const w=BrowserWindow.fromWebContents(e.se
 ipcMain.handle('proj:read',(e,p)=>{ try{ return p&&fs.existsSync(p)?readOut(p):null; }catch(_){ return null; } });
 ipcMain.handle('capture',async(e,r)=>{ const w=BrowserWindow.fromWebContents(e.sender); const img=await e.sender.capturePage({x:Math.round(r.x),y:Math.round(r.y),width:Math.round(r.w),height:Math.round(r.h)});
       const s=await dialog.showSaveDialog(w,{defaultPath:r.name,filters:[{name:'PNG image',extensions:['png']}]}); if(s.canceled||!s.filePath) return null; fs.writeFileSync(s.filePath,img.toPNG()); return s.filePath; });
-    ipcMain.handle('info',()=>({version:app.getVersion(),electron:process.versions.electron,chrome:process.versions.chrome,userData:app.getPath('userData')}));
+    ipcMain.handle('win:reload',e=>{ setTimeout(()=>{ try{ e.sender.reload(); }catch(_){} },30); return true; });
+ipcMain.handle('info',()=>({version:app.getVersion(),electron:process.versions.electron,chrome:process.versions.chrome,userData:app.getPath('userData')}));
     ipcMain.handle('readFiles',(e,ps)=>{ const out=[]; for(const p of (ps||[]).slice(0,60)){ if(!/\.(csv|tune|json)$/i.test(String(p))) continue; try{ if(fs.existsSync(p)) out.push(readOut(p)); }catch(_){} } return out; });
     ipcMain.handle('openData',()=>shell.openPath(app.getPath('userData')));
     ipcMain.handle('openUrl',(e,u)=>{ if(/^https:\/\//.test(String(u))) shell.openExternal(u); return true; });
