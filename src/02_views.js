@@ -213,8 +213,8 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   const vName=c=>c.firstChild&&c.firstChild.nodeType===3?c.firstChild.textContent.trim():c.textContent.replace('● ECU','').trim();
   const syncCur=()=>{ const auto=vrow.querySelector('.vauto'), vs=[...vrow.querySelectorAll('.vchip')], autoOn=auto&&auto.classList.contains('on');
     if(vs.length<2){ curV.style.display='none'; return; } curV.style.display='';
-    const act=autoOn?vs.find(c=>c.querySelector('.ecu')):vs.find(c=>c.classList.contains('on'));
-    curV.innerHTML=vs.map((c,k)=>`<button data-vi="${k}" class="${c===act?'on':''}${c.querySelector('.ecu')?' ecu':''}" title="${autoOn?'Auto: follows the ECU':'Pinned'}${c.querySelector('.ecu')?' · the ECU is using this table':''}${c===act&&!autoOn?' · click to return to Auto':''}">${esc(vName(c))}${c.querySelector('.ecu')?'<i></i>':''}</button>`).join('');
+    const isE=c=>!!(c.querySelector('.ecu')||c.classList.contains('match')), act=autoOn?vs.find(isE):vs.find(c=>c.classList.contains('on'));
+    curV.innerHTML=vs.map((c,k)=>`<button data-vi="${k}" class="${c===act?'on':''}${isE(c)?' ecu':''}" title="${autoOn?'Auto: follows the ECU':'Pinned'}${isE(c)?' · the ECU is using this table':''}${c===act&&!autoOn?' · click to return to Auto':''}">${esc(vName(c))}${isE(c)?'<i></i>':''}</button>`).join('');
     curV.classList.toggle('pin',!autoOn); };
   new MutationObserver(syncCur).observe(vrow,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
   curV.onclick=e=>{ const b=e.target.closest('button'); if(!b) return; e.stopPropagation(); const auto=vrow.querySelector('.vauto'), vs=[...vrow.querySelectorAll('.vchip')], c=vs[+b.dataset.vi]; if(!c) return; if(c.classList.contains('on')&&auto) auto.click(); else c.click(); };

@@ -30,7 +30,7 @@ function wmed(pairs){ const p=pairs.filter(q=>Number.isFinite(q[0])&&q[1]>0).sor
 const sumW = a => a.reduce((s,q)=>s+q[1],0);
 function fi(a,v){ const n=a.length; if(n<2||v<=a[0]) return 0; if(v>=a[n-1]) return n-1;
   let lo=0,hi=n-1; while(hi-lo>1){ const m=(lo+hi)>>1; if(a[m]<=v) lo=m; else hi=m; } return lo+(v-a[lo])/(a[hi]-a[lo]); }
-function bil(t,fx,fy){ const ix=Math.floor(fx), iy=Math.floor(fy), ix1=Math.min(ix+1,t.x.length-1), iy1=Math.min(iy+1,t.z.length-1), ax=fx-ix, ay=fy-iy;
+function bil(t,fx,fy){ fx=Math.max(0,Math.min(fx,(t.x?t.x.length:1)-1)); fy=Math.max(0,Math.min(fy,t.z.length-1)); const ix=Math.floor(fx), iy=Math.floor(fy), ix1=Math.min(ix+1,t.x.length-1), iy1=Math.min(iy+1,t.z.length-1), ax=fx-ix, ay=fy-iy;
   return (t.z[iy][ix]*(1-ax)+t.z[iy][ix1]*ax)*(1-ay)+(t.z[iy1][ix]*(1-ax)+t.z[iy1][ix1]*ax)*ay; }
 const at2 = (t,x,y) => bil(t, fi(t.x,x), t.yin?fi(t.y,y):0);
 const lerpArr = (xs,ys,v) => { const f=fi(xs,v), i=Math.floor(f), j=Math.min(i+1,ys.length-1); return ys[i]+(ys[j]-ys[i])*(f-i); };
