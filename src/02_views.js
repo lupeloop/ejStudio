@@ -211,13 +211,13 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   const opts=mk('div','tt-opts',root); opts.style.display='none';
   const curV=mk('span','tt-cur',bar); bar.insertBefore(curV,vrow); const vRow=mk('div','tt-or',opts); mk('span','vlab',vRow).textContent='Table'; vRow.appendChild(vrow); const zg=mk('div','tt-zg',bar); bar.insertBefore(zg,gear); zg.append(zo,zi,zf); const edRow=mk('div','tt-or',opts); edRow.style.display='none';
   const vName=c=>c.firstChild&&c.firstChild.nodeType===3?c.firstChild.textContent.trim():c.textContent.replace('● ECU','').trim();
-  const syncCur=()=>{ const ch=[...vrow.querySelectorAll('.chip')], auto=ch.find(c=>vName(c)==='Auto'), vs=ch.filter(c=>c!==auto), autoOn=auto&&auto.classList.contains('on');
+  const syncCur=()=>{ const auto=vrow.querySelector('.vauto'), vs=[...vrow.querySelectorAll('.vchip')], autoOn=auto&&auto.classList.contains('on');
     if(vs.length<2){ curV.style.display='none'; return; } curV.style.display='';
     const act=autoOn?vs.find(c=>c.querySelector('.ecu')):vs.find(c=>c.classList.contains('on'));
     curV.innerHTML=vs.map((c,k)=>`<button data-vi="${k}" class="${c===act?'on':''}${c.querySelector('.ecu')?' ecu':''}" title="${autoOn?'Auto: follows the ECU':'Pinned'}${c.querySelector('.ecu')?' · the ECU is using this table':''}${c===act&&!autoOn?' · click to return to Auto':''}">${esc(vName(c))}${c.querySelector('.ecu')?'<i></i>':''}</button>`).join('');
     curV.classList.toggle('pin',!autoOn); };
   new MutationObserver(syncCur).observe(vrow,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-  curV.onclick=e=>{ const b=e.target.closest('button'); if(!b) return; e.stopPropagation(); const ch=[...vrow.querySelectorAll('.chip')], auto=ch.find(c=>vName(c)==='Auto'), vs=ch.filter(c=>c!==auto), c=vs[+b.dataset.vi]; if(!c) return; if(c.classList.contains('on')&&auto) auto.click(); else c.click(); };
+  curV.onclick=e=>{ const b=e.target.closest('button'); if(!b) return; e.stopPropagation(); const auto=vrow.querySelector('.vauto'), vs=[...vrow.querySelectorAll('.vchip')], c=vs[+b.dataset.vi]; if(!c) return; if(c.classList.contains('on')&&auto) auto.click(); else c.click(); };
   const ebar=mk('div','tt-ebar',bar); ebar.style.display='none'; gear.classList.add('tt-gear');
   edRow.onclick=e=>ebar.onclick(e);
   ebar.onclick=e=>{ const b=e.target.closest('[data-e]'); if(!b||b.disabled) return; const a=b.dataset.e; if(a==='ov'){ EDIT.overlays=!EDIT.overlays; draw(); syncEd(); } else if(a==='only'){ EDIT.onlyEd=!EDIT.onlyEd; renderRail(); syncEd(); } else EDITOR.act(a); };
@@ -374,13 +374,13 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(!nd.length&&cur&&cur.group==='timing'&&CX.L&&CX.L.vvtOn>0.5){ needChip.style.display=''; needChip.className='chip ro warn tt-need'; needChip.textContent='Log fits VVT On'; needChip.title=`${Math.round(CX.L.vvtOn*100)}% of steady frames match the VVT On (reference) tables better than VVT Off`; }
     if(isSet()||(list.length<2&&!hasAuto(g))) return;
     const auto=hasAuto(g)||g==='timing', on=auto&&isAuto(g);
-    if(auto){ const a=mk('button','chip'+(on?' on':''),vrow); a.title='Follow the table the ECU is using, picked from the log'; a.textContent='Auto'; a.onclick=()=>{ T.sel[g]='auto'; save(); build(); }; }
+    if(auto){ const a=mk('button','chip vauto'+(on?' on':''),vrow); a.textContent='Auto'; a.onclick=()=>{ T.sel[g]='auto'; save(); build(); }; const ar=mk('div','drow vaut',vrow); ar.title='Follow the table the ECU is using, picked from the log'; mk('span','',ar).textContent='Auto'; seg(ar,[['1','On'],['0','Off']],on?'1':'0',v=>{ if(v==='1') T.sel[g]='auto'; else if(cur) T.sel[g]=cur.id; save(); build(); }); }
     if(g==='timing'){ const live=S.pick, isRef=t=>/VVT On/i.test(t.name), prim=list.filter(t=>!isRef(t)), ref=list.filter(isRef);
       prim.forEach(t=>{ const sel=cur&&cur.id===t.id, ecu=live&&t._ids.includes(live), b=mk('button','chip vchip'+(sel?' on':''),vrow); b.innerHTML=esc(vShort(t))+(ecu?'<span class="ecu">● ECU</span>':''); b.title=t.name+(ecu?' · the ECU is using this table now':''); b.onclick=()=>{ T.sel[g]=t.id; save(); build(); }; });
       if(ref.length){ const sl=mk('select','sel sm vref'+(ref.some(t=>cur&&cur.id===t.id)?' on':''),vrow); sl.innerHTML='<option value="">Reference tables</option>'+ref.map(t=>`<option value="${esc(t.id)}"${cur&&cur.id===t.id?' selected':''}>${esc(vShort(t))}${live&&t._ids.includes(live)?' · ● ECU':''}</option>`).join(''); sl.onchange=()=>{ if(sl.value){ T.sel[g]=sl.value; save(); build(); } }; }
       if(ST.logs.length>1){ const pc=mk('button','chip',vrow); pc.textContent=poolL(CX.L).length+' / '+ST.logs.length+' logs pooled'; pc.title='Logs pooled into the overlays on this table'; pc.onclick=()=>setPop(pc,['pool'],'Pooled logs'); }
       return; }
-    list.forEach(t=>{ const b=mk('button','chip'+(!on&&cur&&cur.id===t.id?' on':'')+(on&&cur&&cur.id===t.id?' match':''),vrow); b.title=on&&cur&&cur.id===t.id?'Active variant (picked by Auto). Click to lock this one':'Lock to this variant'; b.textContent=t.name; b.onclick=()=>{ T.sel[g]=t.id; save(); build(); }; }); }
+    list.forEach(t=>{ const b=mk('button','chip vchip'+(!on&&cur&&cur.id===t.id?' on':'')+(on&&cur&&cur.id===t.id?' match':''),vrow); b.title=on&&cur&&cur.id===t.id?'Active variant (picked by Auto). Click to lock this one':'Lock to this variant'; b.textContent=t.name; b.onclick=()=>{ T.sel[g]=t.id; save(); build(); }; }); }
   // knock summary strip (timing / knock-advance groups), collapsible, channel switch for the heat layer
   function stripLive(L,i){ if(!L||i==null) return;
     strip.querySelectorAll('[data-lv]').forEach(e=>{ const k=e.dataset.lv, a=L.c[k], v=a?a[i]:NaN; e.textContent=Number.isFinite(v)?(k==='iam'?v.toFixed(3):v.toFixed(2)+'°'):'—'; const was=e.className; e.className=!Number.isFinite(v)?'':k==='iam'?(v<0.99?'bad':'ok'):(v<-0.005?'warn':'ok'); if(k==='iam'&&was==='bad'&&e.className==='ok'&&!RM()) e.animate([{color:'var(--green)',textShadow:'0 0 12px var(--green)'},{}],{duration:1100,easing:'ease-out'}); const kc=e.closest('.kcard'); if(kc){ const j=L.idx?L.idx[k]:-1, wt=j!=null&&j>=0&&Number.isFinite(v)?warnTier(L.fam[j],v):0; kc.classList.toggle('wl',wt>0); } }); }
