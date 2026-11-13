@@ -288,11 +288,12 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   railBtn.onclick=()=>{ T.rail=T.rail?0:1; root.classList.toggle('norail',!T.rail); save(); requestAnimationFrame(layout); };
   q.oninput=()=>renderRail();
   const all=()=>TT()?TT().tables:[], tabs=g=>all().filter(t=>t.group===g), byId=id=>all().find(t=>t.id===id)||null, pTbl=id=>id?all().find(t=>t.id===id||t._ids.includes(id))||null:null;
-  const hasAuto=g=>tabs(g).some(t=>t.tag), isAuto=g=>T.sel[g]==='auto'||T.sel[g]==null;
+  const carTx=()=>{ const c=typeof carNow==='function'?carNow():null; return c&&c.trans||''; }, txTab=(l,tx)=>l.find(t=>new RegExp('\\b'+tx+'\\b').test(vShort(t)||t.name)), hasAuto=g=>tabs(g).some(t=>t.tag)||(!!carTx()&&!!txTab(tabs(g),carTx())), isAuto=g=>T.sel[g]==='auto'||T.sel[g]==null;
   const tgv=()=>{ const p=S.pick&&byId(S.pick); return p?(p.tag==='open'?'open':'closed'):'open'; };
   const autoTag=g=>tabs(g).some(t=>t.tag==='normal'||t.tag==='safe')?S.fuel:tgv();
   function current(){ const g=T.grp, l=tabs(g); if(!l.length) return null;
     if(g==='timing'&&isAuto(g)){ const tg=tgv(), c=l.filter(t=>t.tag===tg), want='VVT '+(T.opt.vvt==='on'?'On':'Off'); return c.find(t=>t.name.includes(want))||c[0]||l[0]; }
+    if(isAuto(g)&&!l.some(t=>t.tag)&&carTx()){ const m=txTab(l,carTx()); if(m) return m; }
     if(isAuto(g)&&hasAuto(g)){ const tg=autoTag(g); return l.find(t=>t.tag===tg)||l[0]; }
     return byId(T.sel[g])||l[0]; }
   const need=t=>!CX.L||!t?[]:[t.xin,t.yin].filter(k=>k&&!NOTRACE[k]&&!hasKey(CX.L,k)).map(k=>IN_NAMES[k]||k);
