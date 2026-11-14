@@ -1,6 +1,7 @@
 // ejStudio desktop shell (Electron). Runs ejstudio.html (ejStudio + ejLogger); adds native file open, a watched
 // log folder, clipboard and app-data storage.
-const {app,BrowserWindow,ipcMain,dialog,clipboard,shell,utilityProcess}=require('electron');
+const {app,BrowserWindow,ipcMain,dialog,clipboard,shell,utilityProcess,Menu,powerSaveBlocker}=require('electron')
+const MAC=process.platform==='darwin';
 const fs=require('fs'), path=require('path');
 // ejLab → ejStudio: the settings folder moved with the new name; carry the old one over once (before anything touches userData)
 try{ const nu=app.getPath('userData'), old=path.join(app.getPath('appData'),'ejLab'); if(!fs.existsSync(nu)&&fs.existsSync(old)) fs.cpSync(old,nu,{recursive:true}); }catch(_){}
@@ -39,7 +40,7 @@ function ejlStart(){
   if(p.stdout) p.stdout.on('data',d=>elog('ENGINE '+String(d).trim())); if(p.stderr) p.stderr.on('data',d=>elog('ENGINE ERR '+String(d).trim()));
   p.on('message',m=>{ if(!m) return;
     if(m.t==='status') ejl.state=m.state;
-    if(m.t==='rec'){ if(m.on&&!ejl.rec) ejl.recT0=Date.now(); ejl.rec=!!m.on; if(m.file) ejl.file=m.file; if(!m.on&&m.file){ ejl.last=m.file; } if(!m.on&&ejl.quitting) setTimeout(()=>app.quit(),150); }
+    if(m.t==='rec'){ if(m.on&&!ejl.rec) ejl.recT0=Date.now(); ejl.rec=!!m.on; try{ if(m.on&&ejl.psb==null) ejl.psb=powerSaveBlocker.start('prevent-app-suspension'); else if(!m.on&&ejl.psb!=null){ powerSaveBlocker.stop(ejl.psb); ejl.psb=null; } }catch(_){} if(m.file) ejl.file=m.file; if(!m.on&&m.file){ ejl.last=m.file; } if(!m.on&&ejl.quitting) setTimeout(()=>app.quit(),150); }
     if(m.t==='error') elog('ejLogger: '+m.text);
     send('ejl',m); });
   p.on('exit',code=>{ elog('ejLogger engine exited '+code); ejl.proc=null; ejl.rec=false; ejl.state='idle'; send('ejl',{t:'status',state:'idle',msg:'Engine stopped'}); });
@@ -54,7 +55,8 @@ const localIPs=()=>Object.values(require('os').networkInterfaces()).flat().filte
 function ejlIpc(){
   reg('ejl:send',(e,m)=>{ if(m&&m.t==='select'){ ejlCfg().sel=m.list||[]; ejlSave(); send('ejl',{t:'cfg',cfg:ejlCfg(),origin:m.origin}); } ejlPost(m); return true; });
   reg('ejl:cfg',()=>ejlCfg());
-  reg('ejl:set',(e,patch,origin)=>{ const c=ejlCfg(); Object.assign(c,patch||{}); ejlSave(); if(ejl.proc) ejl.proc.postMessage({t:'config',cfg:ejlEngineCfg(c)}); send('ejl',{t:'cfg',cfg:c,origin}); if(patch&&('phone' in patch||'role' in patch)) phoneServe(); return c; });
+  reg('ejl:set',(e,patch,origin)=>{ const c=ejlCfg(); Object.assign(c,patch||{}); ejlSave(); if(ejl.proc) ejl.proc.postMessage({t:'config',cfg:ejlEngineCfg(c)}); send('ejl',{t:'cfg',cfg:c,origin}); if(patch&&'role' in patch&&MAC) try{ app.setLoginItemSettings({openAtLogin:patch.role==='car'}); }catch(_){}
+  if(patch&&('phone' in patch||'role' in patch)) phoneServe(); return c; });
   reg('ejl:pickDef',async()=>{ const r=await dialog.showOpenDialog(win,{title:'Choose the logger definition (logger_METRIC_EN_v370.xml)',properties:['openFile'],filters:[{name:'Logger definition',extensions:['xml']}]});
     if(r.canceled||!r.filePaths[0]) return ejlCfg();
     try{ const d=path.join(app.getPath('userData'),'ejLogger'); fs.mkdirSync(d,{recursive:true}); const dst=path.join(d,path.basename(r.filePaths[0])); if(path.resolve(dst)!==path.resolve(r.filePaths[0])) fs.copyFileSync(r.filePaths[0],dst); ejlCfg().defPath=dst; }
@@ -149,7 +151,15 @@ function ejlIpc(){
     return {ok:false}; });
   // ── USB sticks: shown as export targets; in car mode a matching stick offers to sync logs (like logsync.ps1) ──
   ejl.drives=[];
-  function scanDrives(){ if(process.platform!=='win32') return; const now=[]; for(const L of 'DEFGHIJKLMNOPQRSTUVWXYZ'){ try{ if(fs.existsSync(L+':\\')) now.push(L); }catch(_){} }
+  // macOS: sticks mount under /Volumes; only USB volumes count (skips the boot disk, disk images and network shares). letter = volume name
+  function scanMac(){ let names=[]; try{ const root=fs.statSync('/').dev; names=fs.readdirSync('/Volumes').filter(n=>{ if(n.startsWith('.')) return false; try{ const st=fs.statSync('/Volumes/'+n); return st.isDirectory()&&st.dev!==root; }catch(_){ return false; } }); }catch(_){}
+    const prev=ejl.drives.map(d=>d.letter), seen=ejl.macSeen||(ejl.macSeen=new Set());
+    for(const n of prev.filter(L=>!names.includes(L))){ ejl.drives=ejl.drives.filter(d=>d.letter!==n); send('ejl',{t:'usb',on:false,drive:{letter:n}}); }
+    for(const x of [...seen]) if(!names.includes(x)) seen.delete(x);
+    for(const n of names.filter(L=>!prev.includes(L)&&!seen.has(L))){ seen.add(n); const vp='/Volumes/'+n;
+      require('child_process').execFile('diskutil',['info',vp],{timeout:4000},(err,out)=>{ const t=String(out||''); if(!/Protocol:\s+USB/i.test(t)||/Disk Image/i.test(t)) return; if(!fs.existsSync(vp)) return;
+        const d={letter:n,label:n,path:vp+'/'}; ejl.drives.push(d); send('ejl',{t:'usb',on:true,drive:d}); }); } }
+  function scanDrives(){ if(MAC) return scanMac(); if(process.platform!=='win32') return; const now=[]; for(const L of 'DEFGHIJKLMNOPQRSTUVWXYZ'){ try{ if(fs.existsSync(L+':\\')) now.push(L); }catch(_){} }
     const prev=ejl.drives.map(d=>d.letter), added=now.filter(L=>!prev.includes(L));
     ejl.drives=ejl.drives.filter(d=>now.includes(d.letter));
     for(const L of added){ require('child_process').execFile('cmd',['/c','vol',L+':'],{windowsHide:true,timeout:3000},(err,out)=>{ const m=String(out||'').match(/is\s+(.+)\r?\n/), label=m?m[1].trim():'';
@@ -167,7 +177,7 @@ function ejlIpc(){
     const walk=(dir,depth)=>{ if(depth>5) return; let ents=[]; try{ ents=fs.readdirSync(dir,{withFileTypes:true}); }catch(_){ return; }
       for(const e of ents){ const p=path.join(dir,e.name); if(e.isDirectory()){ if(!SKIP.test(e.name)) walk(p,depth+1); continue; }
         if(/\.tune$/i.test(e.name)) try{ const st=fs.statSync(p); tunes.push({path:p,name:e.name,mtime:st.mtimeMs,size:st.size}); }catch(_){}
-        const m=e.name.match(/^ejStudio[- ]Setup[- ](\d+\.\d+\.\d+)\.exe$/i); if(m) try{ const st=fs.statSync(p); exes.push({path:p,name:e.name,version:m[1],size:st.size}); }catch(_){} } };
+        const m=e.name.match(MAC?new RegExp('^ejStudio[- ]Setup[- ](\\d+\\.\\d+\\.\\d+)-'+process.arch+'\\.dmg$','i'):/^ejStudio[- ]Setup[- ](\d+\.\d+\.\d+)\.exe$/i); if(m) try{ const st=fs.statSync(p); exes.push({path:p,name:e.name,version:m[1],size:st.size}); }catch(_){} } };
     walk(root,0); tunes.sort((a,b)=>b.mtime-a.mtime); exes.sort((a,b)=>verNum(b.version)-verNum(a.version)); return {tunes,exes}; }
   reg('ejl:usbScan',(e,letter)=>{ const d=ejl.drives.find(x=>x.letter===letter); if(!d) return null; const recName=ejl.rec?path.basename(ejl.file||''):null, dest=path.join(d.path,'logs');
     const fresh=listLogs().filter(f=>!f.old&&f.name!==recName&&!(()=>{ try{ return fs.statSync(path.join(dest,f.name)).size===f.size; }catch(_){ return false; } })());
@@ -184,6 +194,9 @@ function ejlIpc(){
   reg('ejl:usbUpdate',async(e,p,go)=>{ try{ const dir=path.join(app.getPath('temp'),'ejStudio-update'); fs.mkdirSync(dir,{recursive:true}); const dst=path.join(dir,path.basename(p));
       if(!go){ fs.copyFileSync(p,dst); if(fs.statSync(dst).size!==fs.statSync(p).size) throw new Error('copy check failed'); ejl.pendingUpdate=dst; return {ok:true,staged:dst,perMachine:/Program Files/i.test(process.execPath)}; }
       const f=ejl.pendingUpdate||dst; if(!fs.existsSync(f)) throw new Error('installer missing'); try{ ejl.proc&&ejl.proc.postMessage({t:'quit'}); }catch(_){}
+      if(MAC){ const bundle=path.resolve(process.execPath,'../../..'), mnt=path.join(app.getPath('temp'),'ejStudio-dmg'), q=x=>"'"+String(x).replace(/'/g,"'\\''")+"'";
+        const sh=`sleep 2; hdiutil attach -nobrowse -noautoopen -mountpoint ${q(mnt)} ${q(f)} && app=$(ls -d ${q(mnt)}/*.app | head -1) && rm -rf ${q(bundle)} && ditto "$app" ${q(bundle)}; hdiutil detach ${q(mnt)} -force; open ${q(bundle)}`;
+        require('child_process').spawn('/bin/sh',['-c',sh],{detached:true,stdio:'ignore'}).unref(); setTimeout(()=>app.quit(),600); return {ok:true}; }
       require('child_process').spawn(f,['/S','--force-run'],{detached:true,stdio:'ignore',windowsHide:true}).unref(); setTimeout(()=>app.quit(),600); return {ok:true}; }catch(err){ elog('usb update '+err); return {ok:false,error:String(err.message||err)}; } });
   // ── Car setup (.ejlp): profiles, pages, themes, labels, warn limits, display, warm-up, recording rules ──
   const SETUP_CATS=[['profiles','Profiles'],['pages','Cluster pages and themes'],['labels','Labels'],['limits','Warn limits'],['display','Display, dimming, screensaver'],['warmup','Warm-up'],['record','Recording rules']];
@@ -263,7 +276,7 @@ function ejlIpc(){
 function create(){
   const CAR=ejlCfg().role==='car';
   win=new BrowserWindow({width:CAR?1024:1600,height:CAR?600:960,minWidth:CAR?640:1100,minHeight:CAR?400:680,fullscreen:CAR,frame:!CAR,backgroundColor:'#000000',title:'ejStudio',icon:path.join(__dirname,'logos/ejstudio.ico'),
-    autoHideMenuBar:true,show:false,titleBarStyle:CAR?undefined:'hidden',titleBarOverlay:CAR?false:{color:'#000000',symbolColor:'#e8e8ea',height:38},webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,spellcheck:false}});
+    autoHideMenuBar:true,show:false,titleBarStyle:CAR?undefined:'hidden',trafficLightPosition:{x:14,y:12},titleBarOverlay:CAR?false:{color:'#000000',symbolColor:'#e8e8ea',height:38},webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,spellcheck:false}});
   win.removeMenu();
   win.on('close',e=>{ if(ejl.rec&&!ejl.quitting){ e.preventDefault(); const r=dialog.showMessageBoxSync(win,{type:'warning',buttons:['Keep recording','Stop and close'],defaultId:0,cancelId:0,title:'ejLogger is recording',message:'ejLogger is recording a log.',detail:'Stop the recording and close ejStudio? The log file is closed cleanly first.'});
     if(r===1){ ejl.quitting=true; try{ ejl.proc.postMessage({t:'rec',on:false}); }catch(_){ app.quit(); } setTimeout(()=>app.quit(),3000); } } });
@@ -288,7 +301,8 @@ if(SELF){ app.whenReady().then(async()=>{ const dir=SELFA.includes('=')?SELFA.sl
 else if(!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance',(e,argv)=>{ if(win){ if(win.isMinimized()) win.restore(); if(!win.isVisible()) win.show(); win.focus(); const f=argFiles(argv); if(f.length) send('open-files',f.map(readOut)); } });
-  app.whenReady().then(()=>{ try{ cfg=Object.assign(cfg,JSON.parse(fs.readFileSync(CFGF(),'utf8'))); }catch(_){}
+  app.whenReady().then(()=>{ if(MAC){ Menu.setApplicationMenu(Menu.buildFromTemplate([{role:'appMenu'},{role:'editMenu'},{label:'Window',submenu:[{role:'minimize'},{role:'zoom'},{role:'togglefullscreen'},{type:'separator'},{role:'front'}]}])); try{ app.setLoginItemSettings({openAtLogin:ejlCfg().role==='car'}); }catch(_){} }
+  try{ cfg=Object.assign(cfg,JSON.parse(fs.readFileSync(CFGF(),'utf8'))); }catch(_){}
     // 3.1.0: with no log folder chosen, follow the folder ejLogger records into (not on a car PC)
     if(!cfg.folder){ try{ const c=ejlCfg(); if(c.role!=='car'){ const d=c.logDir||path.join(require('os').homedir(),'Documents','ejStudio','logs'); fs.mkdirSync(d,{recursive:true}); cfg.folder=d; saveCfg(); } }catch(_){} }
     ipcMain.handle('watch:get',()=>cfg);

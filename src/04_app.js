@@ -510,7 +510,7 @@ const ACTIONS=[['play','Play / pause','Space'],['step+','Step forward','→'],['
   ['flag','Add flag at playhead','F'],['flagr','Range flag start / end','Shift+F'],['log','Next log · swap A/B when comparing','Tab'],['exp','Expand / close timeline','E'],['la','Loop start','A'],['lb','Loop end','B'],['trimA','Trim start at playhead','Ctrl+['],['trimB','Trim end at playhead','Ctrl+]'],['save','Save project','Ctrl+S'],['newsess','New session','Ctrl+N'],['link','Link scrubbers (compare)','L'],['png','Export view as PNG','Ctrl+P']];
 let keyCapture=null;
 function keyOf(e){ let k=e.key; if(['Control','Shift','Alt','Meta'].includes(k)) return null; const M={' ':'Space',ArrowRight:'→',ArrowLeft:'←',ArrowUp:'↑',ArrowDown:'↓'}; k=M[k]||(k.length===1?k.toUpperCase():k);
-  return (e.ctrlKey?'Ctrl+':'')+(e.altKey?'Alt+':'')+(e.shiftKey&&!(k.length===1&&!/[A-Z0-9]/.test(k))?'Shift+':'')+k; }
+  return ((e.ctrlKey||(e.metaKey&&document.body.classList.contains('mac')))?'Ctrl+':'')+(e.altKey?'Alt+':'')+(e.shiftKey&&!(k.length===1&&!/[A-Z0-9]/.test(k))?'Shift+':'')+k; }
 function keyAction(e){ const k=keyOf(e); if(!k) return null; for(const [id,,d] of ACTIONS) if(!id.startsWith('ed:')&&(UI.keys[id]??d)===k) return id; return null; }
 function setSpeed(v){ UI.speed=v; save(); $('t-speed').querySelectorAll('button').forEach(x=>x.classList.toggle('on',+x.dataset.s===v)); toast('Speed '+v+'×'); }
 function jumpEv(kind,dir){ const L=RP.L; if(!L) return; const l=(L.allEv||[]).filter(e=>e.kind===kind), now=RP.playT; let e=null;

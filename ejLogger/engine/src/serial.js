@@ -7,7 +7,9 @@ const PARITY = ['none', 'odd', 'even', 'mark', 'space']; // RomRaider: 0 = NONE
 
 async function listPorts() {
   if (!SP) return [];
-  const l = await SP.SerialPort.list();
+  let l = await SP.SerialPort.list();
+  // macOS lists /dev/tty.* — the call-out /dev/cu.* node opens without waiting for carrier detect; skip Bluetooth/debug ports
+  if (process.platform === 'darwin') l = l.map(p => Object.assign({}, p, { path: p.path.replace('/dev/tty.', '/dev/cu.') })).filter(p => !/Bluetooth|debug-console|wlan-debug/i.test(p.path));
   return l.map(p => ({ path: p.path, name: p.friendlyName || [p.manufacturer, p.serialNumber].filter(Boolean).join(' ') || '', vid: p.vendorId || '', pid: p.productId || '' }))
     .sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
 }

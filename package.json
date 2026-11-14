@@ -8,7 +8,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "start": "electron .",
-    "test:logger": "node ejLogger/engine/test/golden.test.js && node ejLogger/engine/test/engine.test.js"
+    "test:logger": "node ejLogger/engine/test/golden.test.js && node ejLogger/engine/test/engine.test.js",
+    "dist:mac": "node bundle.js && electron-builder --mac --publish never"
   },
   "build": {
     "appId": "com.ejstudio.app",
@@ -24,7 +25,8 @@
       "ejLogger/defaults/**",
       "ejLogger/ui/**",
       "ejLogger/phone.js",
-      "logos/ejlogger_*.png"
+      "logos/ejlogger_*.png",
+      "logos/ejstudio_512.png"
     ],
     "directories": {
       "output": "dist"
@@ -61,7 +63,11 @@
     },
     "fileAssociations": [
       {
-        "ext": ["ejsp","ejstudio","ejlab"],
+        "ext": [
+          "ejsp",
+          "ejstudio",
+          "ejlab"
+        ],
         "name": "ejStudio Project",
         "description": "ejStudio project"
       }
@@ -70,7 +76,44 @@
     "asarUnpack": [
       "node_modules/@serialport/**",
       "ejLogger/defaults/*.xml"
-    ]
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "logos/ejstudio_512.png",
+      "category": "public.app-category.utilities",
+      "identity": null,
+      "artifactName": "ejStudio-Setup-${version}-${arch}.${ext}",
+      "darkModeSupport": true,
+      "extendInfo": {
+        "NSLocalNetworkUsageDescription": "ejLogger serves the phone panel on the local network.",
+        "NSBonjourServices": [
+          "_http._tcp"
+        ]
+      }
+    },
+    "dmg": {
+      "title": "ejStudio ${version}",
+      "contents": [
+        {
+          "x": 150,
+          "y": 190
+        },
+        {
+          "x": 390,
+          "y": 190,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
   },
   "devDependencies": {
     "electron": "38.2.0",

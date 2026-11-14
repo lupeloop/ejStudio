@@ -45,7 +45,7 @@ function wire(){
 // ── boot: tune → stored logs → app (or landing) ─────────────────────────────
 (async function boot(){
   if(!UI.mig210){ UI.sync.maf_table=true; UI.mig210=1; save(); } if(!UI.mig218){ UI.sync.table=true; UI.mig218=1; save(); }
-  if(window.rrlab&&window.rrlab.desktop) document.body.classList.add('desk'); if(UI.scale&&UI.scale!==1) uiScale(UI.scale); setInterval(tstat,700);
+  if(window.rrlab&&window.rrlab.desktop) document.body.classList.add('desk'); if(window.rrlab&&rrlab.platform==='darwin'){ document.body.classList.add('mac'); macKeys(); } if(UI.scale&&UI.scale!==1) uiScale(UI.scale); setInterval(tstat,700);
   { const bad=[]; for(const [k,f] of [['tt',x=>x&&x.opt],['g',x=>x&&Array.isArray(x.lanes)],['panes',Array.isArray]]) if(!f(UI[k])){ bad.push(k); UI[k]=JSON.parse(JSON.stringify(UI_DEF[k])); }
     if(bad.length||window.__quar){ elog('self-check reset: '+(bad.join(',')||'settings unreadable')); save(); setTimeout(()=>toast('Some saved settings were unreadable and were reset'),1500); } } profApply(); makeViews(); wire(); if(window.rrlab&&window.rrlab.info) window.rrlab.info().then(i=>{ INFO=i; drawerRefresh(); }).catch(()=>{}); if(new URLSearchParams(location.search).get('car')!=='1') setTimeout(()=>checkUpdates(false),5000); { const j=UI.panes.indexOf('table'); if(j>0) UI.panes[j]=UI.panes[0]; UI.panes[0]='table'; UI.focus=0; }
   try{ profMigrate(); profApply(); }catch(_){}
@@ -57,3 +57,7 @@ function wire(){
   offerRecovery();
   if(errs.length) toast(errs.join(' · '));
 })();
+
+// macOS: shortcuts are stored as Ctrl+… everywhere; show them as ⌘ / ⌥ on screen
+function macKeys(){ const fix=t=>t.replace(/\bCtrl\+/g,'⌘').replace(/\bAlt\+/g,'⌥'), walk=n=>{ if(n.nodeType===3){ if(n.data.includes('Ctrl+')||n.data.includes('Alt+')) n.data=fix(n.data); return; } if(n.nodeType!==1) return; if(n.title&&/Ctrl\+|Alt\+/.test(n.title)) n.title=fix(n.title); for(const c of n.childNodes) walk(c); };
+  walk(document.body); new MutationObserver(ms=>{ for(const m of ms){ if(m.type==='characterData') walk(m.target); else if(m.type==='attributes') walk(m.target); else m.addedNodes.forEach(walk); } }).observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['title']}); }
