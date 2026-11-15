@@ -1,8 +1,7 @@
 name: macOS build
 
+# Manual only for now: Actions → macOS build → Run workflow
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:

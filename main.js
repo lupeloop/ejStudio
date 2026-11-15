@@ -40,7 +40,7 @@ function ejlStart(){
   if(p.stdout) p.stdout.on('data',d=>elog('ENGINE '+String(d).trim())); if(p.stderr) p.stderr.on('data',d=>elog('ENGINE ERR '+String(d).trim()));
   p.on('message',m=>{ if(!m) return;
     if(m.t==='status') ejl.state=m.state;
-    if(m.t==='rec'){ if(m.on&&!ejl.rec) ejl.recT0=Date.now(); ejl.rec=!!m.on; try{ if(m.on&&ejl.psb==null) ejl.psb=powerSaveBlocker.start('prevent-app-suspension'); else if(!m.on&&ejl.psb!=null){ powerSaveBlocker.stop(ejl.psb); ejl.psb=null; } }catch(_){} if(m.file) ejl.file=m.file; if(!m.on&&m.file){ ejl.last=m.file; } if(!m.on&&ejl.quitting) setTimeout(()=>app.quit(),150); }
+    if(m.t==='rec'){ if(m.on&&!ejl.rec) ejl.recT0=Date.now(); ejl.rec=!!m.on; if(MAC) try{ if(m.on&&ejl.psb==null) ejl.psb=powerSaveBlocker.start('prevent-app-suspension'); else if(!m.on&&ejl.psb!=null){ powerSaveBlocker.stop(ejl.psb); ejl.psb=null; } }catch(_){} if(m.file) ejl.file=m.file; if(!m.on&&m.file){ ejl.last=m.file; } if(!m.on&&ejl.quitting) setTimeout(()=>app.quit(),150); }
     if(m.t==='error') elog('ejLogger: '+m.text);
     send('ejl',m); });
   p.on('exit',code=>{ elog('ejLogger engine exited '+code); ejl.proc=null; ejl.rec=false; ejl.state='idle'; send('ejl',{t:'status',state:'idle',msg:'Engine stopped'}); });
