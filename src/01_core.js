@@ -614,6 +614,8 @@ function logEvents(L){ L.rb=rebuildLog(L);
   const N=L.N, T=L.t, K=L.c, FB=K.fbkc, FL=K.flkc, CL=L.st, MV=K.mafv, LD=K.load, R=K.rpm, an=L.an, km=[], kt=[], ev=[];
   for(let i=1;i<N;i++){
     if(FB&&FB[i]<FB[i-1]-0.01&&R&&LD&&Number.isFinite(R[i])&&Number.isFinite(LD[i])) km.push({i,t:T[i],rpm:R[i],load:LD[i]});
+    // FLKC steps down when the ECU applies (or learns) a stored correction for the cell it just entered
+    if(FL&&FL[i]<FL[i-1]-0.01&&FL[i]<-0.005){ if(R&&LD&&Number.isFinite(R[i])&&Number.isFinite(LD[i])) km.push({i,t:T[i],rpm:R[i],load:LD[i],fl:true}); ev.push({t:T[i],kind:'Knock',fl:FL[i],label:`FLKC ${FL[i].toFixed(2)}°`+(R?` @ ${Math.round(R[i])} rpm`:'')}); }
     if((FB&&FB[i]<-0.005&&!(FB[i-1]<-0.005))||(FL&&FL[i]<-0.005&&!(FL[i-1]<-0.005))) kt.push(T[i]);
     if(FB&&FB[i]<-0.005&&!(FB[i-1]<-0.005)){ let w=FB[i]; for(let j=i;j<N&&FB[j]<-0.005;j++) w=Math.min(w,FB[j]); ev.push({t:T[i],kind:'Knock',label:`FBKC ${w.toFixed(2)}°`+(R?` @ ${Math.round(R[i])} rpm`:'')}); }
     if(MV&&CL[i]>=10&&!(CL[i-1]>=10)&&!(an&&an.cutF[i])){ let mx=-Infinity,j=i; for(;j<N&&CL[j]>=10;j++) if(MV[j]>mx) mx=MV[j];
@@ -684,7 +686,9 @@ function diagEvents(L,ev){
   const tg=C.tboost||(L.rb&&L.rb.boost&&L.rb.boost.fin), M=C.map, WG=C.wgdc, ba=i=>C.baro&&Number.isFinite(C.baro[i])?C.baro[i]:ATM, ps=v=>(v*0.1450377).toFixed(1);
   // knock: transient vs sustained, repeats across pulls, low-load / WOT FLKC, IAM drops
   const pulls=L.pulls||[], zones={};
+  const inPull=i=>P?P[i]>=CFG.pullThr:pulls.some(q=>i>=q.i0&&i<=q.i1)||(L.st&&L.st[i]>=10&&LD&&LD[i]>=1.6);
   for(const e of ev){ if(e.kind!=='Knock') continue; const i=Math.round(fi(T,e.t));
+    if(e.fl!=null){ const wot=inPull(i); e.sev=e.fl<=-2.8?(wot?'crit':'warn'):'info'; e.label+=wot?' · learned, at WOT':' · learned'; continue; }
     if(near(e.t,CFG.knockWin*1000,100)){ e.sev='info'; e.label+=' · transient (tip-in/out)'; continue; }
     e.sev='warn'; e.label+=' · sustained'; const p=pulls.find(q=>i>=q.i0&&i<=q.i1);
     if(p&&R&&LD){ e._z=Math.round(R[i]/500)+'|'+Math.round(LD[i]*5); (zones[e._z]=zones[e._z]||new Set()).add(p); }
@@ -692,7 +696,6 @@ function diagEvents(L,ev){
   for(const e of ev) if(e._z&&zones[e._z].size>=2) e.label+=' · repeats across pulls';
   for(const [k,lab] of [['fbkc','FBKC'],['flkc','FLKC']]){ const A=C[k]; if(!A||!LD) continue;
     run(i=>A[i]<=-4.2&&LD[i]<CFG.lowLoad&&(!P||P[i]<30),0,(s0,e0)=>{ let w=0; for(let j=s0;j<=e0;j++) w=Math.min(w,A[j]); push(s0,'Knock','crit',`${lab} ${w.toFixed(2)}° at low load`); }); }
-  if(C.flkc&&P) run(i=>C.flkc[i]<=-2.8&&P[i]>=CFG.pullThr,0,(s0,e0)=>{ let w=0; for(let j=s0;j<=e0;j++) w=Math.min(w,C.flkc[j]); push(s0,'Knock','crit',`FLKC ${w.toFixed(2)}° at WOT`); });
   if(C.iam) for(let i=1;i<N;i++) if(C.iam[i]<C.iam[i-1]-1e-3) push(i,'IAM','crit',`IAM drop ${C.iam[i-1].toFixed(2)} → ${C.iam[i].toFixed(2)}`);
   // boost / WGDC health
   if(tg&&M){ const be=CFG.bErr/0.1450377;
