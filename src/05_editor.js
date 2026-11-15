@@ -158,8 +158,8 @@ window.__build=async()=>{ if(!TUNE||!EDIT.T){ toast('Nothing to build'); return;
   const note=await askVal(`Build ${file}`,'','',`Note for the Tuning tree (optional) · ${n} change${n>1?'s':''}`); if(note==null) return;
   let txt; try{ txt=tuneText(); JSON.parse(txt); }catch(e){ elog('build '+(e&&e.stack||e)); toast('Build failed'); return; }
   const sum=window.__tuneChanges().slice(1).map(x=>x.trim()), node={id:nid(),rev:next,parent:REV.cur,file,note:note.trim(),time:Date.now(),src:txt,sum};
-  dl(new Blob([txt],{type:'application/json'}),file); try{ if(window.rrlab&&window.rrlab.backup) window.rrlab.backup(TUNE.car||'tune',file,txt); }catch(_){} REV.nodes.push(node); REV.cur=node.id; const on=EDIT.on;
-  window.__treeSwitch=1; await loadTuneText(txt,file); window.__treeSwitch=0; if(on){ EDIT.on=true; EDIT.T=structuredClone(TUNE); } revSave(); TV.edRefresh(); drawerRefresh(); toast(`Built ${file} · open it in Lambda, run Test Write, then Write`,{act:['Show in folder',()=>{ if(window.rrlab&&rrlab.showDl) rrlab.showDl(file); }]}); const pv=(REV.nodes.find(x=>x.id===node.parent)||{}).rev, te=document.querySelector('.toast .tm'); if(te&&pv!=null) te.innerHTML=`Built ${esc(revBase())}_rev<span class="odo"><span><i>${pv}</i><i>${next}</i></span></span>.tune · open it in Lambda, run Test Write, then Write`; };
+  dl(new Blob([txt],{type:'application/json'}),file); try{ if(window.rrlab&&window.rrlab.backup) window.rrlab.backup(TUNE.car||'tune',file,txt); }catch(_){} REV.nodes.push(node); if(REV.cur) ST.logs.forEach(x=>{ if(!UI.lrev[x.fp]) UI.lrev[x.fp]=REV.cur; }); REV.cur=node.id; const on=EDIT.on;
+  window.__treeSwitch=1; await loadTuneText(txt,file); window.__treeSwitch=0; if(on){ EDIT.on=true; EDIT.T=structuredClone(TUNE); } revSave(); TV.edRefresh(); drawerRefresh(); toast(`Built ${file}`,{act:['Show in folder',()=>{ if(window.rrlab&&rrlab.showDl) rrlab.showDl(file); }]}); const pv=(REV.nodes.find(x=>x.id===node.parent)||{}).rev, te=document.querySelector('.toast .tm'); if(te&&pv!=null) te.innerHTML=`Built ${esc(revBase())}_rev<span class="odo"><span><i>${pv}</i><i>${next}</i></span></span>.tune · open it in Lambda, run Test Write, then Write`; };
 function revDiff(){ const cur=curNode(), others=REV.nodes.filter(n=>n!==cur&&n.src); if(!cur){ toast('Load a tune'); return; }
   const d=mk('div','',document.body); d.id='mapdlg'; const done=()=>{ document.removeEventListener('keydown',kd,true); d.remove(); }, kd=e=>{ if(e.key==='Escape'){ e.stopPropagation(); done(); } }; document.addEventListener('keydown',kd,true);
   const show=id=>{ const o=REV.nodes.find(n=>n.id===id); let A, B=TUNE; try{ A=parseTune(o.src,o.file); }catch(_){ toast('Could not read that revision'); return; } const rows=[];
@@ -199,7 +199,8 @@ window.__logRev=L=>{ const n=REV.nodes.find(x=>x.id===(UI.lrev[L.fp]||REV.cur));
 let edTm=0; window.__edChanged=()=>{ clearTimeout(edTm); edTm=setTimeout(()=>{ const on=EDIT.T&&edCount();
   for(const L of ST.logs){ if(!on||(L!==RP.L&&L!==RP.B)){ L.rbP=null; continue; } const sv=TUNE; TUNE=EDIT.T; try{ L.rbP=rebuildLog(L); }catch(e){ L.rbP=null; elog('what-if '+e); } TUNE=sv; }
   RP.dirty=true; if($('drawer').classList.contains('open')) drawerRefresh(); },250); };
-function mafSugs(){ const R=ST.row, t=EDIT.T&&EDIT.T.tables.find(q=>q.group==='maf'); if(!R||!t||t.z[0].length!==R.nv.length) return [];
+function mafSugs(){ mafSugs.note=''; const R=ST.row, t=EDIT.T&&EDIT.T.tables.find(q=>q.group==='maf'); if(!R||!t||t.z[0].length!==R.nv.length) return [];
+  const pl=ST.logs.filter(L=>typeof pooled!=='function'||pooled(L)); if(pl.length&&!pl.some(L=>(UI.lrev[L.fp]||REV.cur)===REV.cur)){ mafSugs.note='These logs were recorded on an earlier revision, so their corrections are already in this one. Log a drive on this revision to check MAF scaling again.'; return []; }
   const o=[]; R.nv.forEach((v,i)=>{ if(ST.bins[i].n&&Math.abs(v/t.z[0][i]-1)>0.0005) { const E=Array.isArray(UI.mafZones)&&UI.mafZones.length===3?UI.mafZones:[1.2,1.9,2.5], zi=E.filter(z=>t.x[i]>=z).length; o.push({t,r:0,c:i,to:v,g:'MAF scaling',grp:'m'+zi,zone:['Idle','Cruise','Load','Boost'][zi],bin:ST.bins[i],lbl:t.x[i].toFixed(3)+' V',why:`n ${ST.bins[i].n.toFixed(0)} · ×${R.f[i].toFixed(4)}`}); } }); return o; }
 function knockSugs(){ const out=[], notes=[], acc=new Map(), prot=new Map(), byT=new Map(); if(!EDIT.T) return {out,notes};
   const logs=ST.logs.filter(L=>(UI.lrev[L.fp]||REV.cur)===REV.cur&&L.c.fbkc&&L.c.load&&L.c.rpm);
@@ -311,10 +312,10 @@ function hrSig(){ return [REV.cur,ST.logs.map(L=>L.fp+':'+(UI.lrev[L.fp]||'')+':
 function hrData(){ if(!TUNE||!EDIT.T) return null; const s=hrSig(); if(HR.data&&HR.sig===s) return HR.data;
   const tr=f=>{ try{ return f(); }catch(_){ return {out:[],notes:[]}; } }, K=tr(knockSugs), F=tr(fuelSugs), Bo=tr(boostSugs), In=tr(injSugs); let M=[]; try{ M=mafSugs(); }catch(_){}
   const L=K.out.concat(M,F.out,Bo.out,In.out), key=x=>x.t.id+'|'+x.r+'|'+x.c+'|'+x.to, was=new Map(); if(HR.data) HR.data.L.forEach((x,k)=>was.set(key(x),HR.data.ON[k]));
-  { const rt=REV.nodes&&REV.nodes[0]&&REV.nodes[0].id; if(HR.doneRoot!==rt){ HR.done=[]; HR.doneRoot=rt; } const lk=new Set(L.map(x=>x.t.id+'|'+x.r+'|'+x.c)); HR.done.forEach(d=>{ if(!lk.has(d.tid+'|'+d.r+'|'+d.c)) L.push(d); }); }
+  { const rt=REV.cur; if(HR.doneRoot!==rt){ HR.done=[]; HR.doneRoot=rt; } const lk=new Set(L.map(x=>x.t.id+'|'+x.r+'|'+x.c)); HR.done.forEach(d=>{ if(!lk.has(d.tid+'|'+d.r+'|'+d.c)) L.push(d); }); }
   const ON=L.map(x=>x.done?false:was.has(key(x))?was.get(key(x)):!x.off), G=new Map(); L.forEach((x,k)=>{ const g=G.get(x.grp)||{id:x.grp,cat:x.g,items:[]}; g.items.push(k); G.set(x.grp,g); });
   if(HR.data) for(const g of G.values()){ const o=HR.data.G.get(g.id); if(o) g.open=o.open; }
-  HR.data={L,ON,G,groups:[...G.values()],notes:{'Knock timing':K.notes,'Fuel timing':F.notes,'Boost control':Bo.notes,'Injectors':In.notes,'MAF scaling':[]}}; HR.sig=s; return HR.data; }
+  HR.data={L,ON,G,groups:[...G.values()],notes:{'Knock timing':K.notes,'Fuel timing':F.notes,'Boost control':Bo.notes,'Injectors':In.notes,'MAF scaling':mafSugs.note?[mafSugs.note]:[]}}; HR.sig=s; return HR.data; }
 function hrCount(){ const D=hrData(); return D?D.L.length:0; }
 function hrGroupN(g){ const D=HR.data; return D&&EDIT.on?D.L.filter(x=>!x.done&&x.t.group===g).length:0; }
 function hrJump(){ const D=HR.data; if(!D) return; const k=D.L.findIndex(x=>x.g===HR.cat); if(k>=0&&TV.showTable) TV.showTable(D.L[k].t.id); }
@@ -323,7 +324,7 @@ function hrOpen(cat,opt){ if(!TUNE) return; if(!EDIT.on) EDITOR.on(true); showVi
   if(opt&&opt.maf&&D) D.L.forEach((x,k)=>{ if(x.g==='MAF scaling') D.ON[k]=x.t.x[x.c]>=opt.maf[0]-1e-9&&x.t.x[x.c]<opt.maf[1]-1e-9; });
   hrJump(); TV.edRefresh(); }
 function hrClose(){ HR.open=false; TV.edRefresh(); }
-function hrApply(){ const D=HR.data; if(!D) return; const rt=REV.nodes&&REV.nodes[0]&&REV.nodes[0].id; if(HR.doneRoot!==rt){ HR.done=[]; HR.doneRoot=rt; }
+function hrApply(){ const D=HR.data; if(!D) return; const rt=REV.cur; if(HR.doneRoot!==rt){ HR.done=[]; HR.doneRoot=rt; }
   D.L.forEach((x,k)=>{ if(!D.ON[k]||x.done) return; const id=x.t.id+'|'+x.r+'|'+x.c; HR.done=HR.done.filter(d=>d.tid+'|'+d.r+'|'+d.c!==id); HR.done.push(Object.assign({},x,{done:true,at:Date.now(),from:x.t.z[x.r][x.c],tid:x.t.id,grp:'done:'+x.grp})); });
   const by=new Map(); D.L.forEach((x,k)=>{ if(!D.ON[k]||x.done) return; const z=by.get(x.t)||x.t.z.map(r=>r.slice()); z[x.r][x.c]=x.to; by.set(x.t,z); });
   const items=[]; for(const [t,z] of by) if(edGuard(t,z)) items.push({t,k:'z',after:z}); if(items.length){ edCommit(items,'apply helpers'); toast(`Applied to ${items.length} table${items.length!==1?'s':''}`); } TV.edRefresh(); }

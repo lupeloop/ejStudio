@@ -4,7 +4,7 @@
 const $=id=>document.getElementById(id);
 const mk=(t,c,p)=>{ const e=document.createElement(t); if(c) e.className=c; if(p) p.appendChild(e); return e; };
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const CVRO=typeof ResizeObserver!=='undefined'?new ResizeObserver(es=>{ for(const e of es){ const t=e.target; t._W=t.clientWidth; t._H=t.clientHeight; } }):null;
+const CVRO=typeof ResizeObserver!=='undefined'?new ResizeObserver(es=>{ for(const e of es){ const t=e.target; if(t._W!==t.clientWidth||t._H!==t.clientHeight){ t._W=t.clientWidth; t._H=t.clientHeight; if(typeof RP!=='undefined') RP.dirty=true; if(t._redraw) t._redraw(); } } }):null;
 function sizeCanvas(cv){ if(cv._W==null||!CVRO){ cv._W=cv.clientWidth; cv._H=cv.clientHeight; if(CVRO&&!cv._ro){ cv._ro=1; CVRO.observe(cv); } } const dpr=devicePixelRatio||1, W=cv._W, H=cv._H; if(!W||!H){ cv._W=null; return null; }
   const w=Math.round(W*dpr), h=Math.round(H*dpr); if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
   const c=cv.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); return {c,W,H}; }
@@ -240,7 +240,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   function edTip(e){ const t=built, b=baseOf(t), p=cellAt(e.clientX,e.clientY); if(!t||!b||!p) return false; const c=Math.round(p.x), r=Math.round(p.y);
     if(r<0||c<0||r>=t.z.length||c>=t.x.length||!b.z[r]||same(t.z[r][c],b.z[r][c])) return false; const d=uDisp(t), o=dv(d,b.z[r][c]), n=dv(d,t.z[r][c]), bx=gbox.getBoundingClientRect();
     tip.innerHTML=`<b>was ${o} → now ${n} ${esc(d.u)}</b><br>change ${(+n-+o>0?'+':'')+(+n-+o).toFixed(d.dp)}`; tip.classList.remove('hidden');
-    tip.style.left=Math.min(bx.width-tip.offsetWidth-6,e.clientX-bx.left+14)+'px'; tip.style.top=Math.max(4,e.clientY-bx.top-tip.offsetHeight-10)+'px'; return true; }
+    tip.style.left=(Math.min(bx.width-tip.offsetWidth-6,e.clientX-bx.left+14)+gbox.scrollLeft)+'px'; tip.style.top=(Math.max(4,e.clientY-bx.top-tip.offsetHeight-10)+gbox.scrollTop)+'px'; return true; }
   function edDraw(c,g,t,W){ if(!ED()) return; const b=baseOf(t); const pa=(performance.now()-(EDIT.lastAt||-1e9))/520; if(pa<1&&SEL.r0!=null&&!RM()){ const r0=Math.min(SEL.r0,SEL.r1), r1=Math.max(SEL.r0,SEL.r1), c0=Math.min(SEL.c0,SEL.c1), c1=Math.max(SEL.c0,SEL.c1); c.fillStyle=hexA(INK().chg,.5*(1-pa)*(1-pa)); for(let r=Math.max(r0,W.r0);r<=Math.min(r1,W.r0+W.vy-1);r++) for(let q=Math.max(c0,W.c0);q<=Math.min(c1,W.c0+W.vx-1);q++) if(b&&b.z[r]&&!same(t.z[r][q],b.z[r][q])) c.fillRect(g.hw+(q-W.c0)*g.cw,g.hh+(r-W.r0)*g.ch,g.cw,g.ch); requestAnimationFrame(()=>draw()); }
     if(b){ const tri=(x,y)=>{ const z=Math.max(7,Math.min(12,Math.min(g.cw,g.ch)*0.36)); c.fillStyle=inkOut(INK().chg); c.beginPath(); c.moveTo(x,y); c.lineTo(x+z+1.5,y); c.lineTo(x,y+z+1.5); c.fill(); c.fillStyle=INK().chg; c.beginPath(); c.moveTo(x,y); c.lineTo(x+z,y); c.lineTo(x,y+z); c.fill(); };
       for(let r=W.r0;r<W.r0+W.vy;r++) for(let q=W.c0;q<W.c0+W.vx;q++) if(b.z[r]&&!same(t.z[r][q],b.z[r][q])) tri(g.hw+(q-W.c0)*g.cw+1,g.hh+(r-W.r0)*g.ch+1);
@@ -428,12 +428,12 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
     if(P.on){ const dx=(e.clientX-P.x)/g.cw, dy=(e.clientY-P.y)/g.ch; if(Math.abs(dx)+Math.abs(dy)>0.3){ P.moved=true; if(S.zoom>1.01){ if(S.follow){ S.follow=false; syncZ(); } if(setWin(P.c0-dx,P.r0-dy)) render(); } } return; }
     hover(e); });
   gbox.addEventListener('pointerup',e=>{ if(SEL.drag){ SEL.drag=false; return; } if(P.on&&!P.moved) clickCell(e); P.on=false; }); gbox.addEventListener('pointercancel',()=>{ SEL.drag=false; P.on=false; });
-  gbox.addEventListener('pointerleave',()=>tip.classList.add('hidden'));
+  gbox.addEventListener('pointerleave',()=>tip.classList.add('hidden')); gbox.addEventListener('scroll',()=>tip.classList.add('hidden'),{passive:true});
   function heatCell(e){ const t=built; if(!t||!T.opt.kmH||!knockTbl(t)) return null; const p=cellAt(e.clientX,e.clientY); if(!p) return null;
     const c=Math.round(p.x), r=Math.round(p.y), H=heatData(); return H&&H.cells[r+','+c]?{c,r,cell:H.cells[r+','+c]}:null; }
   function hover(e){ if(ED()&&edTip(e)) return; const h=heatCell(e); if(!h){ if(!dwellTip(e)) tip.classList.add('hidden'); return; } const t=built, m=h.cell, b=gbox.getBoundingClientRect();
     tip.innerHTML=`<b>${fmtA('load',t.x[h.c])} g/rev · ${Math.round(t.y[h.r])} rpm</b><br>worst ${m.worst.toFixed(2)}° · ${m.cnt} frame${m.cnt>1?'s':''} · ${m.logs.size} log${m.logs.size>1?'s':''}${Object.keys(m.ch).length>1||kchs().length>1?'<br>'+Object.entries(m.ch).map(([c,x])=>c.toUpperCase()+' '+x.toFixed(2)+'°').join(' · '):''}${m.iat!=null?` · IAT ${m.iat}°C`:''}${m.ect!=null?` · ECT ${m.ect}°C`:''}`;
-    tip.classList.remove('hidden'); tip.style.left=Math.min(b.width-tip.offsetWidth-6,e.clientX-b.left+14)+'px'; tip.style.top=Math.max(4,e.clientY-b.top-tip.offsetHeight-10)+'px'; }
+    tip.classList.remove('hidden'); tip.style.left=(Math.min(b.width-tip.offsetWidth-6,e.clientX-b.left+14)+gbox.scrollLeft)+'px'; tip.style.top=(Math.max(4,e.clientY-b.top-tip.offsetHeight-10)+gbox.scrollTop)+'px'; }
   function clickCell(e){ const h=heatCell(e); if(h&&h.cell.cwi>=0) SEEK(CX.L.t[h.cell.cwi],true); }
   // whole-log knock heat on this table's own axes; each frame binned on the table the
   // auto-pick says was active (TGV closed/open tables have different axes)
@@ -447,7 +447,7 @@ function TableView(side){ const CX=side==='b'?{get L(){return RP.B},get playT(){
   function dwellTip(e){ if(!(T.opt.dim||T.opt.fc)||!built||!built.yin) return false; const V=visitData(), p=cellAt(e.clientX,e.clientY); if(!V||!p) return false; const t=built, cc=Math.round(p.x), r=Math.round(p.y);
     if(cc<0||r<0||cc>=t.x.length||r>=t.y.length) return false; const k=r*t.x.length+cc, ms=V.ms[k], b=gbox.getBoundingClientRect();
     tip.innerHTML=`<b>${fmtA(t.xin,t.x[cc])} · ${Math.round(t.y[r])}</b><br>${ms?'dwell '+(ms/1000).toFixed(ms<10000?1:0)+' s':'not visited'}${V.cut[k]?` · fuel cut ${V.cut[k]} frames`:''}${V.lg[k]?` · ${V.lg[k]} log${V.lg[k]>1?'s':''}`:''}`;
-    tip.classList.remove('hidden'); tip.style.left=Math.min(b.width-tip.offsetWidth-6,e.clientX-b.left+14)+'px'; tip.style.top=Math.max(4,e.clientY-b.top-tip.offsetHeight-10)+'px'; return true; }
+    tip.classList.remove('hidden'); tip.style.left=(Math.min(b.width-tip.offsetWidth-6,e.clientX-b.left+14)+gbox.scrollLeft)+'px'; tip.style.top=(Math.max(4,e.clientY-b.top-tip.offsetHeight-10)+gbox.scrollTop)+'px'; return true; }
   function kOnTable(L,i,t){ const id=L.pick&&L.pick[i]; if(t.group==='timing'){ const p=pTbl(id); return !!p&&p.id===t.id; } if(t.group==='kca'&&id){ const p=pTbl(id); if(p&&p.tag&&p.tag!==t.tag) return false; } return true; }
   function heatData(){ const t=built, L0=CX.L; if(!t||!L0) return null; const LS=poolL(CX.L).filter(L=>L.c.load&&L.c.rpm&&kchs().some(k=>L.c[k])); if(!LS.length) return null; const chs=kchs();
     const key=LS.map(L=>L.fp).join(',')+'|'+t.id+'|'+chs.join(',')+'|'+isAuto('timing'); if(S.heatKey===key) return S.heat; const cells={};
