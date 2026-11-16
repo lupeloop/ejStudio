@@ -333,7 +333,7 @@ async function addFiles(list){
 function afterLogs(){ ST.fixes.clear(); recompute(false); try{ wbLagAuto(); }catch(e){ elog('wb lag '+e); } if(!RP.L||!ST.logs.includes(RP.L)) selectLog(ST.logs.find(L=>L.fp===UI.fp)||ST.logs[0],false); enterApp(); }
 function removeLog(L){ if(RP.B===L){ RP.B=null; cmpUI(); } ST.logs.splice(ST.logs.indexOf(L),1); IDB.del(L.fp); if(!ST.logs.length){ RP.L=null; showLanding(); recompute(false); return; } ST.fixes.clear(); recompute(false); if(RP.L===L) selectLog(ST.logs[0],false); }
 async function loadTuneText(text,name){
-  try{ const T=parseTune(text,name); TUNE=T; profAuto(T); if(!window.__keepEdits) edReset(); if(!window.__treeSwitch) revRoot(text,name); try{ localStorage.setItem('rrlab_tune_v1',JSON.stringify({name,text})); }catch(_){}
+  try{ const T=parseTune(text,name); TUNE=T; profAuto(T); if(!window.__keepEdits) edReset(); if(!window.__treeSwitch) revAdopt(text,name,T.cal); try{ localStorage.setItem('rrlab_tune_v1',JSON.stringify({name,text})); }catch(_){}
     applyTuneAxis();
     for(const L of ST.logs) computePicks(L); const q=ST.queue.splice(0), errs=[]; if(q.length){ busy(true,'Processing',q.length+' queued log'+(q.length>1?'s':'')); await sleep(60); } for(const o of q) await ingest(o,true,errs); if(q.length) busy(false); if(errs.length) toast(errs.join(' · '));
     mergeLimits(); if(ST.logs.length){ recompute(true); if(q.length||!RP.L) afterLogs(); else { TV.setTune(); } } toast('Tune loaded · '+T.name); landRefresh(); drawerRefresh(); }

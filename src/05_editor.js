@@ -129,10 +129,19 @@ window.__tuneChanges=()=>{ const ch=edChanges(); if(!ch.length) return ['No unbu
 // ════════ revisions · Build · Tuning tree · suggestions ════════
 let REV={nodes:[],cur:null}, REVP={};
 const curNode=()=>REV.nodes.find(n=>n.id===REV.cur)||REV.nodes[0];
-const revNum=n=>{ const m=/_rev(\d+)\.tune$/i.exec(n||''); return m?+m[1]:1; }, revBase=()=>{ const r=REV.nodes.find(n=>!n.parent)||curNode(); return String(r.file||'tune').replace(/\.tune$/i,'').replace(/_rev\d+$/i,''); };
+const revNum=n=>{ const m=/_rev(\d+)\.tune$/i.exec(n||''); return m?+m[1]:1; }, revBase=()=>{ const r=REV.nodes.find(n=>!n.parent)||curNode(); return String(REV.as||r.file||'tune').replace(/\.tune$/i,'').replace(/_rev\d+$/i,''); };
 const nid=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 function revSave(){ try{ localStorage.setItem('ejlab_rev_v1',JSON.stringify(REV)); }catch(_){ toast('Revision history is too big to keep between launches. Save a session to keep it.'); } }
 function revRoot(text,name){ const id=nid(); REV={nodes:[{id,rev:revNum(name),parent:null,file:name,note:'',time:Date.now(),src:text}],cur:id}; REVP={}; UI.lrev={}; revSave(); }
+// Loading a tune: an exact match anywhere in the history switches to that revision; same CAL ID but changed asks to add it as the next revision
+function revAdopt(text,name,cal){ const N=REV&&REV.nodes||[], prev=REV&&REV.cur, tag=()=>{ if(prev) ST.logs.forEach(x=>{ if(!UI.lrev[x.fp]) UI.lrev[x.fp]=prev; }); };
+  const hit=N.find(n=>n.src===text); if(hit){ if(hit.id!==prev) tag(); REV.cur=hit.id; REV.as=name; REVP={}; revSave(); return; }
+  const calOf=n=>{ if(n.cal==null){ try{ n.cal=parseTune(n.src,n.file).cal||''; }catch(_){ n.cal=''; } } return n.cal; }, root=N.find(n=>!n.parent), cur=typeof curNode==='function'?curNode():null;
+  if(root&&cur&&cal&&calOf(root)===cal){ const nx=Math.max(...N.map(n=>n.rev||1))+1, base=String(REV.as||root.file||'tune').replace(/\.tune$/i,'');
+    const spec={msg:`${name} has the same CAL ID as ${base}, with different table data.`,sub:`Add it as rev ${nx} after rev ${cur.rev}, so the logs and history carry over?`,btns:['New history',`Add as rev ${nx}`],primary:1,cancel:0};
+    const i=window.rrlab&&rrlab.askSync?rrlab.askSync(spec):(confirm(spec.msg+'\n\n'+spec.sub)?1:0);
+    if(i===1){ tag(); const id=nid(); N.push({id,rev:nx,parent:cur.id,file:name,note:'Loaded from file',time:Date.now(),src:text,cal}); REV.cur=id; REV.as=name; REVP={}; revSave(); return; } }
+  revRoot(text,name); REV.nodes[0].cal=cal||''; REV.as=name; revSave(); }
 function revBoot(text,name){ let r=null; try{ r=JSON.parse(localStorage.getItem('ejlab_rev_v1')||'null'); }catch(_){} if(r&&r.nodes&&r.nodes.some(n=>n.id===r.cur&&n.src===text)){ REV=r; REVP={}; } else revRoot(text,name); }
 function revTune(id){ if(!id||id===REV.cur) return TUNE; if(REVP[id]) return REVP[id]; const n=REV.nodes.find(x=>x.id===id); if(!n) return TUNE; try{ return REVP[id]=parseTune(n.src,n.file); }catch(_){ return TUNE; } }
 function withLogTune(L,fn){ if(!UI.lrev[L.fp]&&REV.cur) UI.lrev[L.fp]=REV.cur; L.rev=UI.lrev[L.fp]||REV.cur; const T=TUNE?revTune(L.rev):null; L.tuneT=T&&T!==TUNE?T:null;
